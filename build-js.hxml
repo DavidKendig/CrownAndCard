@@ -1,0 +1,10 @@
+# Web build (WebGL). Output goes next to web/index.html.
+#   haxe build-js.hxml
+# Then serve the web/ folder and open index.html.
+-cp src
+-lib heaps
+-main Main
+-D analyzer-optimize
+# Dev tools (console teleport hooks). Remove for release builds.
+-D devtools
+-js web/game.js

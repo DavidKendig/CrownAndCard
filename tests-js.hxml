@@ -1,0 +1,10 @@
+# The same unit tests compiled to JavaScript and run under Node, so the
+# cross-target determinism checks (§7.4) run on a second target.
+#   haxe tests-js.hxml
+-cp src
+-cp tests
+-lib utest
+-main TestMain
+-D analyzer-optimize
+-js bin/tests.js
+--cmd node bin/tests.js

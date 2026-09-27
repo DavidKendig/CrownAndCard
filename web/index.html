@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Crown &amp; Card</title>
+<style>
+	html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #020308; }
+	canvas#webgl { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<!-- globalEvents: listen for keys on the whole page, so WASD works without clicking the canvas first. -->
+<canvas id="webgl" globalEvents="1"></canvas>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+-cp src
+-cp tools
+-lib heaps
+-main VerifySprites
+-js bin/tests-sprites.js
+-cmd node bin/tests-sprites.js

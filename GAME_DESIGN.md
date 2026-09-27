@@ -1079,15 +1079,18 @@ CrownAndCard/
 │  ├─ ai/          poker, tricks, casino NPC policies, profiles
 │  ├─ reactions/   ReactionDirector, rules, mood, memory, gossip, salience
 │  ├─ world/       level baking, player controller, collision, interactables, NPC schedule
+│  ├─ art/         procedural placeholder art (until real Aseprite art exists)
 │  ├─ render/      HXSL shaders (palette/shade, billboard), sprite sets, hands HUD, post
 │  ├─ table/       seated views per family, chip & card presentation
 │  ├─ ui/          menus, HUD, journal, automap
 │  └─ audio/
-├─ res/            sprites, textures, palettes & shade LUTs, sfx, music, fonts
+├─ res/            sprites, textures, palettes & shade LUTs, audio (Ogg Vorbis: audio/music, audio/sfx), fonts
 ├─ data/           CastleDB (.cdb)
 ├─ levels/         LDtk project (.ldtk)
 ├─ tests/          utest suites
-├─ tools/          sim harness, rng dump (PractRand), asset scripts
+├─ tools/          sim harness, rng dump (PractRand), asset scripts, rng reference, lint
+├─ web/            index.html for the WebGL build (game.js is generated)
+├─ launcher/       Windows game launcher (C#, .NET Framework 4.8), §13.12
 └─ docs/           per-game specs and art bible, split out as this doc grows
 ```
 
@@ -1132,6 +1135,7 @@ enum GameEvent {
 
 - **LDtk authoring:** IntGrid layers for walls and floor-height zones, plus diagonal cells for 45° walls. Entity layers for tables, seats, NPC spawns and schedule points, lights, sound emitters, doors and sector movers, secrets, triggers and collectibles. Custom fields hold heights, textures, shade, visibility and palette.
 - **Bake step:** generate wall quads from grid edges, floor and ceiling quads with heights, and step and stair geometry. Batch by texture.
+- **Coordinates:** meters, Z up, +X east, +Y north. The camera is set right-handed, so facing north puts east on the right.
 - **Collision:** 2D circle-versus-segment against the wall grid, with step-height rules. It's simple and robust, and it's Build-like.
 - **NPC navigation:** A* on the grid with steering. Seats are reservable slots.
 - **If rooms need freeform shapes**, add a lightweight polygon-sector editor later. The grid is the Phase 0–2 choice.
@@ -1182,7 +1186,24 @@ The README explains the split for visitors.
 - **In-game legal notice:** an About page in the pause menu shows the copyright, the no-warranty notice, both licenses and a link to the source code. The AGPL expects interactive programs to show these notices.
 - **Online features:** the AGPL's network clause only matters if online features ever ship (the multiplayer idea in Phase 6). If they do, players must be offered the server's source code.
 - **Contributions:** set up a **contributor license agreement (CLA) before accepting outside code or assets.** Without one, the author loses the ability to sell builds containing contributors' work, or to link it with proprietary platform SDKs such as Steamworks and console SDKs.
-- **Dependencies:** Heaps, HashLink, the Haxe standard library, LDtk and CastleDB are MIT-licensed, which is compatible with AGPL. Any new code dependency must be AGPL-compatible (MIT, BSD, Apache-2.0, LGPL or GPLv3 all qualify). Third-party assets such as fonts and sound effects must allow redistribution, and they keep their own licenses.
+- **Dependencies:** Heaps, HashLink, the Haxe standard library, LDtk and CastleDB are MIT-licensed, which is compatible with AGPL. The launcher's music decoder, stb_vorbis, is MIT or public domain. Any new code dependency must be AGPL-compatible (MIT, BSD, Apache-2.0, LGPL or GPLv3 all qualify). Third-party assets such as fonts and sound effects must allow redistribution, and they keep their own licenses.
+
+### 13.12 Game Launcher (LOCKED)
+
+A small Windows launcher, `CrownAndCardLauncher.exe` (`launcher/`), sits in front of the game. It's written in C# for the .NET Framework 4.8 that ships with Windows 10 and 11, so it's a single exe with nothing to install.
+
+| Feature | How it works |
+|---|---|
+| **News** | Reads posts from davidkendig.info through its WordPress REST API, with the RSS feed as a fallback. Shows all posts by default; a launcher setting can narrow it to one category. The last good copy is cached for offline use. Links only open if they point at the site. |
+| **Settings pass-through** | Graphics (display mode, window size, pixel scaling, FOV, head bob, look style, FPS counter) and audio (master, music, effects, voices, mute in background). Passed as `--key=value` arguments to native builds and as URL parameters to the web build, using the same keys the game reads (`src/core/Settings.hx`). The game clamps every value. Audio values are stored until the game has sound. |
+| **Error tracking** | The launcher runs a tiny HTTP server on 127.0.0.1 only, behind a random per-launch token. The game (`src/core/Telemetry.hx`) posts a state heartbeat every 5 seconds (room, position, heading, FPS, view size) and start, error and quit events. The launcher writes one folder per session under `%LOCALAPPDATA%\CrownAndCard\sessions\` and keeps the last 30. Each session ends as OK, errors reported, crashed, lost contact or unknown. The Reports tab shows them and can copy a text report. **Nothing is uploaded.** The game refuses telemetry URLs that aren't local. |
+| **Launch** | Prefers a native build (`CrownAndCard.exe`, or `hl.exe` + `game.hl`) next to the launcher. Otherwise it serves the web build and opens it as an Edge or Chrome app window in guest mode, with its own data folder. Guest mode keeps the window from signing in to the player's browser account or syncing data. |
+| **Menu music** | Loops the menu theme (`res/audio/music/menu-loop-dark.ogg`, embedded in the exe) seamlessly. It follows the Master × Music sliders, fades out while the game runs (and in the background when "Mute in background" is on), and has an on/off switch in the header. Decoded by stb_vorbis, built into a small embedded DLL, and played through the Windows waveOut API. |
+| **Updates** | Checks https://github.com/DavidKendig/CrownAndCard for the latest release (tag `v0.YY.BBB`, asset `CrownAndCard-0.YY.BBB-win64.zip`). If it's newer, the launcher downloads it and verifies the SHA-256 digest GitHub publishes (or a `.sha256` file). It then swaps the files in with a rollback copy and restarts. On by default, with a setting to install manually. A development copy inside a git checkout is never overwritten. Releases are published with `tools/release.ps1`. |
+| **Versioning** | `version.json` holds **0.YY.BBB**: 0, the two-digit year, then a build number from 001 (`python tools/version.py bump`; a new year resets it to 001). The game, the launcher and the release tag all read it. |
+| **Controller** | The launcher reads XInput: A or Start plays, LB/RB switch tabs, Y toggles the music. In the game, the left stick (or d-pad) moves, the right stick looks, LB or L3 runs, and R3 or Y re-centers the view. |
+
+The web-build route is a stopgap until the HashLink desktop build exists; the launcher switches to the native build automatically once it's present.
 
 ---
 
@@ -1210,21 +1231,21 @@ flowchart LR
 
 #### Phase 0: Pre-production
 - [ ] Sign off this GDD (resolve the §17 open questions)
-- [ ] **Render spike:** Heaps + HashLink project, 640×360 target with nearest upscale, walk a greybox room, mouse look with y-shear
-- [ ] **Sprite spike:** 8-angle billboard from 5 drawn angles, face, wall and floor sprites, indexed texture + shade-LUT shader
+- [x] **Render spike:** Heaps project, 360p target with nearest upscale, walk a greybox room, mouse look with y-shear *(done on WebGL; HashLink build still to do)*
+- [ ] **Sprite spike:** 8-angle billboard from 5 drawn angles, face, wall and floor sprites, indexed texture + shade-LUT shader *(face sprites, palette swaps and shade LUT done; wall and floor sprites to do)*
 - [ ] **Seated view spike:** felt tableau + hands HUD + readable cards (validates §5.7)
-- [ ] **RNG spike:** ChaCha20 passing RFC 8439 vectors on HL and JS
+- [x] **RNG spike:** ChaCha20 passing RFC 8439 vectors *(interpreter and JS pass; HashLink still to run)*
 - [ ] **Art test:** master palette, one character (walk, idle, 6 table reactions, head overlays), one room texture kit, one blackjack table, hands
 - [ ] Research simulated-gambling age ratings and storefront policies
 - **Exit:** *"A pixel-art guest standing in a candlelit room looks right, and you can read the cards."* Style and tech approach locked.
 
 #### Phase 1: Foundations (headless, no graphics needed)
-- [ ] `rng`: ChaCha20, xoshiro128\*\*, streams and forks, entropy, save state, full test plan (§7.9)
-- [ ] `cards`: Card, Deck, Shoe (cut card, penetration), blackjack totals, 7-card poker evaluator
+- [ ] `rng`: ChaCha20, xoshiro128\*\*, streams and forks, entropy, save state, full test plan (§7.9) *(done except HashLink entropy and the PractRand run)*
+- [ ] `cards`: Card, Deck, Shoe (cut card, penetration), blackjack totals, 7-card poker evaluator *(Card, Deck and Shoe done)*
 - [ ] Game framework: `TableGame` interface, events, observation views
 - [ ] Rules engines: **Blackjack** and **Roulette** (table rules + common variants)
 - [ ] Sim harness v1 + economy sim skeleton
-- [ ] CI: builds, tests, determinism test, RNG lint
+- [ ] CI: builds, tests, determinism test, RNG lint *(tests, cross-target determinism check and `tools/lint_rng.py` exist; GitHub Actions workflow to do)*
 - **Exit:** RTP sims match theory. The determinism test passes. 100% rules test coverage for T1 games.
 
 #### Phase 2: Vertical Slice
@@ -1366,6 +1387,8 @@ flowchart LR
 | 2026-09-27 | **No end-of-night tally and no visible clock.** The player is perpetually in the world, with no separate game modes. NPCs follow a schedule that must never read as a nightly clock. | David |
 | 2026-09-27 | **No selectable game modes.** Every room is free play with one table per game type. The story advances only through games set up by talking to the **Game Master**. | David |
 | 2026-09-27 | Licensing: **AGPL-3.0 for code, CC BY-NC-SA 4.0 for assets** (§13.11) | David |
+| 2026-09-27 | A **Windows launcher** shows davidkendig.info news, passes graphics and audio settings through, records game state for error tracking, and launches the game (§13.12) | David |
+| 2026-09-27 | **Versioning 0.YY.BBB** (year, then build number), starting at **0.26.001**. The launcher **self-updates from GitHub releases**, and the game and launcher get **controller support** (§13.12). | David |
 
 ---
 

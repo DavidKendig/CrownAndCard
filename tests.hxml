@@ -1,0 +1,8 @@
+# Unit tests on Haxe's built-in interpreter (no runtime needed).
+#   haxe tests.hxml
+-cp src
+-cp tests
+-lib utest
+-main TestMain
+-D analyzer-optimize
+--interp
