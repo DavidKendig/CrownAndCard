@@ -1,0 +1,424 @@
+{
+  "width": 200,
+  "height": 280,
+  "aspect": "5:7",
+  "back": "back.png",
+  "cards": [
+    {
+      "index": 0,
+      "code": "2c",
+      "rank": 2,
+      "suit": "c",
+      "file": "faces/2c.png",
+      "pips": 2
+    },
+    {
+      "index": 1,
+      "code": "2d",
+      "rank": 2,
+      "suit": "d",
+      "file": "faces/2d.png",
+      "pips": 2
+    },
+    {
+      "index": 2,
+      "code": "2h",
+      "rank": 2,
+      "suit": "h",
+      "file": "faces/2h.png",
+      "pips": 2
+    },
+    {
+      "index": 3,
+      "code": "2s",
+      "rank": 2,
+      "suit": "s",
+      "file": "faces/2s.png",
+      "pips": 2
+    },
+    {
+      "index": 4,
+      "code": "3c",
+      "rank": 3,
+      "suit": "c",
+      "file": "faces/3c.png",
+      "pips": 3
+    },
+    {
+      "index": 5,
+      "code": "3d",
+      "rank": 3,
+      "suit": "d",
+      "file": "faces/3d.png",
+      "pips": 3
+    },
+    {
+      "index": 6,
+      "code": "3h",
+      "rank": 3,
+      "suit": "h",
+      "file": "faces/3h.png",
+      "pips": 3
+    },
+    {
+      "index": 7,
+      "code": "3s",
+      "rank": 3,
+      "suit": "s",
+      "file": "faces/3s.png",
+      "pips": 3
+    },
+    {
+      "index": 8,
+      "code": "4c",
+      "rank": 4,
+      "suit": "c",
+      "file": "faces/4c.png",
+      "pips": 4
+    },
+    {
+      "index": 9,
+      "code": "4d",
+      "rank": 4,
+      "suit": "d",
+      "file": "faces/4d.png",
+      "pips": 4
+    },
+    {
+      "index": 10,
+      "code": "4h",
+      "rank": 4,
+      "suit": "h",
+      "file": "faces/4h.png",
+      "pips": 4
+    },
+    {
+      "index": 11,
+      "code": "4s",
+      "rank": 4,
+      "suit": "s",
+      "file": "faces/4s.png",
+      "pips": 4
+    },
+    {
+      "index": 12,
+      "code": "5c",
+      "rank": 5,
+      "suit": "c",
+      "file": "faces/5c.png",
+      "pips": 5
+    },
+    {
+      "index": 13,
+      "code": "5d",
+      "rank": 5,
+      "suit": "d",
+      "file": "faces/5d.png",
+      "pips": 5
+    },
+    {
+      "index": 14,
+      "code": "5h",
+      "rank": 5,
+      "suit": "h",
+      "file": "faces/5h.png",
+      "pips": 5
+    },
+    {
+      "index": 15,
+      "code": "5s",
+      "rank": 5,
+      "suit": "s",
+      "file": "faces/5s.png",
+      "pips": 5
+    },
+    {
+      "index": 16,
+      "code": "6c",
+      "rank": 6,
+      "suit": "c",
+      "file": "faces/6c.png",
+      "pips": 6
+    },
+    {
+      "index": 17,
+      "code": "6d",
+      "rank": 6,
+      "suit": "d",
+      "file": "faces/6d.png",
+      "pips": 6
+    },
+    {
+      "index": 18,
+      "code": "6h",
+      "rank": 6,
+      "suit": "h",
+      "file": "faces/6h.png",
+      "pips": 6
+    },
+    {
+      "index": 19,
+      "code": "6s",
+      "rank": 6,
+      "suit": "s",
+      "file": "faces/6s.png",
+      "pips": 6
+    },
+    {
+      "index": 20,
+      "code": "7c",
+      "rank": 7,
+      "suit": "c",
+      "file": "faces/7c.png",
+      "pips": 7
+    },
+    {
+      "index": 21,
+      "code": "7d",
+      "rank": 7,
+      "suit": "d",
+      "file": "faces/7d.png",
+      "pips": 7
+    },
+    {
+      "index": 22,
+      "code": "7h",
+      "rank": 7,
+      "suit": "h",
+      "file": "faces/7h.png",
+      "pips": 7
+    },
+    {
+      "index": 23,
+      "code": "7s",
+      "rank": 7,
+      "suit": "s",
+      "file": "faces/7s.png",
+      "pips": 7
+    },
+    {
+      "index": 24,
+      "code": "8c",
+      "rank": 8,
+      "suit": "c",
+      "file": "faces/8c.png",
+      "pips": 8
+    },
+    {
+      "index": 25,
+      "code": "8d",
+      "rank": 8,
+      "suit": "d",
+      "file": "faces/8d.png",
+      "pips": 8
+    },
+    {
+      "index": 26,
+      "code": "8h",
+      "rank": 8,
+      "suit": "h",
+      "file": "faces/8h.png",
+      "pips": 8
+    },
+    {
+      "index": 27,
+      "code": "8s",
+      "rank": 8,
+      "suit": "s",
+      "file": "faces/8s.png",
+      "pips": 8
+    },
+    {
+      "index": 28,
+      "code": "9c",
+      "rank": 9,
+      "suit": "c",
+      "file": "faces/9c.png",
+      "pips": 9
+    },
+    {
+      "index": 29,
+      "code": "9d",
+      "rank": 9,
+      "suit": "d",
+      "file": "faces/9d.png",
+      "pips": 9
+    },
+    {
+      "index": 30,
+      "code": "9h",
+      "rank": 9,
+      "suit": "h",
+      "file": "faces/9h.png",
+      "pips": 9
+    },
+    {
+      "index": 31,
+      "code": "9s",
+      "rank": 9,
+      "suit": "s",
+      "file": "faces/9s.png",
+      "pips": 9
+    },
+    {
+      "index": 32,
+      "code": "Tc",
+      "rank": 10,
+      "suit": "c",
+      "file": "faces/Tc.png",
+      "pips": 10
+    },
+    {
+      "index": 33,
+      "code": "Td",
+      "rank": 10,
+      "suit": "d",
+      "file": "faces/Td.png",
+      "pips": 10
+    },
+    {
+      "index": 34,
+      "code": "Th",
+      "rank": 10,
+      "suit": "h",
+      "file": "faces/Th.png",
+      "pips": 10
+    },
+    {
+      "index": 35,
+      "code": "Ts",
+      "rank": 10,
+      "suit": "s",
+      "file": "faces/Ts.png",
+      "pips": 10
+    },
+    {
+      "index": 36,
+      "code": "Jc",
+      "rank": 11,
+      "suit": "c",
+      "file": "faces/Jc.png",
+      "pips": 0
+    },
+    {
+      "index": 37,
+      "code": "Jd",
+      "rank": 11,
+      "suit": "d",
+      "file": "faces/Jd.png",
+      "pips": 0
+    },
+    {
+      "index": 38,
+      "code": "Jh",
+      "rank": 11,
+      "suit": "h",
+      "file": "faces/Jh.png",
+      "pips": 0
+    },
+    {
+      "index": 39,
+      "code": "Js",
+      "rank": 11,
+      "suit": "s",
+      "file": "faces/Js.png",
+      "pips": 0
+    },
+    {
+      "index": 40,
+      "code": "Qc",
+      "rank": 12,
+      "suit": "c",
+      "file": "faces/Qc.png",
+      "pips": 0
+    },
+    {
+      "index": 41,
+      "code": "Qd",
+      "rank": 12,
+      "suit": "d",
+      "file": "faces/Qd.png",
+      "pips": 0
+    },
+    {
+      "index": 42,
+      "code": "Qh",
+      "rank": 12,
+      "suit": "h",
+      "file": "faces/Qh.png",
+      "pips": 0
+    },
+    {
+      "index": 43,
+      "code": "Qs",
+      "rank": 12,
+      "suit": "s",
+      "file": "faces/Qs.png",
+      "pips": 0
+    },
+    {
+      "index": 44,
+      "code": "Kc",
+      "rank": 13,
+      "suit": "c",
+      "file": "faces/Kc.png",
+      "pips": 0
+    },
+    {
+      "index": 45,
+      "code": "Kd",
+      "rank": 13,
+      "suit": "d",
+      "file": "faces/Kd.png",
+      "pips": 0
+    },
+    {
+      "index": 46,
+      "code": "Kh",
+      "rank": 13,
+      "suit": "h",
+      "file": "faces/Kh.png",
+      "pips": 0
+    },
+    {
+      "index": 47,
+      "code": "Ks",
+      "rank": 13,
+      "suit": "s",
+      "file": "faces/Ks.png",
+      "pips": 0
+    },
+    {
+      "index": 48,
+      "code": "Ac",
+      "rank": 14,
+      "suit": "c",
+      "file": "faces/Ac.png",
+      "pips": 1
+    },
+    {
+      "index": 49,
+      "code": "Ad",
+      "rank": 14,
+      "suit": "d",
+      "file": "faces/Ad.png",
+      "pips": 1
+    },
+    {
+      "index": 50,
+      "code": "Ah",
+      "rank": 14,
+      "suit": "h",
+      "file": "faces/Ah.png",
+      "pips": 1
+    },
+    {
+      "index": 51,
+      "code": "As",
+      "rank": 14,
+      "suit": "s",
+      "file": "faces/As.png",
+      "pips": 1
+    }
+  ]
+}

@@ -10,6 +10,13 @@ class TestMain {
 			new cards.CardTest(),
 			new cards.ShoeTest(),
 			new world.GridMapTest(),
+			new world.FoyerTest(),
+			new world.CardRoomTest(),
+			new core.GuestRegisterTest(),
+			new games.BlackjackTest(),
+			new games.SpadesTest(),
+			new games.PokerTest(),
+			new games.ParlourTest(),
 		]);
 	}
 }

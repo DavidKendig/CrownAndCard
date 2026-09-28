@@ -2,6 +2,10 @@
 
 import art.ProcArt;
 import art.SpriteArt;
+import art.FoyerArt;
+import world.Foyer;
+import world.CardRoom;
+import ui.ButtonGlyph.InputMode;
 import core.LaunchOptions;
 import core.Settings;
 import core.Telemetry;
@@ -34,6 +38,20 @@ class Main extends hxd.App {
 	var time = 0.0;
 	var spritePreview:art.SpritePreview;
 	var map:world.GridMap;
+	var entrance:ui.EntranceUI;
+	var register:core.GuestRegister;
+
+	/** The Card Room table's game menu and seated games (§4.3). **/
+	var table:ui.CardTableUI;
+
+	/** The purse, saved with each check-in (§10.1). **/
+	final wallet = new core.Wallet();
+	var visited:Array<String> = [];
+	var doorArmed = true;
+	var fountainWater:Array<BuildShader> = [];
+	#if devtools
+	var showDebug = false;
+	#end
 
 	/** Graphics and audio options passed in by the launcher. **/
 	var settings:Settings;
@@ -58,21 +76,30 @@ class Main extends hxd.App {
 
 		map = Greybox.map();
 		var textures = [
-			"marble" => ProcArt.marble().toIndexTexture(false, true),
+			"marble" => FoyerArt.surface("materials/manor-floor.png",palette,128,128).toIndexTexture(false,true),
 			"parquet" => ProcArt.parquet().toIndexTexture(false, true),
 			"carpet" => ProcArt.carpet().toIndexTexture(false, true),
 			"coffer" => ProcArt.ceilingCoffer().toIndexTexture(false, true),
 			"dome" => ProcArt.ceilingDome().toIndexTexture(false, true),
-			"damask" => ProcArt.wallDamask().toIndexTexture(false, true),
-			"damaskUpper" => ProcArt.upperDamask().toIndexTexture(false, true),
+			"damask" => FoyerArt.surface("materials/manor-wall.png",palette,128,192).toIndexTexture(false,true),
+			"damaskUpper" => FoyerArt.surface("materials/manor-wall.png",palette,128,128,.06,.59).toIndexTexture(false,true),
 			"deco" => ProcArt.wallDeco().toIndexTexture(false, true),
 			"decoUpper" => ProcArt.upperDeco().toIndexTexture(false, true),
 			"green" => ProcArt.wallGreen().toIndexTexture(false, true),
 			"greenUpper" => ProcArt.upperGreen().toIndexTexture(false, true),
 			"felt" => ProcArt.felt().toIndexTexture(false, true),
 			"tableWood" => ProcArt.tableWood().toIndexTexture(false, true),
+			"stone" => FoyerArt.surface("materials/ivory-marble.png",palette,128,128).toIndexTexture(false,true),
+			"ivory" => FoyerArt.surface("materials/ivory-marble.png",palette,128,128).toIndexTexture(false,true),
+			"brass" => FoyerArt.material(Palette.GOLD,10).toIndexTexture(false,true),
+			"velvet" => FoyerArt.material(Palette.RED,6).toIndexTexture(false,true),
+			"flame" => FoyerArt.material(Palette.IVORY,15).toIndexTexture(false,true),
 		];
 		var shaders = WorldBuilder.build(map, textures, shadeLut, s3d);
+		shaders = shaders.concat(FoyerArt.panels(palette,shadeLut,s3d));
+		shaders = shaders.concat(world.BlackjackTable.build(palette,shadeLut,s3d));
+		var fountain=world.Fountain.build(palette,shadeLut,s3d);
+		shaders=shaders.concat(fountain.shaders); fountainWater=fountain.water;
 
 		// Cache by character identity; keep authored colors (no implicit brown swap).
 		var characterSheets = [for (name in SpriteArt.CHARACTERS) name => SpriteArt.characterSheet(name, palette)];
@@ -98,6 +125,10 @@ class Main extends hxd.App {
 		chandelier.setPosition(ch.x, ch.y, ch.z);
 		chandelier.shader.shadeOffset = -8; // candlelit: nearly full bright
 		sprites.push(chandelier);
+		for (y in [6.0,15.0]) {
+			var lamp = new BuildSprite(SpriteArt.chandelier(palette).toIndexTexture(true,false),shadeLut,1,3.0,2.25,s3d);
+			lamp.setPosition(13,y,5.1); lamp.shader.shadeOffset=-8; sprites.push(lamp);
+		}
 
 		for (s in sprites)
 			shaders.push(s.shader);
@@ -117,6 +148,17 @@ class Main extends hxd.App {
 		player = new PlayerController(map, start.x, start.y, start.yaw);
 		player.bobAmount = settings.headBob / 100;
 		player.perspectiveLook = settings.lookStyle == Perspective;
+		#if devtools
+		// Named inspection views for repeatable visual checks; absent in release builds.
+		switch(options.get("foyerView")) {
+			case "doors": player.x=13; player.y=2.1; player.yaw=-Math.PI/2;
+			case "stairs": player.x=13; player.y=13.25; player.yaw=Math.PI/2;
+			case "aisle": player.x=7.5; player.y=11.5; player.yaw=.35;
+			case "rotunda": player.x=13; player.y=24; player.yaw=Math.PI/2;
+			case "blackjack": player.x=13; player.y=34.8; player.yaw=Math.PI/2; player.pitch=-.38;
+			default:
+		}
+		#end
 
 		#if hl
 		var window = hxd.Window.getInstance();
@@ -135,10 +177,29 @@ class Main extends hxd.App {
 		info.x = 6;
 		info.y = 4;
 		spritePreview = new art.SpritePreview(characterSheets, palette, view.hud);
+		entrance = new ui.EntranceUI(view.hud);
+		entrance.onLeave = quitGame;
+		entrance.onPrompt = interact;
+		entrance.onStay = () -> { firstDragFrame=true; };
+		register = new core.GuestRegister(options.get("telemetry"));
+		// Outcome streams fork from one master key per visit (§7.3). Saving it in the register comes later.
+		table = new ui.CardTableUI(view.hud, palette, wallet, rng.ChaChaRng.fromEntropy());
+		register.load(error -> {
+			if(error!=null) entrance.notify(error,8);
+			else {
+				var saved = register.wallet();
+				wallet.sovereigns = saved.sovereigns;
+				wallet.marker = saved.marker;
+				for(room in register.checkpoint.rooms) if(visited.indexOf(room)<0) visited.push(room);
+				entrance.notify(register.checkpoint.checkIns>0?"Welcome back. Your Guest Register page has been restored.":"Welcome to Dodriec Manor. Check in with the hooded keeper.");
+			}
+		});
 
 		// Controllers: use the first one to connect; fall back to keyboard and mouse if it goes away.
+		InputMode.listen();
 		hxd.Pad.wait(p -> {
 			player.pad = p;
+			InputMode.usingPad = true;
 			p.onDisconnect = () -> if (player.pad == p) player.pad = hxd.Pad.createDummy();
 		});
 
@@ -155,6 +216,7 @@ class Main extends hxd.App {
 				player.pitch = pitchDeg * Math.PI / 180;
 			},
 			state: () -> {x: player.x, y: player.y, yawDeg: player.yaw * 180 / Math.PI, pitchDeg: player.pitch * 180 / Math.PI},
+			padPrompts: (on:Bool) -> InputMode.forcePad = on,
 		});
 		#end
 	}
@@ -166,7 +228,7 @@ class Main extends hxd.App {
 	function updateMouseLook():Void {
 		var window = hxd.Window.getInstance();
 		if (hxd.Key.isPressed(hxd.Key.M))
-			window.mouseMode = window.mouseMode == Absolute ? Relative(e -> player.look(e.relX, e.relY), true) : Absolute;
+			window.mouseMode = window.mouseMode == Absolute ? Relative(e -> { if (!entrance.open) player.look(e.relX, e.relY); }, true) : Absolute;
 		if (window.mouseMode == Absolute) {
 			var mx = window.mouseX, my = window.mouseY;
 			if (hxd.Key.isDown(hxd.Key.MOUSE_LEFT) && !firstDragFrame)
@@ -181,6 +243,34 @@ class Main extends hxd.App {
 	var lastMouseY = 0.0;
 	var firstDragFrame = true;
 
+	function checkIn():Void {
+		if(entrance.open || !Foyer.atDesk(player.x,player.y,player.yaw) || register.busy) return;
+		entrance.notify("Signing the Guest Register...");
+		register.checkIn(visited,wallet,error -> entrance.notify(error==null?'Check-in saved with ${wallet.sovereigns} Sovereigns. Fortune favors the bold.':error,6));
+	}
+
+	/** E / A (or a click on the prompt): whatever the player is standing at. **/
+	function interact():Void {
+		if (entrance.open || table.open) return;
+		if (Foyer.atDesk(player.x,player.y,player.yaw)) checkIn();
+		else if (CardRoom.atTable(player.x,player.y,player.yaw)) {
+			hxd.Window.getInstance().mouseMode=Absolute;
+			table.show();
+		}
+	}
+
+	function quitGame():Void {
+		hxd.Window.getInstance().mouseMode=Absolute;
+		telemetry.event("quit","Left through the manor's front doors");
+		hands.visible=crosshair.visible=info.visible=false;
+		#if js
+		js.Browser.document.title="Crown & Card — Visit ended";
+		js.Browser.window.close();
+		#elseif sys
+		Sys.exit(0);
+		#end
+	}
+
 	/** What the launcher records with every heartbeat and error report. **/
 	function gameState():Dynamic {
 		var sector = map.sectorAtWorld(player.x, player.y);
@@ -192,6 +282,8 @@ class Main extends hxd.App {
 			pitchDeg: Math.round(player.pitch * 180 / Math.PI),
 			fps: Math.round(hxd.Timer.fps()),
 			view: '${view.width}x${LowResView.HEIGHT} at ${Math.round(view.scale * 100) / 100}x',
+			table: table == null ? "" : table.status,
+			sovereigns: wallet.sovereigns,
 		};
 	}
 
@@ -206,14 +298,31 @@ class Main extends hxd.App {
 	}
 
 	override function update(dt:Float) {
+		dt=Math.min(dt,.1);
+		if (entrance.departed) { entrance.update(view.width,dt,player.pad,""); return; }
 		time += dt;
 		telemetry.update(dt);
-		updateMouseLook();
-		player.update(dt);
+		InputMode.update(player.pad);
+		var seated = table.open;
+		if (seated) table.update(view.width,dt,player.pad);
+		if (!entrance.open && !seated) {
+			updateMouseLook();
+			player.update(dt);
+			var room=map.sectorAtWorld(player.x,player.y);
+			if(room!=null && visited.indexOf(room.name)<0) visited.push(room.name);
+			if (!Foyer.atDoor(player.x,player.y)) {
+				if(player.y>2.9 || player.x<10.5 || player.x>15.5) doorArmed=true;
+			} else if(doorArmed) {
+				doorArmed=false; entrance.show(); hxd.Window.getInstance().mouseMode=Absolute;
+			}
+			if(!entrance.open && (hxd.Key.isPressed(hxd.Key.E) || (player.pad.connected && player.pad.isPressed(player.pad.config.A))))
+				interact();
+		}
 		player.applyTo(s3d.camera);
-		for (s in spinners)
+		if(!entrance.open) for(i in 0...fountainWater.length) fountainWater[i].uvOffset.set(i == 0 ? time * .035 : 0, -time * (i == 0 ? .04 : .65));
+		if(!entrance.open) for (s in spinners)
 			s.facing = time * 0.7;
-		for (walker in walkers) {
+		if(!entrance.open) for (walker in walkers) {
 			walker.path.update(dt, map);
 			walker.sprite.setPosition(walker.path.x, walker.path.y, 0);
 			walker.sprite.facing = walker.path.facing;
@@ -240,11 +349,27 @@ class Main extends hxd.App {
 				: 'WASD move  |  arrows turn  |  drag or M to look  |  PgUp/PgDn look up/down  |  Shift run\n')
 			+ (settings.showFps ? 'FPS ${Math.round(hxd.Timer.fps())}  |  ' : '') + 'F2 sprite preview'
 			+ (spinner != null ? '   spinning guest angle: ${angleNames[spinner.angleIndex]}' : '');
-		spritePreview.update(view.width, dt);
+		#if devtools
+		if(hxd.Key.isPressed(hxd.Key.F3)) showDebug=!showDebug;
+		if(!showDebug)
+		#end
+		{
+			var here=map.sectorAtWorld(player.x,player.y);
+			info.text="DODRIEC MANOR\n"+(here==null?"":here.name);
+		}
+		spritePreview.hideToggle(table.open);
+		if(!entrance.open && !table.open) spritePreview.update(view.width, dt);
+		crosshair.visible=hands.visible=info.visible=!entrance.open && !table.open;
+		var atDesk=Foyer.atDesk(player.x,player.y,player.yaw), atTable=CardRoom.atTable(player.x,player.y,player.yaw);
+		var prompt=table.open ? ""
+			: atDesk ? (register.busy?"Signing the Guest Register...":"Check in with Mr. Quill - save your visit")
+			: atTable ? "Sit down at the card table"
+			: player.y>12.6 && player.y<14.5 && player.x>8 && player.x<18 ? "The upper floor is closed. Please use the side aisles." : "";
+		entrance.update(view.width,dt,player.pad,prompt,!table.open && ((atDesk && !register.busy) || atTable));
 	}
 
 	override function render(e:h3d.Engine) {
-		view.renderWorld(e, s3d);
+		if(!entrance.departed) view.renderWorld(e, s3d);
 		s2d.render(e);
 	}
 }

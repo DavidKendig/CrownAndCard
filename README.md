@@ -19,19 +19,50 @@ haxelib install utest 1.13.2
 | Unit tests (interpreter) | `haxe tests.hxml` |
 | Unit tests (JavaScript / Node, cross-target check) | `haxe tests-js.hxml` |
 | PNG sprite import checks (JavaScript / Node) | `haxe tests-sprites.hxml` |
+| Regenerate the card faces and back in `res/cards/` (needs `npm install --no-save sharp`) | `node tools/build_cards.cjs` |
 | RNG lint (no `Std.random` / `Math.random`) | `python tools/lint_rng.py` |
 | Regenerate RNG reference vectors | `python tools/rng_reference.py` |
 | Web build | `haxe build-js.hxml`, then serve `web/` (for example `python -m http.server 8080 --directory web`) and open http://localhost:8080 |
 
-**Render spike controls:** WASD move, arrows turn, drag with the mouse (or press M to capture it) to look, PgUp/PgDn look up/down, End re-centers, Shift runs. **Controller:** left stick (or d-pad) moves, right stick looks, LB or clicking the left stick runs, clicking the right stick (or Y) re-centers.
+**Render spike controls:** WASD move, arrows turn, drag with the mouse (or press M to capture it) to look, PgUp/PgDn look up/down (up to 75° either way), End re-centers, Shift runs. **Controller:** left stick (or d-pad) moves, right stick looks, LB or clicking the left stick runs, clicking the right stick (or Y) re-centers.
 
 **Sprite preview:** click **F2: Sprites** at the bottom left (or press F2). Use **Next / C** to cycle the player, male/female guests and male/female staff, and **Rotate / R** to inspect eight directions. The player body is previewed here pending mirror support; the new first-person hand is visible while walking.
 
 The render spike uses generated PNG guest angles and a brass chandelier from `res/sprites/`. See [sprite sources and prompts](res/sprites/README.md) for the art provenance and import specification. The web build embeds these PNGs and converts them to the master palette at startup.
 
+## Games
+
+Walk into the Card Room, step up to the card table and face it. The prompt shows **E** (keyboard) or the green **A** (controller). Press it to open the game menu and choose a game.
+
+| Game | Players | Stakes | Rules reference |
+|---|---|---|---|
+| Blackjack | You vs the dealer | Bets of 2–50 Sovereigns | [Bicycle Cards: Blackjack](https://bicyclecards.com/how-to-play/blackjack). There's no governing body; each casino sets its own table rules, and ours are in [GAME_DESIGN.md §6.4](GAME_DESIGN.md) |
+| Texas Hold'em | You and 3 NPCs | 100-Sovereign buy-in, blinds 1/2, no-limit | [Pagat: Texas Hold'em](https://www.pagat.com/poker/variants/texasholdem.html). For tournament play, the rules authority is the [Poker TDA](https://www.pokertda.com/view-poker-tda-rules/) |
+| Five-card draw | You and 3 NPCs | 100-Sovereign buy-in, ante 1, no-limit | [Pagat: Draw Poker](https://www.pagat.com/poker/variants/5draw.html) |
+| Spades | You and a partner vs 2 NPCs | Points (game to 500) | [Bicycle Cards: Spades](https://bicyclecards.com/how-to-play/spades) |
+| Go Fish | You and 3 NPCs | Books | [Bicycle Cards: Go Fish](https://bicyclecards.com/how-to-play/go-fish) |
+| Slapjack | You and 3 NPCs | Every card | [Bicycle Cards: Slapjack](https://bicyclecards.com/how-to-play/slapjack) |
+| War | You vs 1 NPC | Every card | [Bicycle Cards: War](https://bicyclecards.com/how-to-play/war) |
+| Solitaire (Klondike) | Solo | None | [Bicycle Cards: Solitaire](https://bicyclecards.com/how-to-play/solitaire) |
+
+Only poker has a recognized rules authority (the Poker Tournament Directors Association, for tournaments). For the other games, the links point to the standard published rules from the US Playing Card Company (Bicycle) or to [Pagat](https://www.pagat.com/), the reference card-game rules site. Where those rules leave something open, the game's house rule is written in the rules engine (`src/games/`) and in GAME_DESIGN.md §6.4.
+
+**Controls at the table:**
+
+- **Menus:** arrow keys, WASD, the d-pad or the left stick move the highlight. E, Enter or A chooses; Esc or B goes back (or offers to leave the table). The mouse works too.
+- **Second action:** Space on the keyboard, the blue X on a controller. It slaps in Slapjack, marks cards to exchange in five-card draw, sends a card to a foundation (or finishes the game) in Solitaire, and toggles auto-play in War.
+- **Blackjack:** up/down sets the bet (even amounts, so 3:2 always pays whole Sovereigns). Hit, Stand, Double, Split and Surrender appear when they're allowed.
+- **Poker:** Fold, Check or Call, Bet or Raise, and All in; up/down changes the bet size. Leaving mid-hand folds, and your stack goes back to your purse.
+- **Spades:** left/right picks a card (only legal cards light up) or sets your bid.
+- **Go Fish:** left/right picks the rank to ask for, up/down picks the player.
+- **Solitaire:** move the cursor with left/right, and up/down to switch rows or reach deeper into a pile. E picks cards up and puts them down.
+- **Saving:** the purse is saved when you check in with Mr. Quill.
+
 ## Launcher
 
 `launcher/` holds the Windows game launcher, `CrownAndCardLauncher.exe`. It's C# on the .NET Framework 4.8 that ships with Windows 10 and 11, so the exe runs without installing anything.
+
+The launcher follows the manor's navy, burgundy, brass and ivory palette. Its news page pairs a framed pixel-art masquerade scene with the Manor Gazette; settings and reports retain full-width layouts. The static PNG is embedded in the executable. Art provenance and the generation prompt are in [launcher/assets/README.md](launcher/assets/README.md).
 
 - **News:** the latest posts from [davidkendig.info](https://davidkendig.info), from every category, cached for offline use.
 - **Settings:** graphics and audio options, passed to the game as `--key=value` arguments (native builds) or URL parameters (web build).
@@ -45,6 +76,7 @@ The render spike uses generated PNG guest angles and a brass chandelier from `re
 | Task | Command |
 |---|---|
 | Build the exe (needs Visual Studio Build Tools with the C# and C++ build tools) | `powershell -File launcher\build.ps1` |
+| Build the exe and check the Guest Register save store and the local save API | `powershell -File launcher\build.ps1 -Verify` |
 | Build the release: `dist\CrownAndCard\`, the portable zip and the Setup exe (run `haxe build-js.hxml` first; also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php): `winget install JRSoftware.InnoSetup`) | `powershell -File launcher\build.ps1 -Package` |
 | Show or bump the version (0.YY.BBB: year, then build number) | `python tools/version.py` / `python tools/version.py bump` |
 | Build, package and publish a GitHub release (needs `gh`) | `powershell -File tools\release.ps1 -Bump -Notes "What changed"` |

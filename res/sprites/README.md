@@ -1,5 +1,7 @@
 # Generated sprite sources
 
+See [POSES.md](POSES.md) for standing, seated and animated walking male/female guests.
+
 SPDX-License-Identifier: CC-BY-NC-SA-4.0
 
 Crown & Card by David Kendig. Created with the built-in image_gen tool on 2026-09-27. Original art guided by GAME_DESIGN.md sections 5.1–5.4 and 5.8–5.9.

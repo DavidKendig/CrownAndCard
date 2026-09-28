@@ -19,10 +19,13 @@
   dist\CrownAndCard-<version>-win64.zip (+ .sha256), and builds the installer
   dist\CrownAndCard-Setup-<version>.exe with Inno Setup (installer\CrownAndCard.iss).
 
+  -Verify also builds and runs tools\VerifyGuestRegister.cs, which checks the
+  Guest Register save store and the launcher's local save API.
+
   Needs Visual Studio Build Tools (C# and C++ workloads); -Package also needs
   Inno Setup 6 (winget install JRSoftware.InnoSetup).
 #>
-param([switch]$Package)
+param([switch]$Package, [switch]$Verify)
 $ErrorActionPreference = "Stop"
 
 $root = $PSScriptRoot
@@ -82,10 +85,23 @@ exit `$LASTEXITCODE
         "/langversion:latest", "/nullable:enable", "/warn:4",
         "/out:bin\CrownAndCardLauncher.exe",
         "/win32icon:assets\launcher.ico",
+        "/resource:assets\manor-launcher.png,CrownAndCard.Manor.png",
+        "/resource:assets\launcher-icon.png,CrownAndCard.Emblem.png",
+        "/resource:assets\launcher-logo.png,CrownAndCard.Logo.png",
         "/win32manifest:app.manifest"
     ) + $references + $sources
     & $csc @arguments
     if ($LASTEXITCODE -ne 0) { throw "Compile failed." }
+
+    # 3. Optional: the Guest Register save store and the local save API (tools\VerifyGuestRegister.cs).
+    if ($Verify) {
+        New-Item -ItemType Directory -Force "bin\verify\data" | Out-Null
+        & $csc /nologo /noconfig /nostdlib+ /target:exe /platform:x64 /langversion:latest /nullable:enable `
+            /main:VerifyGuestRegister /out:bin\verify\VerifyGuestRegister.exe @references @sources "..\tools\VerifyGuestRegister.cs"
+        if ($LASTEXITCODE -ne 0) { throw "Verifier compile failed." }
+        & "bin\verify\VerifyGuestRegister.exe" "bin\verify\data"
+        if ($LASTEXITCODE -ne 0) { throw "Guest Register verification failed." }
+    }
 }
 finally {
     Pop-Location

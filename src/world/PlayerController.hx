@@ -12,8 +12,9 @@ import hxd.Key;
 	clicking the left stick runs, and clicking the right stick (or Y) re-centers
 	the view. The stick's tilt sets the walking speed.
 
-	Looking up and down uses Build-style y-shearing (§5.5): the image slides
-	instead of the camera pitching, so walls always stay vertical.
+	Looking up and down (to 75° either way) starts with Build-style y-shearing
+	(§5.5): the image slides instead of the camera pitching, so walls stay
+	vertical. Past Build's ~31° the camera pitches for real.
 **/
 class PlayerController {
 	public static inline var EYE_HEIGHT = 1.6;
@@ -23,7 +24,15 @@ class PlayerController {
 	static inline var TURN_SPEED = 2.4; // radians per second
 	static inline var PITCH_SPEED = 1.1;
 	static inline var MOUSE_SENSITIVITY = 0.0025;
-	static inline var MAX_PITCH = 0.55; // about 31°, like Build's look limits
+	/** Look limit up and down: 75°. **/
+	public static inline var MAX_PITCH = 1.309;
+
+	/**
+		Y-shearing covers the first ~31° of look (Build's own range, §5.5).
+		Beyond that the camera really pitches, because shearing that far
+		stretches the image into a smear.
+	**/
+	static inline var SHEAR_LIMIT = 0.55;
 	static inline var PAD_TURN_SPEED = 2.8; // radians per second at full tilt
 	static inline var PAD_PITCH_SPEED = 1.3;
 
@@ -115,7 +124,7 @@ class PlayerController {
 	}
 
 	public function applyTo(camera:h3d.Camera):Void {
-		var z = EYE_HEIGHT + Math.abs(Math.sin(bobPhase)) * 0.035 * bobAmount;
+		var z = map.floorAt(x, y) + EYE_HEIGHT + Math.abs(Math.sin(bobPhase)) * 0.035 * bobAmount;
 		camera.pos.set(x, y, z);
 		camera.up.set(0, 0, 1);
 		if (perspectiveLook) {
@@ -123,10 +132,12 @@ class PlayerController {
 			camera.target.set(x + Math.cos(yaw) * c, y + Math.sin(yaw) * c, z + Math.sin(pitch));
 			camera.viewY = 0;
 		} else {
-			camera.target.set(x + Math.cos(yaw), y + Math.sin(yaw), z);
 			// Y-shearing: offset the projection so the horizon moves (NDC units).
 			// Positive pitch looks up (with the right-handed camera set in Main).
-			camera.viewY = Math.tan(pitch) / Math.tan(camera.fovY * Math.PI / 360);
+			var shear = Math.max(-SHEAR_LIMIT, Math.min(SHEAR_LIMIT, pitch));
+			var tilt = pitch - shear, c = Math.cos(tilt);
+			camera.target.set(x + Math.cos(yaw) * c, y + Math.sin(yaw) * c, z + Math.sin(tilt));
+			camera.viewY = Math.tan(shear) / Math.tan(camera.fovY * Math.PI / 360);
 		}
 	}
 }

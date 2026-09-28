@@ -41,7 +41,30 @@ class VerifySprites {
 			}
 			if (!turned || [for (_ in phases.keys()) 1].length != 4) throw "Walk did not turn and animate";
 		}
-		if (world.Greybox.GUESTS[0].art != "male_staff") throw "Front desk must use blue staff art";
+		if (world.Greybox.GUESTS[0].art != "hooded_keeper") throw "Front desk must use the hooded keeper";
+		var start=world.Greybox.PLAYER_START;
+		if(map.blocked(start.x,start.y,.25) || !world.Foyer.atDesk(start.x,start.y,start.yaw)) throw "Invalid foyer spawn";
+		// Both side aisles must reach the original playable rooms without crossing ropes.
+		for (x in [7.5,18.5]) {
+			var p={x:start.x,y:start.y};
+			p=map.slide(p.x,p.y,x-p.x,0,.25);
+			p=map.slide(p.x,p.y,0,24-p.y,.25);
+			if(Math.abs(p.x-x)>.01 || Math.abs(p.y-24)>.01) throw "Foyer aisle is blocked";
+		}
+		for (asset in ["fountain.png","welcome-desk.png","grand-doors.png"]) {
+			var pixels=hxd.Res.load('foyer/$asset').toImage().getPixels();
+			if(pixels.width<256 || pixels.height<256) throw 'Missing foyer source: $asset';
+		}
+		var codes=new Map<String,Bool>();
+		for(i in 0...52) {
+			var card=cards.Card.fromIndex(i), path=art.CardArt.path(card);
+			var face=hxd.Res.load(path).toImage().getPixels();
+			if(face.width!=200 || face.height!=280) throw 'Wrong card proportions: $path';
+			if(codes.exists(card.code)) throw "Duplicate card face";
+			codes.set(card.code,true);
+		}
+		var back=hxd.Res.load("cards/back.png").toImage().getPixels();
+		if(back.width*7!=back.height*5) throw "Wrong card back proportions";
 		var hands = SpriteArt.playerHands(palette);
 		if (hands.width != 150 || hands.height != 112) throw "Wrong player HUD size";
 		// Blue remains cool through the actual LUT, not just in the preview.

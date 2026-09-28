@@ -30,6 +30,12 @@ typedef Prop = {
 	var height:Float;
 	var topTex:String;
 	var sideTex:String;
+	@:optional var baseZ:Float;
+	@:optional var solid:Bool;
+	@:optional var walkable:Bool;
+	@:optional var hidden:Bool;
+	@:optional var kind:String;
+	@:optional var collisionRadius:Float;
 }
 
 /**
@@ -81,7 +87,7 @@ class GridMap {
 				if (sectorAt(cx, cy) == null && circleHitsBox(x, y, radius, cx, cy, cx + 1, cy + 1))
 					return true;
 		for (p in props)
-			if (circleHitsBox(x, y, radius, p.x0, p.y0, p.x1, p.y1))
+			if (p.solid != false && p.walkable != true && propOverlap(x,y,radius,p)>0)
 				return true;
 		return false;
 	}
@@ -93,6 +99,15 @@ class GridMap {
 		out instead of getting stuck.
 	**/
 	public function slide(x:Float, y:Float, dx:Float, dy:Float, radius:Float):{x:Float, y:Float} {
+		// Substeps prevent a slow frame from tunnelling through ropes or stair risers.
+		var count = Std.int(Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 0.1));
+		if (count > 1) {
+			for (_ in 0...count) {
+				var p = slide(x, y, dx / count, dy / count, radius);
+				x = p.x; y = p.y;
+			}
+			return {x: x, y: y};
+		}
 		if (dx != 0 && canStep(x, y, x + dx, y, radius))
 			x += dx;
 		if (dy != 0 && canStep(x, y, x, y + dy, radius))
@@ -108,12 +123,32 @@ class GridMap {
 				if (sectorAt(cx, cy) == null)
 					deepest = Math.max(deepest, overlap(x, y, radius, cx, cy, cx + 1, cy + 1));
 		for (p in props)
-			deepest = Math.max(deepest, overlap(x, y, radius, p.x0, p.y0, p.x1, p.y1));
+			if (p.solid != false && p.walkable != true)
+				deepest = Math.max(deepest, propOverlap(x,y,radius,p));
 		return deepest;
 	}
 
 	function canStep(x0:Float, y0:Float, x1:Float, y1:Float, radius:Float):Bool {
+		if (Math.abs(floorAt(x1, y1) - floorAt(x0, y0)) > 0.26) return false;
 		return !blocked(x1, y1, radius) || penetration(x1, y1, radius) <= penetration(x0, y0, radius);
+	}
+
+	static function propOverlap(x:Float,y:Float,r:Float,p:Prop):Float {
+		if(p.collisionRadius!=null) {
+			var dx=x-(p.x0+p.x1)/2,dy=y-(p.y0+p.y1)/2;
+			return Math.max(0,r+p.collisionRadius-Math.sqrt(dx*dx+dy*dy));
+		}
+		return overlap(x,y,r,p.x0,p.y0,p.x1,p.y1);
+	}
+
+	/** Stair treads share their rendered heights with movement; ropes are separate. */
+	public function floorAt(x:Float, y:Float):Float {
+		var sector = sectorAtWorld(x, y);
+		var z = sector == null ? 0.0 : sector.floorZ;
+		for (p in props)
+			if (p.walkable == true && x >= p.x0 && x < p.x1 && y >= p.y0 && y < p.y1)
+				z = Math.max(z, p.height);
+		return z;
 	}
 
 	static function circleHitsBox(x:Float, y:Float, r:Float, x0:Float, y0:Float, x1:Float, y1:Float):Bool {

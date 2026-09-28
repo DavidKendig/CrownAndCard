@@ -46,9 +46,10 @@ class WorldBuilder {
 			}
 
 		for (p in map.props) {
+			if (p.hidden == true) continue;
 			var s = map.sectorAtWorld((p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2);
 			var shade = s == null ? 8.0 : s.shade;
-			MeshBuilder.box(mb(p.topTex), mb(p.sideTex), p.x0, p.y0, 0, p.x1, p.y1, p.height, shade);
+			MeshBuilder.box(mb(p.topTex), mb(p.sideTex), p.x0, p.y0, p.baseZ == null ? 0 : p.baseZ, p.x1, p.y1, p.height, shade);
 		}
 
 		var shaders = [];
@@ -83,7 +84,9 @@ class WorldBuilder {
 	**/
 	static function addEdge(mb:String->MeshBuilder, s:Sector, n:Null<Sector>, a:Point, b:Point, along:Int, shadeBias:Float):Void {
 		var shade = s.shade + shadeBias;
-		var u0 = along, u1 = along + 1;
+		// A generated damask panel spans three metres, avoiding compressed woodwork.
+		var repeat = s.wallTex == "damask" ? 3.0 : 1.0;
+		var u0 = along / repeat, u1 = (along + 1) / repeat;
 		if (n == null) {
 			var lowerTop = Math.min(s.ceilZ, s.floorZ + WALL_TEX_HEIGHT);
 			wall(mb(s.wallTex), a, b, s.floorZ, lowerTop, u0, u1, (s.floorZ + WALL_TEX_HEIGHT - lowerTop) / WALL_TEX_HEIGHT, 1, shade);
