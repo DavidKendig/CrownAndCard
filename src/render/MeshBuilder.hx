@@ -51,10 +51,10 @@ class MeshBuilder {
 			return new UV(u, v);
 		top.quad(p(x0, y0, z1), p(x1, y0, z1), p(x1, y1, z1), p(x0, y1, z1), uv(x0, -y0), uv(x1, -y0), uv(x1, -y1), uv(x0, -y1), p(0, 0, 1), shade);
 		var h = z1 - z0;
-		side.quad(p(x0, y0, z1), p(x1, y0, z1), p(x1, y0, z0), p(x0, y0, z0), uv(0, 0), uv(x1 - x0, 0), uv(x1 - x0, h), uv(0, h), p(0, -1, 0), shade);
-		side.quad(p(x1, y1, z1), p(x0, y1, z1), p(x0, y1, z0), p(x1, y1, z0), uv(0, 0), uv(x1 - x0, 0), uv(x1 - x0, h), uv(0, h), p(0, 1, 0), shade);
-		side.quad(p(x0, y1, z1), p(x0, y0, z1), p(x0, y0, z0), p(x0, y1, z0), uv(0, 0), uv(y1 - y0, 0), uv(y1 - y0, h), uv(0, h), p(-1, 0, 0), shade);
-		side.quad(p(x1, y0, z1), p(x1, y1, z1), p(x1, y1, z0), p(x1, y0, z0), uv(0, 0), uv(y1 - y0, 0), uv(y1 - y0, h), uv(0, h), p(1, 0, 0), shade);
+		side.quad(p(x0, y0, z1), p(x1, y0, z1), p(x1, y0, z0), p(x0, y0, z0), uv(0, 0), uv(x1 - x0, 0), uv(x1 - x0, h), uv(0, h), p(0, -1, 0), shade+2);
+		side.quad(p(x1, y1, z1), p(x0, y1, z1), p(x0, y1, z0), p(x1, y1, z0), uv(0, 0), uv(x1 - x0, 0), uv(x1 - x0, h), uv(0, h), p(0, 1, 0), shade+2);
+		side.quad(p(x0, y1, z1), p(x0, y0, z1), p(x0, y0, z0), p(x0, y1, z0), uv(0, 0), uv(y1 - y0, 0), uv(y1 - y0, h), uv(0, h), p(-1, 0, 0), shade+1);
+		side.quad(p(x1, y0, z1), p(x1, y1, z1), p(x1, y1, z0), p(x1, y0, z0), uv(0, 0), uv(y1 - y0, 0), uv(y1 - y0, h), uv(0, h), p(1, 0, 0), shade+3);
 	}
 
 	public function toPrimitive():h3d.prim.Polygon {

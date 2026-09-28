@@ -14,7 +14,7 @@ class SpritePreview extends h2d.Object {
 	var angle = 0;
 	var animationTime = 0.0;
 	static final NAMES = ["Player", "Male guest standing", "Female guest standing", "Male staff", "Female staff",
-		"Male guest seated", "Female guest seated", "Male guest walking", "Female guest walking"];
+		"Male guest seated", "Female guest seated", "Male guest walking", "Female guest walking", "Hooded keeper"];
 
 	public function new(art:Map<String, IndexCanvas>, palette:Palette, parent:h2d.Object) {
 		super(parent);
@@ -63,6 +63,12 @@ class SpritePreview extends h2d.Object {
 		label.dropShadow = {dx: 1, dy: 1, color: 0, alpha: 1};
 		var hit = new h2d.Interactive(label.textWidth, 16, label);
 		hit.onClick = _ -> action();
+	}
+
+	/** Hides the preview and its F2 button (while the player is seated at a table). **/
+	public function hideToggle(hidden:Bool):Void {
+		toggle.visible = !hidden;
+		if (hidden) visible = false;
 	}
 
 	function next() {

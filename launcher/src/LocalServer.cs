@@ -26,6 +26,7 @@ sealed class LocalServer : IDisposable
 	readonly TcpListener listener = new(IPAddress.Loopback, 0);
 	readonly string token = NewToken();
 	volatile bool running = true;
+	readonly GuestRegisterStore register;
 
 	public int Port { get; }
 	public string BasePath => $"/s/{token}/";
@@ -38,8 +39,9 @@ sealed class LocalServer : IDisposable
 	/** Raised on a worker thread with the endpoint ("state" or "event") and the raw JSON body. **/
 	public event Action<string, string>? Posted;
 
-	public LocalServer()
+	public LocalServer(GuestRegisterStore? register = null)
 	{
+		this.register = register ?? new GuestRegisterStore(Path.Combine(Paths.DataDir, "saves", "guest-register.json"));
 		listener.Start();
 		Port = ((IPEndPoint)listener.LocalEndpoint).Port;
 		new Thread(AcceptLoop) { IsBackground = true, Name = "LocalServer" }.Start();
@@ -114,6 +116,25 @@ sealed class LocalServer : IDisposable
 			return;
 		}
 		var sub = path.Substring(BasePath.Length);
+
+		// Same token-protected origin as the game; no cross-origin access headers.
+		if (sub == "api/save")
+		{
+			try
+			{
+				if (method == "GET") Respond(stream, 200, "application/json", Encoding.UTF8.GetBytes(register.Read()));
+				else if (method == "POST")
+				{
+					if (contentLength > 65536) { Respond(stream, 413); return; }
+					register.Write(Encoding.UTF8.GetString(ReadBody(stream, leftover, contentLength)));
+					Respond(stream, 204);
+				}
+				else Respond(stream, 405);
+			}
+			catch (ArgumentException) { Respond(stream, 400); }
+			catch (Exception e) { Log.Write("Guest Register: " + e.Message); Respond(stream, 500); }
+			return;
+		}
 
 		if (method == "POST" && (sub == "api/state" || sub == "api/event"))
 		{

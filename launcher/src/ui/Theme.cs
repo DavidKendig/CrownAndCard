@@ -8,19 +8,20 @@ using System.Windows.Forms;
 
 namespace CrownAndCard.Launcher.UI;
 
-/** Colors and fonts: felt green, gold and cream, matching the game's palette. **/
+/** Navy evening dress, burgundy damask, aged brass and ivory from the manor art. **/
 static class Theme
 {
-	public static readonly Color Background = Color.FromArgb(11, 19, 15);
-	public static readonly Color Panel = Color.FromArgb(18, 31, 24);
-	public static readonly Color Card = Color.FromArgb(25, 42, 33);
-	public static readonly Color CardHover = Color.FromArgb(33, 54, 42);
-	public static readonly Color Border = Color.FromArgb(56, 74, 50);
-	public static readonly Color Gold = Color.FromArgb(212, 175, 55);
-	public static readonly Color GoldBright = Color.FromArgb(240, 208, 96);
-	public static readonly Color GoldDark = Color.FromArgb(120, 94, 26);
-	public static readonly Color Cream = Color.FromArgb(237, 227, 200);
-	public static readonly Color Muted = Color.FromArgb(150, 144, 124);
+	public static readonly Color Background = Color.FromArgb(10, 13, 24);
+	public static readonly Color Panel = Color.FromArgb(16, 21, 36);
+	public static readonly Color Card = Color.FromArgb(23, 29, 46);
+	public static readonly Color CardHover = Color.FromArgb(34, 42, 62);
+	public static readonly Color Border = Color.FromArgb(73, 65, 53);
+	public static readonly Color Burgundy = Color.FromArgb(66, 20, 33);
+	public static readonly Color Gold = Color.FromArgb(200, 163, 94);
+	public static readonly Color GoldBright = Color.FromArgb(244, 219, 165);
+	public static readonly Color GoldDark = Color.FromArgb(115, 85, 43);
+	public static readonly Color Cream = Color.FromArgb(239, 230, 210);
+	public static readonly Color Muted = Color.FromArgb(164, 161, 154);
 	public static readonly Color Ink = Color.FromArgb(24, 18, 8);
 	public static readonly Color Red = Color.FromArgb(214, 92, 84);
 	public static readonly Color Green = Color.FromArgb(120, 190, 120);

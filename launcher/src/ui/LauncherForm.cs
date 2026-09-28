@@ -15,6 +15,7 @@ sealed class LauncherForm : Form
 	readonly SettingsView settingsView;
 	readonly ReportsView reports = new();
 	readonly Panel content = new() { Dock = DockStyle.Fill, Padding = new Padding(28, 18, 28, 10), BackColor = Theme.Background };
+	readonly ManorPanel manor = new() { Dock = DockStyle.Left, Width = 338 };
 	readonly Button play = new() { Text = "PLAY", Size = new Size(210, 56), Font = Theme.Play };
 	readonly Label gameLabel = Theme.Label("", Theme.Body, Theme.Cream);
 	readonly Label sessionLabel = Theme.Label("", Theme.Small, Theme.Muted);
@@ -48,7 +49,7 @@ sealed class LauncherForm : Form
 		Text = "Crown & Card";
 		AutoScaleDimensions = new SizeF(96f, 96f);
 		AutoScaleMode = AutoScaleMode.Dpi;
-		ClientSize = new Size(1060, 700);
+		ClientSize = new Size(1180, 760);
 		MinimumSize = new Size(900, 620);
 		StartPosition = FormStartPosition.CenterScreen;
 		BackColor = Theme.Background;
@@ -118,7 +119,10 @@ sealed class LauncherForm : Form
 			gameLabel.MaximumSize = sessionLabel.MaximumSize = new Size(Math.Max(200, play.Left - 56), 0);
 		};
 
-		Controls.Add(content);
+		var body = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Background };
+		body.Controls.Add(content);
+		body.Controls.Add(manor);
+		Controls.Add(body);
 		Controls.Add(footer);
 		Controls.Add(header);
 
@@ -274,6 +278,7 @@ sealed class LauncherForm : Form
 
 	void ShowView(Control view)
 	{
+		manor.Visible = view == news;
 		if (content.Controls.Count == 1 && content.Controls[0] == view)
 			return;
 		content.Controls.Clear();
@@ -382,28 +387,58 @@ sealed class LauncherForm : Form
 	/** Title banner: a gradient, the crown, and the game's name. **/
 	sealed class HeaderPanel : Panel
 	{
+		readonly Bitmap emblem = LoadArtwork("CrownAndCard.Emblem.png");
+		readonly Bitmap logo = LoadArtwork("CrownAndCard.Logo.png");
+
 		public HeaderPanel()
 		{
 			DoubleBuffered = true;
 			ResizeRedraw = true;
 			BackColor = Theme.Panel;
+			AccessibleName = "Crown & Card";
+		}
+
+		static Bitmap LoadArtwork(string name)
+		{
+			using var stream = typeof(LauncherForm).Assembly.GetManifestResourceStream(name)
+				?? throw new InvalidOperationException("Missing launcher artwork: " + name);
+			using var source = new Bitmap(stream);
+			// Ignore transparent export margins while retaining the original PNG masters.
+			int left = source.Width, top = source.Height, right = -1, bottom = -1;
+			for (int y = 0; y < source.Height; y++)
+			for (int x = 0; x < source.Width; x++)
+			{
+				if (source.GetPixel(x, y).A < 16) continue;
+				left = Math.Min(left, x); top = Math.Min(top, y);
+				right = Math.Max(right, x); bottom = Math.Max(bottom, y);
+			}
+			if (right < left) throw new InvalidOperationException("Empty launcher artwork: " + name);
+			return source.Clone(Rectangle.FromLTRB(left, top, right + 1, bottom + 1), System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 		}
 
 		protected override void OnPaint(PaintEventArgs e)
 		{
 			var g = e.Graphics;
-			using (var bg = new LinearGradientBrush(ClientRectangle, Color.FromArgb(24, 44, 33), Color.FromArgb(9, 16, 12), LinearGradientMode.Vertical))
+			using (var bg = new LinearGradientBrush(ClientRectangle, Theme.Panel, Theme.Background, LinearGradientMode.Vertical))
 				g.FillRectangle(bg, ClientRectangle);
 			using (var line = new Pen(Theme.GoldDark, 2))
 				g.DrawLine(line, 0, Height - 1, Width, Height - 1);
-			Theme.DrawCrown(g, new RectangleF(28, 26, 58, 46));
-			g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-			using (var shadow = new SolidBrush(Color.FromArgb(160, 0, 0, 0)))
-				g.DrawString("CROWN & CARD", Theme.Title, shadow, 102, 20);
-			using (var gold = new SolidBrush(Theme.Gold))
-				g.DrawString("CROWN & CARD", Theme.Title, gold, 100, 18);
-			using (var cream = new SolidBrush(Theme.Muted))
-				g.DrawString("Dodriec Manor  ·  Game Launcher", Theme.Subtitle, cream, 104, 70);
+			float scale = Height / 118f;
+			g.InterpolationMode = InterpolationMode.NearestNeighbor;
+			g.PixelOffsetMode = PixelOffsetMode.Half;
+			float emblemHeight = 88 * scale;
+			g.DrawImage(emblem, new RectangleF(26 * scale, 14 * scale, emblemHeight * emblem.Width / emblem.Height, emblemHeight));
+			// The logo matches the crown's height; reserve room for the navigation at the
+			// minimum window width and at high DPI, shrinking it about the crown's centre line.
+			float logoWidth = Math.Min(emblemHeight * logo.Width / logo.Height, Math.Max(180 * scale, Width - 480 * scale));
+			float logoHeight = logoWidth * logo.Height / logo.Width;
+			g.DrawImage(logo, new RectangleF(106 * scale, 14 * scale + (emblemHeight - logoHeight) / 2, logoWidth, logoHeight));
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing) { emblem.Dispose(); logo.Dispose(); }
+			base.Dispose(disposing);
 		}
 	}
 
@@ -419,7 +454,7 @@ sealed class LauncherForm : Form
 		protected override void OnPaint(PaintEventArgs e)
 		{
 			base.OnPaint(e);
-			using var line = new Pen(Theme.Border, 1);
+			using var line = new Pen(Theme.GoldDark, 1);
 			e.Graphics.DrawLine(line, 0, 0, Width, 0);
 		}
 	}
@@ -500,6 +535,11 @@ sealed class LauncherForm : Form
 		protected override void OnPaint(PaintEventArgs e)
 		{
 			var color = active ? Theme.GoldBright : hover ? Theme.Cream : Theme.Muted;
+			if (active || hover)
+			{
+				using var fill = new SolidBrush(active ? Theme.Burgundy : Theme.Card);
+				e.Graphics.FillRectangle(fill, 0, 0, Width, Height - 4);
+			}
 			TextRenderer.DrawText(e.Graphics, Text, Font, new Rectangle(0, 0, Width, Height - 4), color,
 				TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
 			if (active)

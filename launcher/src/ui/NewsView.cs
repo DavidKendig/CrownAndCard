@@ -18,8 +18,8 @@ sealed class NewsView : UserControl
 	public NewsView()
 	{
 		BackColor = Theme.Background;
-		var top = new Panel { Dock = DockStyle.Top, Height = 46, BackColor = Theme.Background };
-		var title = Theme.Label("News from davidkendig.info", Theme.Heading, Theme.Gold);
+		var top = new Panel { Dock = DockStyle.Top, Height = 66, BackColor = Theme.Background };
+		var title = Theme.Label("THE MANOR GAZETTE", Theme.Heading, Theme.Gold);
 		title.Location = new Point(0, 6);
 		status = Theme.Label("", Theme.Small, Theme.Muted);
 		refresh = new LinkLabel
@@ -37,9 +37,8 @@ sealed class NewsView : UserControl
 		top.Resize += (_, _) =>
 		{
 			refresh.Location = new Point(top.Width - refresh.Width, 12);
-			status.Location = new Point(refresh.Left - status.Width - 14, 14);
+			status.Location = new Point(0, 36);
 		};
-		status.SizeChanged += (_, _) => status.Left = refresh.Left - status.Width - 14;
 
 		list = new FlowLayoutPanel
 		{
@@ -66,6 +65,14 @@ sealed class NewsView : UserControl
 		if (id != requestId || IsDisposed)
 			return;
 		ShowResult(result);
+	}
+
+	protected override void OnVisibleChanged(EventArgs e)
+	{
+		base.OnVisibleChanged(e);
+		// The artwork rail changes the available width when this view is reattached.
+		if (Visible && IsHandleCreated)
+			BeginInvoke(new Action(() => { if (!IsDisposed) ResizeCards(); }));
 	}
 
 	void ShowResult(NewsResult r)
@@ -115,6 +122,13 @@ sealed class NewsView : UserControl
 			Margin = new Padding(0, 0, 0, 10),
 		};
 		var title = Theme.Label(item.Title, Theme.CardTitle, Theme.Gold);
+		card.Paint += (_, e) =>
+		{
+			using var line = new Pen(Theme.Border);
+			e.Graphics.DrawRectangle(line, 0, 0, card.Width - 1, card.Height - 1);
+			using var accent = new SolidBrush(Theme.GoldDark);
+			e.Graphics.FillRectangle(accent, 0, 0, 3, card.Height);
+		};
 		title.Cursor = Cursors.Hand;
 		title.Click += (_, _) => Open(item.Link);
 		var date = Theme.Label(item.Date == default ? "" : item.Date.ToString("MMMM d, yyyy"), Theme.Small, Theme.Muted);
@@ -144,8 +158,10 @@ sealed class NewsView : UserControl
 		{
 			if (c is FlowLayoutPanel card)
 			{
-				card.MinimumSize = new Size(width, 0);
+				// Release the old minimum before constraining a previously wider card.
+				card.MinimumSize = Size.Empty;
 				card.MaximumSize = new Size(width, 0);
+				card.MinimumSize = new Size(width, 0);
 				foreach (Control child in card.Controls)
 					child.MaximumSize = new Size(width - card.Padding.Horizontal - 6, 0);
 			}

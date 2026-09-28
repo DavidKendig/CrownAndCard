@@ -218,7 +218,12 @@ flowchart TB
 
 ### 4.2 The Entrance Hall & The Rotunda (Hub)
 
-**The Entrance Hall** is where every visit begins. The front doors open onto it, and it leads straight into the Rotunda.
+**The Entrance Hall** is where every visit begins: a double-height grand manor foyer with marble floors, brass-trimmed burgundy walls and a ceremonial welcome desk. The player arrives in front of the desk, facing the hooded, robed Mr. Quill. A large water fountain stands behind him, followed by a grand staircase. Side aisles connect to the Rotunda. The staircase has real stepped floor heights for eventual second-floor access; removable velvet rope barriers keep it closed in the current build.
+
+- **Departure:** approaching the grand front doors opens a translucent confirmation over the world. Stay cancels and returns control; Leave quits the game, without saving. A browser that cannot close its own tab stops the game and shows a departure screen. The door prompt rearms only after the player steps away.
+- **Current check-in implementation:** interact with Quill using E / controller A to persist a local Guest Register checkpoint. Every visit starts at the welcome desk; the current render build records visit/check-in progress, with the full campaign payload added as those systems are implemented. Saving remains explicit, never automatic.
+- **Entrance art:** generated burgundy damask / mahogany wall panels and brass-inlaid marble floor textures feed the palette renderer. The fountain is solid revolved 3D mesh geometry, with marble bowls, brass rims, water surfaces and animated falling streams; it is not a camera-facing sprite.
+- **Card assets:** the standard deck has 52 individual 200 × 280 PNG faces (5:7 poker-card proportions) plus a matching back. Rank labels, suit shapes and pip counts are authored deterministically; generated masked court portraits and the ornamental back follow the manor palette. The Card Room table uses an authored blackjack layout.
 
 - **The Front Desk:** Mr. Ambrose Quill, the front desk clerk, keeps the **Guest Register**. **Checking in with him is the only way to save** (§13.7). Loading a save puts you back at the front desk.
 - **Greeting:** Quill greets you by name and rank, sometimes with a dry remark about your latest win or loss. There's no stats screen. Your records live in the Journal (§10.7).
@@ -251,6 +256,8 @@ flowchart TB
 
 **One table per game type in each room** (§3.3). Every table is free play, and its limits follow your rank (§10.1).
 
+**Current build: the Card Room's card table.** Stepping up to the table and facing it shows a prompt. The prompt shows the **E** key on a keyboard, or the **green A** button on a controller, whichever the player last used. Pressing it opens the table's **game menu**, which offers every playable game: **Blackjack, Texas Hold'em, Five-card draw, Spades, Go Fish, Slapjack, War and Solitaire**. Choosing one seats the player at that game. The world pauses, dimmed, behind the seated view (§5.7). Leaving a game returns to the menu, and **Stand up** returns to the room. This single table stands in for the per-game tables until each room is built. Each game then moves to its room: Hold'em to the Smoking Room, draw to the Tavern Cellar, Spades to the Library.
+
 ### 4.4 Suit Keys (homage to Build's colored keycards) (DRAFT)
 
 | Key | Opens | How it's earned |
@@ -276,7 +283,7 @@ Keys are **never gated by random outcomes**. Every key path is deterministic, ba
 | WASD + mouse | Walk and look (controller supported) |
 | Shift | Run. *Running in the manor earns disapproving looks* (etiquette) |
 | Ctrl | Crouch: peek under tables, crawl through hatches |
-| E | Use: doors, sit, talk, examine, pick up |
+| E | Use: doors, sit, talk, examine, pick up. On a controller: A. On-screen prompts show the E keycap or the green A button, following the device the player last touched |
 | Tab | Automap |
 | G | Gesture wheel: toast, tip, nod, shrug, applaud, taunt |
 | Esc | Menu, or stand up from a table (between rounds) |
@@ -338,6 +345,7 @@ A Build-style automap overlay drawn like an **architect's floor-plan sketch** on
 ### 5.5 Camera
 
 - **Y-shearing look up and down** by default, the authentic Build feel. Toggle to true perspective pitch in settings (comfort).
+- **Look range: 75° up and 75° down.** Y-shearing covers Build's own range (about 31°), and past that the camera really pitches. Shearing further smears the image, so this keeps the Build feel for everyday glances while still letting the player look straight up at a dome or down at the floor.
 - Head bob and hand sway, with a slider down to 0.
 - FOV slider (default 90° horizontal).
 - **Seated:** the camera locks to the seat and eases in to a narrower FOV. Mouse free-look is limited to a cone so you can glance at the people around you.
@@ -431,6 +439,7 @@ Every game sits on a common framework:
 | **Trick-taking** | Deal, bidding, trick play, scoring | Euchre, Hearts, Spades, *(post: Whist, Bridge)* |
 | **Machines** | Reel strips, paytables, hold/draw | Mechanical Slots, Video Poker |
 | **Signature** | Custom | *Crown & Card* |
+| **Parlour** | Small standalone engines (no betting) | Go Fish, Slapjack, War, Solitaire |
 
 ### 6.3 Game Catalog & Priority Tiers
 
@@ -454,6 +463,10 @@ Every game sits on a common framework:
 | Big Six Wheel | Grand Salon | Wheels | 1–8 | None | T3 |
 | Chuck-a-luck | Tavern Cellar | Dice | 1–6 | None | T3 |
 | *Crown & Card* | Inner Sanctum | Signature | 4 | Med–High | T3 |
+| Go Fish | Card Room table *(current build)* | Parlour | 4 | Low | Added 2026-09-28 |
+| Slapjack | Card Room table *(current build)* | Parlour | 4 | Low (reaction times) | Added 2026-09-28 |
+| War | Card Room table *(current build)* | Parlour | 2 | None | Added 2026-09-28 |
+| Solitaire (Klondike) | Card Room table *(current build)* | Parlour | 1 | None | Added 2026-09-28 |
 | Omaha, Bridge, Whist, Cribbage, Gin Rummy, Sic Bo, Pai Gow, Caribbean Stud, Let It Ride, Spanish 21, Bagatelle | various | various | | | T4 (post-launch) |
 
 > **Scope guard:** 18 launch games is ambitious. The **minimum viable launch** is T1 + T2 + Hearts, Spades, Video Poker, Chemin de Fer and *Crown & Card* (11 games). Every room keeps at least one table. The rest can slip to post-launch.
@@ -462,6 +475,7 @@ Every game sits on a common framework:
 
 **Blackjack**
 - Table rules: 6 decks, dealer stands on soft 17, double after split, late surrender, insurance, dealer peek. **Blackjack always pays 3:2.**
+- *Implemented (`games.blackjack`):* double on any two cards; split any two ten-value cards; split to four hands; split aces get one card each and can't be resplit; a 21 after a split pays 1:1. Bets run 2–50 Sov in even amounts, so 3:2 and half-bet insurance always pay in whole Sovereigns. The seated view deals cards one at a time in true deal order, and the hole card flips when the dealer plays. The player plays alone against the dealer for now; the NPC seats come with §9.4.
 - Continuous shoe with a cut card at ~75% penetration, so **card counting genuinely works**. The Pit Boss's "heat" system responds (§8.8).
 - Seven seats. NPCs play basic strategy with personality deviations.
 - Post-launch: side bets (Perfect Pairs, 21+3).
@@ -497,6 +511,19 @@ Every game sits on a common framework:
 
 **Seven-Card Stud / Five-Card Draw:** reuse the poker engine. Five-Card Draw is the kitchen-table game in the Tavern Cellar, with loose, rowdy NPCs.
 
+*Implemented poker (`games.poker`):*
+- **Engine:** one no-limit engine for both games, with full and short all-in raises (a short all-in doesn't reopen the betting), main and side pots, and odd chips going to the first winner clockwise from the button. A 5-to-7-card evaluator settles every showdown.
+- **Hold'em:** blinds 1/2, heads-up blinds handled.
+- **Five-card draw** follows [Pagat](https://www.pagat.com/poker/variants/5draw.html): ante 1, the first round starts left of the dealer, and each player exchanges up to three cards. The second round starts with the opener. If everyone checks the first round, the deal is thrown in and the pot carries over.
+- **Buy-in:** 100 Sovereigns from the purse. Leaving mid-hand folds, and the stack returns to the purse. NPCs who go broke buy back in.
+- **AI (§9.2, Normal):** Monte Carlo equity against the live opponents' unknown cards, weighed against pot odds and shaded by a looseness/aggression style per character. The Deacon is tight, the Colonel bold, Crake aggressive, and Reggie a loose, passive fish.
+
+*Parlour games (`games.parlour`), rules per [Bicycle Cards](https://bicyclecards.com/how-to-play/) with house rules where the printed rules are silent:*
+- **Go Fish:** 5 cards each for four players. Drawing the rank you asked for keeps your turn ("fish your wish"). The NPCs remember who asked for what.
+- **Slapjack:** real-time slaps. NPC reaction times come from the AI stream: Tuppence fast, Reggie slow, and Reggie sometimes slaps a queen or king by mistake. House rules: slapping your own card puts it under the center pile, and if every card ends up in the center with no jack on top, the center is reshuffled and dealt back out.
+- **War:** one card down and one up per war. House rule: a player who runs short in a war turns up their last card, and one with none left loses. Auto-play is available.
+- **Solitaire (Klondike):** turn one card at a time, unlimited passes through the stock, and foundation cards may come back down. Auto-finish runs once nothing is hidden.
+
 **Euchre**
 - 24-card deck (9–A), right and left bowers, order up/pass, going alone, points to 10.
 - Table rules: stick the dealer.
@@ -506,6 +533,12 @@ Every game sits on a common framework:
 **Hearts:** passing rotates left, right, across, then hold. Shoot the moon.
 
 **Spades:** partnerships, bidding, nil and blind nil, sandbags.
+- *Implemented (`games.spades`):* the player (South) partners Prof. Oyelaran (North) against the Vasquez twins, Rosalind (West) and Rafe (East). Deal and bidding rotate left.
+- **Bidding:** bids run 0–13; 0 is nil. Blind nil is offered before you see your cards, only while your side trails by 100 or more.
+- **Play:** follow suit. Spades can't be led until broken, unless you hold nothing else.
+- **Scoring:** a made bid scores 10 per trick plus 1 per bag; a set loses 10 per trick bid. Every 10 bags costs 100. Nil scores ±100 and blind nil ±200. A nil bidder's tricks don't count toward the partner's bid; they're bags.
+- **Game:** first to 500 wins. A side at −200 loses. Leaving mid-game abandons it.
+- **AI:** the other three seats play Normal-level heuristics (§9.3) with card tracking: covering a partner's nil, ducking bags once the bid is made, and second hand low, third hand high.
 
 **Three Card Poker:** Ante/Play and Pair Plus. Post-launch: 6-Card Bonus.
 
@@ -901,7 +934,7 @@ House games are **negative expected value by design** (authentic, per §7.9). Su
 
 ### 10.3 Going Broke (no soft-locks)
 
-- **Pemberton's Marker:** a loan. It costs Rep until repaid.
+- **Pemberton's Marker:** a loan. It costs Rep until repaid. *Current build:* when the purse can't cover the blackjack minimum, the table offers a 500 Sov marker. The amount owed is tracked and saved; repayment and the Rep cost come later.
 - **Favors:** manor errands that pay chips and double as exploration content.
 - **Low minimums everywhere:** every table's minimum bet stays low, so you can always play on a short stack.
 - Story beats and keys are gated by **Rep, keys and skill, never by cash alone**. An NPC with high affinity can sponsor the stake for an arranged game.
@@ -1075,13 +1108,13 @@ CrownAndCard/
 │  ├─ core/        state machine, event bus, front-desk check-in (save/load)
 │  ├─ rng/         ChaCha20, Xoshiro128ss, RngStream, Entropy (per target)
 │  ├─ cards/       Card, Deck, Shoe, poker evaluator, blackjack totals
-│  ├─ games/       banking/ wheels/ dice/ poker/ tricks/ machines/ signature/
+│  ├─ games/       pure rules engines: blackjack/, spades/ so far; grouped by family as they grow
 │  ├─ ai/          poker, tricks, casino NPC policies, profiles
 │  ├─ reactions/   ReactionDirector, rules, mood, memory, gossip, salience
 │  ├─ world/       level baking, player controller, collision, interactables, NPC schedule
 │  ├─ art/         procedural placeholder art (until real Aseprite art exists)
 │  ├─ render/      HXSL shaders (palette/shade, billboard), sprite sets, hands HUD, post
-│  ├─ table/       seated views per family, chip & card presentation
+│  ├─ table/       seated views per family, chip & card presentation (for now in ui/: *TableUI, CardFaces)
 │  ├─ ui/          menus, HUD, journal, automap
 │  └─ audio/
 ├─ res/            sprites, textures, palettes & shade LUTs, audio (Ogg Vorbis: audio/music, audio/sfx), fonts
@@ -1147,7 +1180,7 @@ enum GameEvent {
 - **Save slots are pages in the Register.** Each page shows your mask, rank and Sovereigns.
 - **Loading** a save puts you at the front desk, just after checking in.
 - **You can't check in mid-hand.** Stand up from your table and walk to the Entrance Hall. It's one room from the hub, so it's never far.
-- **Contents:** profile, bankroll, rank, Rep, keys, collectibles, relationships and memories, **RNG states**, Journal stats.
+- **Contents:** profile, bankroll, rank, Rep, keys, collectibles, relationships and memories, **RNG states**, Journal stats. *Current build:* check-ins, rooms visited, the purse (Sovereigns) and Pemberton's marker; a new member starts with the 1,000 Sov stake. RNG states aren't saved yet, so each visit starts fresh shoes.
 - **Settings** save separately and immediately. They aren't part of the game state.
 - Versioned save files with migrations.
 - **Quit and crash protection:** open question Q12.
@@ -1393,6 +1426,8 @@ flowchart LR
 | 2026-09-27 | A **Windows launcher** shows davidkendig.info news, passes graphics and audio settings through, records game state for error tracking, and launches the game (§13.12) | David |
 | 2026-09-27 | **Versioning 0.YY.BBB** (year, then build number), starting at **0.26.001**. The launcher **self-updates from GitHub releases**, and the game and launcher get **controller support** (§13.12). | David |
 | 2026-09-27 | After an antivirus detection, 0.26.002 ships an **Inno Setup installer**. Updates run through it with the player's OK, and the launcher avoids malware-like runtime behavior (§13.12). | David |
+| 2026-09-28 | The Card Room table gets an **E / green-A prompt** and a **game menu** that seats the player at the chosen game. **Blackjack and Spades** are the first two playable games. Until the Library exists, Spades is played at the Card Room table (§4.3, §6.4). | David |
+| 2026-09-28 | **Texas Hold'em, Five-card draw, Go Fish, Slapjack, War and Solitaire** join the table menu. The last four are new to the catalog as parlour games. The camera's look range grows to **±75°**, with y-shearing kept for the first ~31° (§5.5). The README lists each game with a link to its rules source. | David |
 
 ---
 

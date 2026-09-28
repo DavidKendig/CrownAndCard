@@ -14,13 +14,15 @@ class SpriteArt {
 	}
 
 	public static final CHARACTERS = ["player", "masked_guest", "female_guest", "male_staff", "female_staff",
-		"male_guest_seated", "female_guest_seated", "male_guest_walk", "female_guest_walk"];
+		"male_guest_seated", "female_guest_seated", "male_guest_walk", "female_guest_walk", "hooded_keeper"];
 
 	public static function frameWidth(name:String):Int {
+		if (name == "hooded_keeper") return 64;
 		return StringTools.endsWith(name, "_seated") ? 128 : StringTools.endsWith(name, "_walk") ? 64 : GUEST_W;
 	}
 
 	public static function frameHeight(name:String):Int {
+		if (name == "hooded_keeper") return 128;
 		return StringTools.endsWith(name, "_seated") ? 168 : GUEST_H;
 	}
 
@@ -44,7 +46,7 @@ class SpriteArt {
 		var sheet = importSheet(hxd.Res.load('sprites/$sourceName.png').toImage().getPixels(), palette, 5,
 			frameWidth(name), frameHeight(name), animationRows(name), cuts);
 		// The female source's rear three-quarter is drawn from the opposite side.
-		if (name == "female_guest_seated" || name == "female_guest_walk") {
+		if (name == "female_guest_seated" || name == "female_guest_walk" || name == "hooded_keeper") {
 			var original = sheet.copy(), w = frameWidth(name);
 			for (y in 0...sheet.height) for (x in 0...w)
 				sheet.set(3 * w + x, y, original.get(4 * w - 1 - x, y));
