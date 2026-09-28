@@ -15,7 +15,7 @@ class MapDataTest extends utest.Test {
 		Assert.same([], [for (p in MapData.check(m)) p.message]);
 		var level = new Level(m);
 		// The manor's props plus everything its fixtures build (checked against the old hand-built layout).
-		Assert.equals(347, level.map.props.length);
+		Assert.equals(348, level.map.props.length);
 		Assert.isTrue(level.atDesk(13, 4, Math.PI / 2));
 		Assert.isTrue(level.atTable(13, 34.8, Math.PI / 2));
 		Assert.isTrue(level.atDoor(13, 1.5));
