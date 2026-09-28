@@ -23,7 +23,7 @@ class GoFishUI extends CardGameScreen {
 	var log:Array<String> = [];
 
 	public function new(parent:h2d.Object, faces:CardFaces, shuffle:rng.IRng, aiRng:rng.IRng) {
-		super(parent, faces);
+		super(parent, faces, "go-fish");
 		this.shuffle = shuffle;
 		this.aiRng = aiRng;
 		newGame();
@@ -49,7 +49,7 @@ class GoFishUI extends CardGameScreen {
 
 	override public function update(w:Int, dt:Float, input:MenuInput):Void {
 		var cx = w / 2;
-		begin(w, 0x1E3348, 0x2A1A10);
+		begin(w);
 		var hand = game.hands[0];
 		if (cursor >= hand.length) cursor = hand.length - 1;
 		if (cursor < 0) cursor = 0;

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Haxen · Crown &amp; Card map editor</title>
+<style>
+	:root {
+		--bg: #0a0d18; --panel: #101524; --panel2: #161c30; --line: #2c3450; --gold: #c8a35e; --gold-hi: #f4dba5;
+		--cream: #efe6d2; --muted: #9c927c; --bad: #f09080; --warn: #e8c070; --good: #a8e0a0;
+	}
+	* { box-sizing: border-box; }
+	html, body { margin: 0; height: 100%; background: var(--bg); color: var(--cream); font: 13px/1.35 "Segoe UI", system-ui, sans-serif; overflow: hidden; }
+	button, select, input { font: inherit; color: var(--cream); background: var(--panel2); border: 1px solid var(--line); border-radius: 3px; }
+	button { padding: 4px 10px; cursor: pointer; }
+	button:hover { border-color: var(--gold); color: var(--gold-hi); }
+	button.primary { border-color: var(--gold); color: var(--gold-hi); }
+	button:disabled { opacity: .4; cursor: default; }
+	input, select { padding: 2px 5px; min-width: 0; }
+	input[type=number] { width: 72px; }
+	input[type=checkbox] { accent-color: var(--gold); }
+	#app { display: grid; grid-template-rows: 42px 1fr 24px; grid-template-columns: 52px 1fr 300px; height: 100%; }
+	#top { grid-column: 1 / 4; display: flex; align-items: center; gap: 6px; padding: 0 10px; background: var(--panel); border-bottom: 1px solid var(--gold); }
+	#brand { font-weight: 700; letter-spacing: .12em; color: var(--gold-hi); margin-right: 8px; }
+	#docname { margin-left: 8px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	#top .spacer { flex: 1; }
+	#tools { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; padding: 6px 5px; }
+	#tools button { width: 40px; height: 36px; padding: 0; font-size: 12px; line-height: 1.1; }
+	#tools button.on { background: #3a2a10; border-color: var(--gold-hi); color: var(--gold-hi); }
+	#stage { position: relative; overflow: hidden; }
+	#canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; }
+	#side { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; padding: 8px 10px 20px; }
+	#side h2 { font-size: 11px; letter-spacing: .14em; color: var(--gold); margin: 14px 0 6px; font-weight: 600; border-bottom: 1px solid var(--line); padding-bottom: 3px; }
+	#side h2:first-child { margin-top: 2px; }
+	.row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+	.row label { width: 86px; color: var(--muted); flex: none; }
+	.row input[type=text], .row select { flex: 1; }
+	.hint { color: var(--muted); font-size: 12px; margin: 4px 0; }
+	.room { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border: 1px solid transparent; border-radius: 3px; cursor: pointer; }
+	.room:hover { border-color: var(--line); }
+	.room.on { border-color: var(--gold); background: #1c1a14; }
+	.swatch { width: 16px; height: 16px; border: 1px solid #0008; border-radius: 2px; flex: none; }
+	.room .key { font-family: Consolas, monospace; color: var(--gold-hi); width: 14px; }
+	.problem { padding: 3px 4px; border-left: 3px solid var(--bad); margin: 3px 0; cursor: pointer; background: #1a1418; }
+	.problem.warn { border-left-color: var(--warn); background: #1a1812; }
+	#status { grid-column: 1 / 4; display: flex; gap: 18px; align-items: center; padding: 0 10px; background: var(--panel); border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+	#message { color: var(--gold-hi); }
+	#message.bad { color: var(--bad); }
+	#modal { position: fixed; inset: 0; background: #0009; display: none; align-items: center; justify-content: center; }
+	#modal.open { display: flex; }
+	#dialog { width: 420px; max-height: 80%; overflow-y: auto; background: var(--panel); border: 1px solid var(--gold); padding: 14px 16px; border-radius: 4px; }
+	#dialog h3 { margin: 0 0 10px; color: var(--gold-hi); letter-spacing: .1em; font-size: 14px; }
+	.map-item { display: flex; align-items: center; gap: 8px; padding: 6px; border: 1px solid var(--line); border-radius: 3px; margin: 5px 0; }
+	.map-item span { flex: 1; }
+</style>
+</head>
+<body>
+<div id="app">
+	<div id="top">
+		<span id="brand">HAXEN</span>
+		<button id="new" title="New map">New</button>
+		<button id="open" title="Open a map (Ctrl+O)">Open</button>
+		<button id="save" class="primary" title="Save (Ctrl+S)">Save</button>
+		<button id="saveas">Save as</button>
+		<button id="import" title="Load a .json map file">Import</button>
+		<button id="export" title="Download this map as a .json file">Export</button>
+		<button id="undo" title="Undo (Ctrl+Z)">Undo</button>
+		<button id="redo" title="Redo (Ctrl+Y)">Redo</button>
+		<span id="docname"></span>
+		<span class="spacer"></span>
+		<button id="fit" title="Fit the map in the view (Home)">Fit</button>
+		<button id="play" class="primary" title="Save, then play this map">Play test</button>
+		<input id="file" type="file" accept=".json,application/json" hidden>
+	</div>
+	<div id="tools"></div>
+	<div id="stage"><canvas id="canvas"></canvas></div>
+	<div id="side">
+		<h2>SELECTION</h2>
+		<div id="selection"></div>
+		<h2>ROOMS</h2>
+		<div class="hint">Pick a room (or Wall) to paint with, then use the brush, rectangle or fill tool.</div>
+		<div id="rooms"></div>
+		<div class="row"><button id="addroom">+ Room</button><button id="delroom">Delete room</button></div>
+		<div id="roomedit"></div>
+		<h2>MAP</h2>
+		<div id="mapedit"></div>
+		<h2>PROBLEMS</h2>
+		<div id="problems"></div>
+	</div>
+	<div id="status"><span id="cursor">&nbsp;</span><span id="zoom"></span><span id="snaplabel"></span><span id="message"></span></div>
+</div>
+<div id="modal"><div id="dialog"></div></div>
+<script src="haxen.js"></script>
+</body>
+</html>

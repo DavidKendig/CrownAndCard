@@ -14,13 +14,13 @@
   (cc_vorbis.dll, music\menu-loop-dark.ogg). Nothing is embedded and unpacked
   at run time: behavior-based antivirus treats that pattern as malware.
 
-  -Package also assembles dist\CrownAndCard\ (the launcher, the web build,
-  the music and the licenses; run `haxe build-js.hxml` first), zips it as
+  -Package also assembles dist\CrownAndCard\ (the launcher, the web build and
+  Haxen, the music and the licenses; run `haxe build-js.hxml` and `haxe haxen.hxml` first), zips it as
   dist\CrownAndCard-<version>-win64.zip (+ .sha256), and builds the installer
   dist\CrownAndCard-Setup-<version>.exe with Inno Setup (installer\CrownAndCard.iss).
 
-  -Verify also builds and runs tools\VerifyGuestRegister.cs, which checks the
-  Guest Register save store and the launcher's local save API.
+  -Verify also builds and runs tools\VerifyLocalApi.cs, which checks the
+  launcher's local API: the Guest Register (saves) and custom maps.
 
   Needs Visual Studio Build Tools (C# and C++ workloads); -Package also needs
   Inno Setup 6 (winget install JRSoftware.InnoSetup).
@@ -93,14 +93,14 @@ exit `$LASTEXITCODE
     & $csc @arguments
     if ($LASTEXITCODE -ne 0) { throw "Compile failed." }
 
-    # 3. Optional: the Guest Register save store and the local save API (tools\VerifyGuestRegister.cs).
+    # 3. Optional: the launcher's local API, saves and custom maps (tools\VerifyLocalApi.cs).
     if ($Verify) {
         New-Item -ItemType Directory -Force "bin\verify\data" | Out-Null
         & $csc /nologo /noconfig /nostdlib+ /target:exe /platform:x64 /langversion:latest /nullable:enable `
-            /main:VerifyGuestRegister /out:bin\verify\VerifyGuestRegister.exe @references @sources "..\tools\VerifyGuestRegister.cs"
+            /main:VerifyLocalApi /out:bin\verify\VerifyLocalApi.exe @references @sources "..\tools\VerifyLocalApi.cs"
         if ($LASTEXITCODE -ne 0) { throw "Verifier compile failed." }
-        & "bin\verify\VerifyGuestRegister.exe" "bin\verify\data"
-        if ($LASTEXITCODE -ne 0) { throw "Guest Register verification failed." }
+        & "bin\verify\VerifyLocalApi.exe" "bin\verify\data"
+        if ($LASTEXITCODE -ne 0) { throw "Local API verification failed." }
     }
 }
 finally {
@@ -112,11 +112,12 @@ Write-Host "Built $exe ($version)"
 if ($Package) {
     $web = Join-Path $repo "web"
     if (-not (Test-Path (Join-Path $web "game.js"))) { throw "web\game.js is missing; run 'haxe build-js.hxml' first." }
+    if (-not (Test-Path (Join-Path $web "haxen.js"))) { throw "web\haxen.js is missing; run 'haxe haxen.hxml' first." }
     $dist = Join-Path $repo "dist\CrownAndCard"
     if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
     New-Item -ItemType Directory -Force (Join-Path $dist "web"), (Join-Path $dist "music") | Out-Null
     Copy-Item $exe, (Join-Path $root "bin\cc_vorbis.dll") $dist
-    Copy-Item (Join-Path $web "index.html"), (Join-Path $web "game.js") (Join-Path $dist "web")
+    Copy-Item (Join-Path $web "index.html"), (Join-Path $web "game.js"), (Join-Path $web "haxen.html"), (Join-Path $web "haxen.js") (Join-Path $dist "web")
     Copy-Item (Join-Path $repo "res\audio\music\menu-loop-dark.ogg") (Join-Path $dist "music")
     Copy-Item (Join-Path $repo "LICENSE"), (Join-Path $repo "LICENSE-ASSETS"), (Join-Path $repo "version.json") $dist
     Write-Host "Packaged $dist"

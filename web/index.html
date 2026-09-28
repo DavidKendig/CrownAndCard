@@ -6,7 +6,9 @@
 <title>Crown &amp; Card</title>
 <style>
 	html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #020308; }
-	canvas#webgl { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+	/* !important beats the inline size Heaps' WebGL driver writes once at startup, so the
+	   canvas keeps following the window (resizing, F11, fullscreen) instead of freezing. */
+	canvas#webgl { display: block; width: 100% !important; height: 100% !important; image-rendering: pixelated; }
 </style>
 </head>
 <body>

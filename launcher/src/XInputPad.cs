@@ -49,6 +49,44 @@ sealed class XInputPad
 
 	public bool WasPressed(ushort button) => (Pressed & button) != 0;
 
+	/** XInput bit for each button of the browser's "standard" gamepad layout, in its order. **/
+	static readonly ushort[] StandardButtons =
+	[
+		A, B, X, Y, LB, RB, 0 /* LT */, 0 /* RT */, Back, Start, 0x0040 /* L3 */, 0x0080 /* R3 */, DPadUp, DPadDown, DPadLeft, DPadRight,
+	];
+
+	/**
+		The first connected controller as compact JSON in the browser's standard
+		gamepad layout (so the game reads it like a Gamepad API pad): c = connected,
+		b = button bits by standard index, a = sticks (y down is positive, as in
+		browsers), t = triggers. The game uses this when the browser can't see the
+		controller, for example while Steam's desktop layout owns it.
+	**/
+	public static string Snapshot()
+	{
+		for (int user = 0; user < 4; user++)
+		{
+			State s;
+			try
+			{
+				if (XInputGetState(user, out s) != 0) continue;
+			}
+			catch (DllNotFoundException)
+			{
+				break;
+			}
+			int bits = 0;
+			for (int i = 0; i < StandardButtons.Length; i++)
+				if (StandardButtons[i] != 0 && (s.Buttons & StandardButtons[i]) != 0) bits |= 1 << i;
+			if (s.LeftTrigger > 30) bits |= 1 << 6;
+			if (s.RightTrigger > 30) bits |= 1 << 7;
+			static string Axis(int v) => Math.Max(-1.0, Math.Min(1.0, v / 32767.0)).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+			static string Trigger(byte v) => (v / 255.0).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+			return $"{{\"c\":1,\"b\":{bits},\"a\":[{Axis(s.ThumbLX)},{Axis(-s.ThumbLY)},{Axis(s.ThumbRX)},{Axis(-s.ThumbRY)}],\"t\":[{Trigger(s.LeftTrigger)},{Trigger(s.RightTrigger)}]}}";
+		}
+		return "{\"c\":0}";
+	}
+
 	[StructLayout(LayoutKind.Sequential)]
 	struct State
 	{

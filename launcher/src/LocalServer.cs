@@ -12,8 +12,11 @@ namespace CrownAndCard.Launcher;
 /**
 	A tiny HTTP server on 127.0.0.1 (never reachable from other machines).
 
-	- Serves the web build of the game from `WebRoot`.
+	- Serves the web build of the game (and Haxen, the map editor) from `WebRoot`.
 	- Receives the game's state heartbeats and events at `api/state` and `api/event`.
+	- Keeps the Guest Register at `api/save`, and custom maps at `api/maps`.
+	- Lets Haxen ask for a play test at `api/playtest?map=<name>`.
+	- Streams the controller to the game at `api/pad` (XInput works where the browser's gamepad support doesn't).
 
 	Every URL sits under a random per-launch token, so other local pages can't
 	read the game files or post fake reports.
@@ -27,6 +30,7 @@ sealed class LocalServer : IDisposable
 	readonly string token = NewToken();
 	volatile bool running = true;
 	readonly GuestRegisterStore register;
+	readonly MapStore maps;
 
 	public int Port { get; }
 	public string BasePath => $"/s/{token}/";
@@ -39,9 +43,16 @@ sealed class LocalServer : IDisposable
 	/** Raised on a worker thread with the endpoint ("state" or "event") and the raw JSON body. **/
 	public event Action<string, string>? Posted;
 
-	public LocalServer(GuestRegisterStore? register = null)
+	/**
+		Haxen asked to play a saved map. Called on a worker thread; returns null once
+		the game is starting, "busy" if a game is already running, or another reason.
+	**/
+	public Func<string, string?>? PlaytestRequested;
+
+	public LocalServer(GuestRegisterStore? register = null, MapStore? maps = null)
 	{
 		this.register = register ?? new GuestRegisterStore(Path.Combine(Paths.DataDir, "saves", "guest-register.json"));
+		this.maps = maps ?? new MapStore(Paths.MapsDir);
 		listener.Start();
 		Port = ((IPEndPoint)listener.LocalEndpoint).Port;
 		new Thread(AcceptLoop) { IsBackground = true, Name = "LocalServer" }.Start();
@@ -118,6 +129,61 @@ sealed class LocalServer : IDisposable
 		var sub = path.Substring(BasePath.Length);
 
 		// Same token-protected origin as the game; no cross-origin access headers.
+		if (sub == "api/maps" || sub.StartsWith("api/maps/", StringComparison.Ordinal))
+		{
+			try
+			{
+				if (sub == "api/maps")
+				{
+					if (method == "GET") Respond(stream, 200, "application/json", Encoding.UTF8.GetBytes(Json.Write(maps.List(), false)));
+					else Respond(stream, 405);
+					return;
+				}
+				var name = Uri.UnescapeDataString(sub.Substring("api/maps/".Length));
+				if (!MapStore.ValidName(name)) { Respond(stream, 400); return; }
+				switch (method)
+				{
+					case "GET":
+						var text = maps.Read(name);
+						if (text == null) Respond(stream, 404);
+						else Respond(stream, 200, "application/json", Encoding.UTF8.GetBytes(text));
+						break;
+					case "PUT":
+					case "POST":
+						maps.Write(name, Encoding.UTF8.GetString(ReadBody(stream, leftover, contentLength)));
+						Respond(stream, 204);
+						break;
+					case "DELETE":
+						Respond(stream, maps.Delete(name) ? 204 : 404);
+						break;
+					default:
+						Respond(stream, 405);
+						break;
+				}
+			}
+			catch (ArgumentException) { Respond(stream, 400); }
+			catch (Exception e) { Log.Write("Maps: " + e.Message); Respond(stream, 500); }
+			return;
+		}
+
+		if (sub == "api/pad" && method == "GET")
+		{
+			StreamPad(stream);
+			return;
+		}
+
+		if (sub == "api/playtest")
+		{
+			if (method != "POST") { Respond(stream, 405); return; }
+			var map = QueryValue(query < 0 ? "" : target.Substring(query + 1), "map");
+			if (!MapStore.ValidName(map) || maps.Read(map!) == null) { Respond(stream, 404); return; }
+			string? refusal;
+			try { refusal = PlaytestRequested == null ? "unavailable" : PlaytestRequested(map!); }
+			catch (Exception e) { Log.Write("Play test: " + e.Message); refusal = "failed"; }
+			Respond(stream, refusal == null ? 204 : refusal == "busy" ? 409 : 503);
+			return;
+		}
+
 		if (sub == "api/save")
 		{
 			try
@@ -149,6 +215,43 @@ sealed class LocalServer : IDisposable
 			return;
 		}
 		Respond(stream, 405);
+	}
+
+	/**
+		Streams the controller to the game as server-sent events (text/event-stream),
+		polling XInput at about 120 Hz and sending only changes (plus a keep-alive).
+		Ends when the page goes away or the launcher closes.
+	**/
+	void StreamPad(Stream stream)
+	{
+		var head = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nConnection: keep-alive\r\n\r\n");
+		try
+		{
+			stream.Write(head, 0, head.Length);
+			string last = "";
+			var lastSent = DateTime.UtcNow;
+			while (running)
+			{
+				var snap = XInputPad.Snapshot();
+				var now = DateTime.UtcNow;
+				if (snap != last || (now - lastSent).TotalSeconds > 2)
+				{
+					var bytes = Encoding.ASCII.GetBytes("data: " + snap + "\n\n");
+					stream.Write(bytes, 0, bytes.Length);
+					stream.Flush();
+					last = snap;
+					lastSent = now;
+				}
+				Thread.Sleep(8);
+			}
+		}
+		catch (IOException)
+		{
+			// The game window closed or reloaded.
+		}
+		catch (ObjectDisposedException)
+		{
+		}
 	}
 
 	void ServeFile(Stream stream, string sub, bool headOnly)
@@ -236,6 +339,17 @@ sealed class LocalServer : IDisposable
 		stream.Flush();
 	}
 
+	static string? QueryValue(string query, string key)
+	{
+		foreach (var pair in query.Split('&'))
+		{
+			var eq = pair.IndexOf('=');
+			if (eq > 0 && Uri.UnescapeDataString(pair.Substring(0, eq)) == key)
+				return Uri.UnescapeDataString(pair.Substring(eq + 1).Replace('+', ' '));
+		}
+		return null;
+	}
+
 	static string Reason(int code) => code switch
 	{
 		200 => "OK",
@@ -244,7 +358,9 @@ sealed class LocalServer : IDisposable
 		403 => "Forbidden",
 		404 => "Not Found",
 		405 => "Method Not Allowed",
+		409 => "Conflict",
 		413 => "Payload Too Large",
+		503 => "Service Unavailable",
 		_ => "Error",
 	};
 

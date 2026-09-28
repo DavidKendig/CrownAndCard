@@ -34,12 +34,15 @@ sealed class LauncherSettings
 	public bool LauncherMusic = true; // the menu loop in the launcher
 	public bool AutoUpdate = true; // check GitHub for a newer release at startup (installing always asks)
 	public string GamePath = ""; // optional override; empty = auto-detect
+	public string Map = ""; // a custom Haxen map to play; empty = Dodriec Manor
 
 	public static readonly (int W, int H)[] WindowSizes = [(1280, 720), (1600, 900), (1920, 1080), (2560, 1440)];
 
 	/** The options handed to the game, in the game's own key names. **/
-	public List<KeyValuePair<string, string>> GameOptions() =>
-	[
+	public List<KeyValuePair<string, string>> GameOptions()
+	{
+		List<KeyValuePair<string, string>> options =
+		[
 		new("fullscreen", Bool(Fullscreen)),
 		new("windowWidth", WindowWidth.ToString()),
 		new("windowHeight", WindowHeight.ToString()),
@@ -53,7 +56,11 @@ sealed class LauncherSettings
 		new("effectsVolume", EffectsVolume.ToString()),
 		new("voiceVolume", VoiceVolume.ToString()),
 		new("muteInBackground", Bool(MuteInBackground)),
-	];
+		];
+		if (Map.Length > 0)
+			options.Add(new("map", Map));
+		return options;
+	}
 
 	public Dictionary<string, object> ToReport()
 	{
@@ -89,6 +96,7 @@ sealed class LauncherSettings
 			s.LauncherMusic = ReadBool(d, "launcherMusic", s.LauncherMusic);
 			s.AutoUpdate = ReadBool(d, "autoUpdate", s.AutoUpdate);
 			s.GamePath = Json.Str(d, "gamePath") ?? s.GamePath;
+			s.Map = Json.Str(d, "map") ?? s.Map;
 		}
 		catch (Exception e)
 		{
@@ -107,6 +115,7 @@ sealed class LauncherSettings
 		d["launcherMusic"] = Bool(LauncherMusic);
 		d["autoUpdate"] = Bool(AutoUpdate);
 		d["gamePath"] = GamePath;
+		d["map"] = Map;
 		try
 		{
 			File.WriteAllText(Paths.SettingsFile, Json.Write(d));
@@ -132,6 +141,8 @@ sealed class LauncherSettings
 		VoiceVolume = Clamp(VoiceVolume, 0, 100);
 		if (string.IsNullOrWhiteSpace(NewsCategory))
 			NewsCategory = "all";
+		if (!MapStore.ValidName(Map))
+			Map = "";
 	}
 
 	static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);

@@ -4,18 +4,30 @@ package render;
 /**
 	Renders the 3D world into a fixed-height 360-pixel target and shows it
 	scaled up with nearest-neighbor sampling (§5.2), so every on-screen pixel
-	is the same size. Width follows the window's aspect ratio.
+	is the same size.
+
+	- **Windowed:** a fixed 16:9 widescreen frame (640 × 360), scaled to fit the
+	  window and letterboxed or pillarboxed when the window is another shape.
+	- **Fullscreen:** the renderer fills the whole screen. The frame stays 360
+	  pixels tall and its width follows the screen's aspect ratio (16:10,
+	  21:9 and so on), with no bars.
 **/
 class LowResView {
 	public static inline var HEIGHT = 360;
 
-	public var width(default, null):Int = 640;
+	/** The widescreen frame's width in windowed mode (16:9 at 360). **/
+	public static inline var WIDE = 640;
+
+	public var width(default, null):Int = WIDE;
 
 	/** Screen pixels per internal pixel. **/
 	public var scale(default, null):Float = 1;
 
-	/** Whole-number scaling (with letterboxing) when there's room for 2× or more. Call `resize` after changing. **/
+	/** Whole-number scaling (with borders) when there's room for 2× or more, in windowed mode. Call `resize` after changing. **/
 	public var integerScaling = true;
+
+	/** Fill the whole screen (fullscreen) instead of the windowed 16:9 frame. Call `resize` after changing. **/
+	public var fillScreen = false;
 
 	/**
 		2D layer measured in internal pixels and positioned over the image.
@@ -34,11 +46,17 @@ class LowResView {
 	}
 
 	public function resize(screenW:Int, screenH:Int):Void {
-		// Integer scaling when there's room for at least 2× (§5.2); otherwise fill the height.
-		// Width is then chosen to fill the window, so only the top and bottom can letterbox.
-		var fit = Math.max(1, screenH) / HEIGHT;
-		scale = integerScaling && fit >= 2 ? Math.floor(fit) : fit;
-		var newWidth = Std.int(Math.max(320, Math.ceil(screenW / scale)));
+		var newWidth:Int;
+		if (fillScreen) {
+			// Fill the height exactly and let the width follow the screen, so nothing is left black.
+			scale = Math.max(1, screenH) / HEIGHT;
+			newWidth = Std.int(Math.max(320, Math.ceil(screenW / scale)));
+		} else {
+			// Fit the 16:9 frame inside the window; whole-number scaling when there's room for 2× (§5.2).
+			var fit = Math.min(Math.max(1, screenW) / WIDE, Math.max(1, screenH) / HEIGHT);
+			scale = integerScaling && fit >= 2 ? Math.floor(fit) : fit;
+			newWidth = WIDE;
+		}
 		if (target == null || newWidth != width) {
 			width = newWidth;
 			if (target != null) {

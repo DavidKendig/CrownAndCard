@@ -224,6 +224,7 @@ flowchart TB
 - **Current check-in implementation:** interact with Quill using E / controller A to persist a local Guest Register checkpoint. Every visit starts at the welcome desk; the current render build records visit/check-in progress, with the full campaign payload added as those systems are implemented. Saving remains explicit, never automatic.
 - **Entrance art:** generated burgundy damask / mahogany wall panels and brass-inlaid marble floor textures feed the palette renderer. The fountain is solid revolved 3D mesh geometry, with marble bowls, brass rims, water surfaces and animated falling streams; it is not a camera-facing sprite.
 - **Card assets:** the standard deck has 52 individual 200 × 280 PNG faces (5:7 poker-card proportions) plus a matching back. Rank labels, suit shapes and pip counts are authored deterministically; generated masked court portraits and the ornamental back follow the manor palette. The Card Room table uses an authored blackjack layout.
+- **Seated tabletop assets:** authored felt and brass/wood borders for Hold'em, five-card draw, Spades, Go Fish, Slapjack, War and Solitaire (`res/tabletops/`), palette-snapped at runtime. Blackjack retains its betting layout. The Mahjong art kit (`res/mahjong/`) includes 42 unique PNG faces, back, blank tile, and 136/144-tile manifests; Mahjong gameplay is not yet implemented.
 
 - **The Front Desk:** Mr. Ambrose Quill, the front desk clerk, keeps the **Guest Register**. **Checking in with him is the only way to save** (§13.7). Loading a save puts you back at the front desk.
 - **Greeting:** Quill greets you by name and rank, sometimes with a dry remark about your latest win or loss. There's no stats screen. Your records live in the Journal (§10.7).
@@ -1036,7 +1037,7 @@ The options are short VO barks per character ("Ha!", "Blast!", "Oh ho!") or per-
 
 ### 12.4 Spatial Audio
 
-Positional emitters placed in LDtk (the fireplace crackle, crowd murmur, the band). Crowd noise bleeds through open doorways. Distance attenuation.
+Positional emitters placed in Haxen (planned; the fireplace crackle, crowd murmur, the band). Crowd noise bleeds through open doorways. Distance attenuation.
 
 ---
 
@@ -1050,7 +1051,7 @@ Positional emitters placed in LDtk (the fireplace crackle, crowd murmur, the ban
 | Engine | **[Heaps](https://heaps.io)** (h3d / h2d / hxd / HXSL shaders) **(LOCKED)** | 3D scene for the world, h2d for the table layer, HUD and UI |
 | Native target | **HashLink** (HL/C for release) | Windows first, then Linux and macOS. Steam. |
 | Web target | **JS / WebGL** | Demo and playtest builds |
-| Levels | **LDtk** (typed Haxe API) | Grid levels baked into 3D (§13.6) |
+| Levels | **Haxen** (our own map editor, JSON maps) | Grid levels baked into 3D (§13.6) |
 | Game data | **CastleDB** | Cast, barks, reaction rules, items, table configs, arranged games |
 | Sprites | **Aseprite** (indexed mode) | Export sheets + JSON. Import pipeline to index textures. |
 | UI | h2d + **domkit** | CSS-like styling |
@@ -1119,10 +1120,10 @@ CrownAndCard/
 │  └─ audio/
 ├─ res/            sprites, textures, palettes & shade LUTs, audio (Ogg Vorbis: audio/music, audio/sfx), fonts
 ├─ data/           CastleDB (.cdb)
-├─ levels/         LDtk project (.ldtk)
+├─ res/maps/       map files: manor.json (the built-in manor), §13.6
 ├─ tests/          utest suites
 ├─ tools/          sim harness, rng dump (PractRand), asset scripts, rng reference, lint
-├─ web/            index.html for the WebGL build (game.js is generated)
+├─ web/            index.html for the WebGL build and haxen.html, the map editor (game.js and haxen.js are generated)
 ├─ launcher/       Windows game launcher (C#, .NET Framework 4.8), §13.12
 ├─ installer/      Inno Setup script for the Windows installer, §13.12
 └─ docs/           per-game specs and art bible, split out as this doc grows
@@ -1167,12 +1168,24 @@ enum GameEvent {
 
 ### 13.6 World Data & Level Baking
 
-- **LDtk authoring:** IntGrid layers for walls and floor-height zones, plus diagonal cells for 45° walls. Entity layers for tables, seats, NPC spawns and schedule points, lights, sound emitters, doors and sector movers, secrets, triggers and collectibles. Custom fields hold heights, textures, shade, visibility and palette.
+- **Haxen authoring (decided 2026-09-28, replacing LDtk):** maps are made in **Haxen**, the project's own map editor (`src/haxen/`, built with `haxe haxen.hxml` into `web/haxen.html`). It runs in the browser and is opened from the launcher's HAXEN button. It edits a top-down plan:
+  - **Rooms:** cells painted with room keys, each with floor and ceiling heights, textures and shade.
+  - **Walls:** `#` cells.
+  - **Props:** boxes with base and top heights, textures, and solid / walk-on-top / invisible flags.
+  - **Fixtures:** built set pieces placed by an anchor. The front doors, front desk, fountain, grand stairs and card table each bring their geometry, art and interaction (leave, check in, sit down). They keep their manor orientation.
+  - **Everything else:** guests (art, facing, a walk route), point lights, chandelier sprites and the player start.
+  - **Tools:** undo and redo, snapping, and a problems list that runs the same checks the game uses (`world.MapData.check`), with each problem locatable on the plan.
+- **Map files:** versioned JSON (`format: "crown-and-card-map"`, `version: 1`). The manor itself is `res/maps/manor.json`. Custom maps are files in `%LOCALAPPDATA%\CrownAndCard\maps\<name>.json`, saved through the launcher's local API (`api/maps`), or kept in browser storage when Haxen runs without the launcher.
+- **Playing a map:**
+  - **Launcher:** the MAP button picks the manor or any custom map for PLAY. Haxen's Play test starts a real launcher session on the map it's editing (`api/playtest`).
+  - **Loading:** the game takes the `map` option and falls back to the manor, with a notice, if a custom map is missing or fails its checks.
+  - **Reserved name:** "manor" is kept for the built-in map.
+- **Later:** diagonal cells for 45° walls, floor-height zones, doors and sector movers, secrets, triggers, sound emitters, NPC schedule points and fixture rotation. These are all planned Haxen additions.
 - **Bake step:** generate wall quads from grid edges, floor and ceiling quads with heights, and step and stair geometry. Batch by texture.
 - **Coordinates:** meters, Z up, +X east, +Y north. The camera is set right-handed, so facing north puts east on the right.
 - **Collision:** 2D circle-versus-segment against the wall grid, with step-height rules. It's simple and robust, and it's Build-like.
 - **NPC navigation:** A* on the grid with steering. Seats are reservable slots.
-- **If rooms need freeform shapes**, add a lightweight polygon-sector editor later. The grid is the Phase 0–2 choice.
+- **If rooms need freeform shapes**, Haxen can grow a polygon-sector mode later. The grid is the Phase 0–2 choice.
 
 ### 13.7 Save System: Checking In at the Front Desk (LOCKED)
 
@@ -1211,7 +1224,7 @@ enum GameEvent {
 | What | License | File |
 |---|---|---|
 | **Code:** `src/`, `tests/`, `tools/`, `*.hxml`, shaders | GNU **AGPL-3.0** | `LICENSE` |
-| **Assets:** `res/` (art, audio, palettes), `data/` (cast, barks, game data), `levels/`, `docs/`, this document | **CC BY-NC-SA 4.0** | `LICENSE-ASSETS` |
+| **Assets:** `res/` (art, audio, palettes, maps in `res/maps/`), `data/` (cast, barks, game data), `docs/`, this document | **CC BY-NC-SA 4.0** | `LICENSE-ASSETS` |
 
 The README explains the split for visitors.
 
@@ -1220,7 +1233,7 @@ The README explains the split for visitors.
 - **In-game legal notice:** an About page in the pause menu shows the copyright, the no-warranty notice, both licenses and a link to the source code. The AGPL expects interactive programs to show these notices.
 - **Online features:** the AGPL's network clause only matters if online features ever ship (the multiplayer idea in Phase 6). If they do, players must be offered the server's source code.
 - **Contributions:** set up a **contributor license agreement (CLA) before accepting outside code or assets.** Without one, the author loses the ability to sell builds containing contributors' work, or to link it with proprietary platform SDKs such as Steamworks and console SDKs.
-- **Dependencies:** Heaps, HashLink, the Haxe standard library, LDtk and CastleDB are MIT-licensed, which is compatible with AGPL. The launcher's music decoder, stb_vorbis, is MIT or public domain. Any new code dependency must be AGPL-compatible (MIT, BSD, Apache-2.0, LGPL or GPLv3 all qualify). Third-party assets such as fonts and sound effects must allow redistribution, and they keep their own licenses.
+- **Dependencies:** Heaps, HashLink, the Haxe standard library and CastleDB are MIT-licensed, which is compatible with AGPL. The launcher's music decoder, stb_vorbis, is MIT or public domain. Any new code dependency must be AGPL-compatible (MIT, BSD, Apache-2.0, LGPL or GPLv3 all qualify). Third-party assets such as fonts and sound effects must allow redistribution, and they keep their own licenses.
 
 ### 13.12 Game Launcher (LOCKED)
 
@@ -1237,6 +1250,7 @@ A small Windows launcher, `CrownAndCardLauncher.exe` (`launcher/`), sits in fron
 | **Updates** | Checks https://github.com/DavidKendig/CrownAndCard for the latest release (tag `v0.YY.BBB`) at startup (a setting turns this off) and offers anything newer. Installing always needs the player's click: the launcher downloads that release's Setup exe, verifies the SHA-256 digest GitHub publishes, runs it and exits. A development copy inside a git checkout only reports the new version. Releases are published with `tools/release.ps1`. |
 | **Antivirus** | Behavior-based antivirus (Bitdefender's Advanced Threat Control flagged 0.26.001) reacts to malware-like patterns. So the launcher never unpacks and loads code at run time, never rewrites or relaunches its own exe, and never scans or kills other processes; updates go through the installer. Signing the exe and installer (for example Azure Trusted Signing, or SignPath's free open-source program) is the remaining step to stop unsigned-file warnings. |
 | **Versioning** | `version.json` holds **0.YY.BBB**: 0, the two-digit year, then a build number from 001 (`python tools/version.py bump`; a new year resets it to 001). The game, the launcher and the release tag all read it. |
+| **Maps & Haxen** | The **MAP** button picks what PLAY starts: Dodriec Manor or a custom map from `%LOCALAPPDATA%\CrownAndCard\maps`. It can also open that folder. **HAXEN** opens the map editor as its own app window, served by the launcher, which saves maps and runs play tests through the local API (§13.6). Starting the launcher a second time brings the open one forward. |
 | **Controller** | The launcher reads XInput: A or Start plays, LB/RB switch tabs, Y toggles the music. In the game, the left stick (or d-pad) moves, the right stick looks, LB or L3 runs, and R3 or Y re-centers the view. |
 
 The web-build route is a stopgap until the HashLink desktop build exists; the launcher switches to the native build automatically once it's present.
@@ -1324,7 +1338,7 @@ flowchart LR
 #### Phase 6: Post-Launch
 - [ ] T4 games, starting with the ones players ask for most
 - [ ] New rooms or visiting-guest events (themed, inside Dodriec Manor)
-- [ ] **Mod support:** LDtk maps + CastleDB data packs (Build's mapping community is the spirit here)
+- [ ] **Mod support:** custom maps from Haxen *(maps done: made, saved, shared as .json files and played from the launcher)*, plus CastleDB data packs (Build's mapping community is the spirit here)
 - [ ] Explore online multiplayer tables (hxbit networking)
 
 ---
@@ -1400,7 +1414,7 @@ flowchart LR
 | Q7 | Team size and timeline? | Needed to put dates on the roadmap |
 | Q8 | Multiplayer ever? | Not for v1. Keep hxbit so the door stays open. |
 | Q9 | Voices: VO barks, gibberish or text only? | Short VO barks + subtitles |
-| Q10 | Level format: LDtk grid or a custom sector editor? | LDtk grid + diagonals for Phases 0–2. Revisit after the slice. |
+| Q10 | Level format: LDtk grid or a custom sector editor? | **Resolved 2026-09-28: a custom editor, Haxen,** with versioned JSON grid maps (§13.6). |
 | Q11 | Signature game *Crown & Card*: pitch (a) or (b)? | Paper-prototype both in Phase 3 |
 | Q12 | Checking in is the only save. Should quitting also leave a one-time suspend save (deleted when you resume) so closing the game never loses progress? | Yes. It can't be used to reload outcomes, so it keeps check-in as the real save. |
 | Q13 | Where does the metagame / ARG design doc live? | Outside this repo if the repo will ever be public, so the ARG isn't spoiled |
@@ -1428,6 +1442,8 @@ flowchart LR
 | 2026-09-27 | After an antivirus detection, 0.26.002 ships an **Inno Setup installer**. Updates run through it with the player's OK, and the launcher avoids malware-like runtime behavior (§13.12). | David |
 | 2026-09-28 | The Card Room table gets an **E / green-A prompt** and a **game menu** that seats the player at the chosen game. **Blackjack and Spades** are the first two playable games. Until the Library exists, Spades is played at the Card Room table (§4.3, §6.4). | David |
 | 2026-09-28 | **Texas Hold'em, Five-card draw, Go Fish, Slapjack, War and Solitaire** join the table menu. The last four are new to the catalog as parlour games. The camera's look range grows to **±75°**, with y-shearing kept for the first ~31° (§5.5). The README lists each game with a link to its rules source. | David |
+| 2026-09-28 | **Haxen**, a browser map editor opened from the launcher, replaces LDtk (resolves Q10). The manor moves into `res/maps/manor.json`, and its set pieces become placeable fixtures. The game plays any map chosen in the launcher, and Haxen play-tests through it (§13.6, §13.12). | David |
+| 2026-09-28 | **Classic (Hong Kong-style) and Riichi Mahjong** join the card table on the tile art kit (`games.mahjong`). Riichi follows the WRC rules without abortive draws, chankan or nagashi mangan. The launcher now **streams the controller** (XInput) to the game, since Steam's desktop layout and browser gamepad rules could hide it. Windowed play shows a **16:9 frame**, and fullscreen fills the screen (§5.2). | David |
 
 ---
 

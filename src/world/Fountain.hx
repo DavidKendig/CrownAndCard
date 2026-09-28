@@ -11,7 +11,7 @@ import render.IndexCanvas;
 /** Solid lathed architecture with water surfaces and animated falling ribbons. */
 class Fountain {
 	static inline var SEGMENTS=40;
-	public static function build(palette:Palette,lut:h3d.mat.Texture,parent:h3d.scene.Object):{shaders:Array<BuildShader>,water:Array<BuildShader>} {
+	public static function build(palette:Palette,lut:h3d.mat.Texture,parent:h3d.scene.Object,x:Float,y:Float):{shaders:Array<BuildShader>,water:Array<BuildShader>} {
 		var stone=new MeshBuilder(), brass=new MeshBuilder(), pool=new MeshBuilder(), falls=new MeshBuilder();
 		// Every profile is revolved around Z: the fountain holds its shape from every side.
 		lathe(stone,[{r:0.,z:0.},{r:1.62,z:0.},{r:1.72,z:.18},{r:1.66,z:.56},{r:1.5,z:.62},{r:1.46,z:.22}]);
@@ -42,7 +42,7 @@ class Fountain {
 		for(item in [{mesh:stone,tex:stoneTex},{mesh:brass,tex:brassTex},{mesh:pool,tex:waterTex},{mesh:falls,tex:waterTex}]) {
 			var mat=h3d.mat.Material.create(); mat.mainPass.enableLights=false; mat.shadows=false; mat.mainPass.culling=None;
 			var shader=new BuildShader(item.tex,lut,false); mat.mainPass.addShader(shader);
-			var mesh=new h3d.scene.Mesh(item.mesh.toPrimitive(),mat,parent); mesh.setPosition(Foyer.FOUNTAIN.x,Foyer.FOUNTAIN.y,0);
+			var mesh=new h3d.scene.Mesh(item.mesh.toPrimitive(),mat,parent); mesh.setPosition(x,y,0);
 			shaders.push(shader); if(item.mesh==pool || item.mesh==falls) moving.push(shader);
 		}
 		return {shaders:shaders,water:moving};

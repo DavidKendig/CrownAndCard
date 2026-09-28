@@ -23,8 +23,11 @@ haxelib install utest 1.13.2
 | RNG lint (no `Std.random` / `Math.random`) | `python tools/lint_rng.py` |
 | Regenerate RNG reference vectors | `python tools/rng_reference.py` |
 | Web build | `haxe build-js.hxml`, then serve `web/` (for example `python -m http.server 8080 --directory web`) and open http://localhost:8080 |
+| Haxen, the map editor | `haxe haxen.hxml`, then serve `web/` and open http://localhost:8080/haxen.html (or use the launcher's HAXEN button) |
 
-**Render spike controls:** WASD move, arrows turn, drag with the mouse (or press M to capture it) to look, PgUp/PgDn look up/down (up to 75° either way), End re-centers, Shift runs. **Controller:** left stick (or d-pad) moves, right stick looks, LB or clicking the left stick runs, clicking the right stick (or Y) re-centers.
+**Render spike controls:** WASD move, arrows turn, drag with the mouse (or press M to capture it) to look, PgUp/PgDn look up/down (up to 75° either way), End re-centers, Shift runs. **Controller:** left stick (or d-pad) moves, right stick looks, LB or clicking the left stick runs, clicking the right stick (or Y) re-centers. Under the launcher the controller is read through XInput and streamed to the game, so it works even when the browser can't see it. If Steam is running, its desktop controller layout also moves the mouse: turn it off in Steam (Settings > Controller) for clean input.
+
+**Window and fullscreen:** in a window the game shows a 16:9 widescreen frame, letterboxed or pillarboxed to fit. In fullscreen (Alt+Enter, F11, or the launcher's Fullscreen setting) it fills the whole screen at any aspect ratio.
 
 **Sprite preview:** click **F2: Sprites** at the bottom left (or press F2). Use **Next / C** to cycle the player, male/female guests and male/female staff, and **Rotate / R** to inspect eight directions. The player body is previewed here pending mirror support; the new first-person hand is visible while walking.
 
@@ -44,8 +47,10 @@ Walk into the Card Room, step up to the card table and face it. The prompt shows
 | Slapjack | You and 3 NPCs | Every card | [Bicycle Cards: Slapjack](https://bicyclecards.com/how-to-play/slapjack) |
 | War | You vs 1 NPC | Every card | [Bicycle Cards: War](https://bicyclecards.com/how-to-play/war) |
 | Solitaire (Klondike) | Solo | None | [Bicycle Cards: Solitaire](https://bicyclecards.com/how-to-play/solitaire) |
+| Classic Mahjong | You and 3 NPCs | Points (one East round) | [Pagat: Mah Jong](https://www.pagat.com/rummy/mahjong.html). Hong Kong-style play with flowers; the faan table is a house table (GAME_DESIGN.md §6.4) |
+| Riichi Mahjong | You and 3 NPCs | Points (25,000 start, one East round) | [World Riichi Championship rules](https://www.worldriichi.org/wrc-rules), the rules authority for Riichi |
 
-Only poker has a recognized rules authority (the Poker Tournament Directors Association, for tournaments). For the other games, the links point to the standard published rules from the US Playing Card Company (Bicycle) or to [Pagat](https://www.pagat.com/), the reference card-game rules site. Where those rules leave something open, the game's house rule is written in the rules engine (`src/games/`) and in GAME_DESIGN.md §6.4.
+Poker (the Poker Tournament Directors Association, for tournaments) and Riichi Mahjong (the World Riichi Championship) have recognized rules authorities. For the other games, the links point to the standard published rules from the US Playing Card Company (Bicycle) or to [Pagat](https://www.pagat.com/), the reference card-game rules site. Where those rules leave something open, the game's house rule is written in the rules engine (`src/games/`) and in GAME_DESIGN.md §6.4.
 
 **Controls at the table:**
 
@@ -57,6 +62,25 @@ Only poker has a recognized rules authority (the Poker Tournament Directors Asso
 - **Go Fish:** left/right picks the rank to ask for, up/down picks the player.
 - **Solitaire:** move the cursor with left/right, and up/down to switch rows or reach deeper into a pile. E picks cards up and puts them down.
 - **Saving:** the purse is saved when you check in with Mr. Quill.
+
+## Haxen: the map editor
+
+**Haxen** opens the game's floor plan and lets you make your own maps. Open it from the launcher's **HAXEN** button: maps save to `%LOCALAPPDATA%\CrownAndCard\maps`, and **Play test** starts the game on the map you're editing. Opened straight from a web server, Haxen saves maps in that browser instead, and Play test opens the game in a new tab.
+
+- **Open:** start from a copy of Dodriec Manor (`res/maps/manor.json`), a blank room, or one of your saved maps. **Import** and **Export** move maps as `.json` files, for example to share one.
+- **Rooms:** pick a room (or Wall) on the right, then paint cells with the **Brush** (B), **Rect** (R) or **Fill** (F) tools. Each room sets its floor and ceiling heights, its floor, ceiling and wall textures, and how dark it is.
+- **Things to place:**
+  - **Props** (P): boxes such as tables, pillars and counters. Set their height, textures, and whether they're solid, walkable on top or invisible.
+  - **Guests** (G): characters with art, facing and an optional walk route.
+  - **Lights** (L) and **chandeliers** (C).
+  - **Fixtures** (X): the front doors (leave the game), the front desk (check in and save), the fountain, the grand stairs and the card table (the game menu).
+  - **The player start** (S).
+- **Select** (V): click to pick, drag to move, and drag a prop's corners to resize. Delete removes, Ctrl+D duplicates, and the arrow keys nudge (Shift for bigger steps).
+- **View:** scroll to zoom, right-drag or Space-drag to pan, Home to fit. Ctrl+Z / Ctrl+Y undo and redo, and Ctrl+S saves.
+- **Problems:** the panel runs the game's own checks. Click a problem to find it on the plan. A map with errors saves, but can't be played until they're fixed.
+- **Playing a custom map:** use the launcher's **MAP** button to choose what PLAY starts. The web build also takes `?map=<name>`. If a map is missing or broken, the game plays Dodriec Manor and says why.
+
+The file format is described in [res/maps/README.md](res/maps/README.md).
 
 ## Launcher
 
@@ -92,7 +116,7 @@ This project uses two licenses: one for code, one for everything else.
 | What | License | File |
 |---|---|---|
 | **Code:** Haxe source (`src/`), tests (`tests/`), tools (`tools/`), build files (`*.hxml`), shaders | [GNU AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html) | [LICENSE](LICENSE) |
-| **Assets:** art, sprites, textures, palettes, music, sound (`res/`), game data and writing (`data/`), levels (`levels/`), documentation (`docs/`, `GAME_DESIGN.md`) | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) | [LICENSE-ASSETS](LICENSE-ASSETS) |
+| **Assets:** art, sprites, textures, palettes, music, sound (`res/`), game data and writing (`data/`), maps (`res/maps/`, including maps made with Haxen), documentation (`docs/`, `GAME_DESIGN.md`) | [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) | [LICENSE-ASSETS](LICENSE-ASSETS) |
 
 - **Code (AGPL-3.0):** you may use, modify and share the code, but if you distribute it or let people use a modified version over a network, you must release your source code under the same license.
 - **Assets (CC BY-NC-SA 4.0):** you may share and adapt the assets for **non-commercial** purposes only, with credit ("Crown & Card by David Kendig"), and you must share your adaptations under the same license.

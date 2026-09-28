@@ -21,6 +21,12 @@ static class Paths
 	**/
 	public static string BrowserProfileDir => Path.Combine(DataDir, "game-window");
 
+	/** Haxen's own app-window data folder, so it can run beside the game window. **/
+	public static string HaxenProfileDir => Path.Combine(DataDir, "haxen-window");
+
+	/** Custom maps made in Haxen (GAME_DESIGN.md §13.6). **/
+	public static string MapsDir => Path.Combine(DataDir, "maps");
+
 	public static string LauncherLog => Path.Combine(DataDir, "launcher.log");
 
 	public static string ExeDir => Path.GetDirectoryName(Application.ExecutablePath) ?? ".";

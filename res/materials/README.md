@@ -2,7 +2,7 @@
 
 SPDX-License-Identifier: CC-BY-NC-SA-4.0
 
-Generated with the built-in image_gen tool. `FoyerArt.surface` samples PNGs into the game's indexed palette using nearest-neighbor filtering. Walls use a 3 m horizontal repeat, floor tiles a 1 m repeat. Upper wallpaper samples the fabric portion of the wall master. Ivory marble is used on stairs, columns, counter and the fountain's actual 3D bowls. Blackjack art is mapped once across the tabletop, with dealer at the north edge. The example cards illustrate asset rendering; blackjack gameplay is still pending.
+Generated with the built-in image_gen tool. `FoyerArt.surface` samples PNGs into the game's indexed palette using nearest-neighbor filtering. Walls use a 3 m horizontal repeat, floor tiles a 1 m repeat. Upper wallpaper samples the fabric portion of the wall master. Ivory marble is used on stairs, columns, counter and the fountain's actual 3D bowls. Blackjack art is mapped once across the tabletop, with dealer at the north edge. The world table displays example cards; seated blackjack is playable, and the other seated games use the surfaces in `res/tabletops/`.
 
 ## Exact prompts
 

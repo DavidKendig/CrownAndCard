@@ -1,0 +1,562 @@
+{
+	"format": "crown-and-card-map",
+	"version": 1,
+	"name": "Dodriec Manor",
+	"rows": [
+		"##########################",
+		"########cccccccccc########",
+		"########cccccccccc########",
+		"########cccccccccc########",
+		"########cccccccccc########",
+		"########cccccccccc########",
+		"########cccccccccc########",
+		"############hh############",
+		"######rrrrrrrrrrrrrr######",
+		"######rrrrrrrrrrrrrr######",
+		"######rr#rrrrrrrr#rr######",
+		"######rrrrrrrrrrrrrr######",
+		"######rrrrrrrrrrrrrr######",
+		"######rrrrrrrrrrrrrr######",
+		"######rr#rrrrrrrr#rr######",
+		"######rrrrrrrrrrrrrr######",
+		"######rrrrrrrrrrrrrr######",
+		"######hhh########hhh######",
+		"######hhh########hhh######",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"###eeeeeeeeeeeeeeeeeeee###",
+		"##########################"
+	],
+	"sectors": [
+		{
+			"key": "r",
+			"name": "Rotunda",
+			"floorZ": 0,
+			"ceilZ": 6,
+			"floorTex": "marble",
+			"ceilTex": "dome",
+			"wallTex": "damask",
+			"upperTex": "damaskUpper",
+			"shade": 5
+		},
+		{
+			"key": "c",
+			"name": "Card Room",
+			"floorZ": 0,
+			"ceilZ": 3.5,
+			"floorTex": "carpet",
+			"ceilTex": "coffer",
+			"wallTex": "damask",
+			"upperTex": "decoUpper",
+			"shade": 8
+		},
+		{
+			"key": "h",
+			"name": "Corridor",
+			"floorZ": 0,
+			"ceilZ": 3,
+			"floorTex": "parquet",
+			"ceilTex": "coffer",
+			"wallTex": "green",
+			"upperTex": "greenUpper",
+			"shade": 11
+		},
+		{
+			"key": "e",
+			"name": "Entrance Hall",
+			"floorZ": 0,
+			"ceilZ": 8,
+			"floorTex": "marble",
+			"ceilTex": "coffer",
+			"wallTex": "damask",
+			"upperTex": "damaskUpper",
+			"shade": 7
+		}
+	],
+	"props": [
+		{
+			"x0": 3.2,
+			"y0": 3.1,
+			"x1": 4.0,
+			"y1": 3.9,
+			"height": 0.32,
+			"topTex": "stone",
+			"sideTex": "stone",
+			"baseZ": 0,
+			"solid": true
+		},
+		{
+			"x0": 3.36,
+			"y0": 3.26,
+			"x1": 3.84,
+			"y1": 3.74,
+			"height": 6.9,
+			"topTex": "ivory",
+			"sideTex": "ivory",
+			"baseZ": 0.32,
+			"solid": true
+		},
+		{
+			"x0": 3.22,
+			"y0": 3.12,
+			"x1": 3.98,
+			"y1": 3.88,
+			"height": 7.1,
+			"topTex": "brass",
+			"sideTex": "brass",
+			"baseZ": 6.9,
+			"solid": false
+		},
+		{
+			"x0": 3.2,
+			"y0": 8.1,
+			"x1": 4.0,
+			"y1": 8.9,
+			"height": 0.32,
+			"topTex": "stone",
+			"sideTex": "stone",
+			"baseZ": 0,
+			"solid": true
+		},
+		{
+			"x0": 3.36,
+			"y0": 8.26,
+			"x1": 3.84,
+			"y1": 8.74,
+			"height": 6.9,
+			"topTex": "ivory",
+			"sideTex": "ivory",
+			"baseZ": 0.32,
+			"solid": true
+		},
+		{
+			"x0": 3.22,
+			"y0": 8.12,
+			"x1": 3.98,
+			"y1": 8.88,
+			"height": 7.1,
+			"topTex": "brass",
+			"sideTex": "brass",
+			"baseZ": 6.9,
+			"solid": false
+		},
+		{
+			"x0": 3.2,
+			"y0": 13.1,
+			"x1": 4.0,
+			"y1": 13.9,
+			"height": 0.32,
+			"topTex": "stone",
+			"sideTex": "stone",
+			"baseZ": 0,
+			"solid": true
+		},
+		{
+			"x0": 3.36,
+			"y0": 13.26,
+			"x1": 3.84,
+			"y1": 13.74,
+			"height": 6.9,
+			"topTex": "ivory",
+			"sideTex": "ivory",
+			"baseZ": 0.32,
+			"solid": true
+		},
+		{
+			"x0": 3.22,
+			"y0": 13.12,
+			"x1": 3.98,
+			"y1": 13.88,
+			"height": 7.1,
+			"topTex": "brass",
+			"sideTex": "brass",
+			"baseZ": 6.9,
+			"solid": false
+		},
+		{
+			"x0": 3.2,
+			"y0": 18.1,
+			"x1": 4.0,
+			"y1": 18.9,
+			"height": 0.32,
+			"topTex": "stone",
+			"sideTex": "stone",
+			"baseZ": 0,
+			"solid": true
+		},
+		{
+			"x0": 3.36,
+			"y0": 18.26,
+			"x1": 3.84,
+			"y1": 18.74,
+			"height": 6.9,
+			"topTex": "ivory",
+			"sideTex": "ivory",
+			"baseZ": 0.32,
+			"solid": true
+		},
+		{
+			"x0": 3.22,
+			"y0": 18.12,
+			"x1": 3.98,
+			"y1": 18.88,
+			"height": 7.1,
+			"topTex": "brass",
+			"sideTex": "brass",
+			"baseZ": 6.9,
+			"solid": false
+		},
+		{
+			"x0": 22.0,
+			"y0": 3.1,
+			"x1": 22.8,
+			"y1": 3.9,
+			"height": 0.32,
+			"topTex": "stone",
+			"sideTex": "stone",
+			"baseZ": 0,
+			"solid": true
+		},
+		{
+			"x0": 22.16,
+			"y0": 3.26,
+			"x1": 22.64,
+			"y1": 3.74,
+			"height": 6.9,
+			"topTex": "ivory",
+			"sideTex": "ivory",
+			"baseZ": 0.32,
+			"solid": true
+		},
+		{
+			"x0": 22.02,
+			"y0": 3.12,
+			"x1": 22.78,
+			"y1": 3.88,
+			"height": 7.1,
+			"topTex": "brass",
+			"sideTex": "brass",
+			"baseZ": 6.9,
+			"solid": false
+		},
+		{
+			"x0": 22.0,
+			"y0": 8.1,
+			"x1": 22.8,
+			"y1": 8.9,
+			"height": 0.32,
+			"topTex": "stone",
+			"sideTex": "stone",
+			"baseZ": 0,
+			"solid": true
+		},
+		{
+			"x0": 22.16,
+			"y0": 8.26,
+			"x1": 22.64,
+			"y1": 8.74,
+			"height": 6.9,
+			"topTex": "ivory",
+			"sideTex": "ivory",
+			"baseZ": 0.32,
+			"solid": true
+		},
+		{
+			"x0": 22.02,
+			"y0": 8.12,
+			"x1": 22.78,
+			"y1": 8.88,
+			"height": 7.1,
+			"topTex": "brass",
+			"sideTex": "brass",
+			"baseZ": 6.9,
+			"solid": false
+		},
+		{
+			"x0": 22.0,
+			"y0": 13.1,
+			"x1": 22.8,
+			"y1": 13.9,
+			"height": 0.32,
+			"topTex": "stone",
+			"sideTex": "stone",
+			"baseZ": 0,
+			"solid": true
+		},
+		{
+			"x0": 22.16,
+			"y0": 13.26,
+			"x1": 22.64,
+			"y1": 13.74,
+			"height": 6.9,
+			"topTex": "ivory",
+			"sideTex": "ivory",
+			"baseZ": 0.32,
+			"solid": true
+		},
+		{
+			"x0": 22.02,
+			"y0": 13.12,
+			"x1": 22.78,
+			"y1": 13.88,
+			"height": 7.1,
+			"topTex": "brass",
+			"sideTex": "brass",
+			"baseZ": 6.9,
+			"solid": false
+		},
+		{
+			"x0": 22.0,
+			"y0": 18.1,
+			"x1": 22.8,
+			"y1": 18.9,
+			"height": 0.32,
+			"topTex": "stone",
+			"sideTex": "stone",
+			"baseZ": 0,
+			"solid": true
+		},
+		{
+			"x0": 22.16,
+			"y0": 18.26,
+			"x1": 22.64,
+			"y1": 18.74,
+			"height": 6.9,
+			"topTex": "ivory",
+			"sideTex": "ivory",
+			"baseZ": 0.32,
+			"solid": true
+		},
+		{
+			"x0": 22.02,
+			"y0": 18.12,
+			"x1": 22.78,
+			"y1": 18.88,
+			"height": 7.1,
+			"topTex": "brass",
+			"sideTex": "brass",
+			"baseZ": 6.9,
+			"solid": false
+		},
+		{
+			"x0": 3.05,
+			"y0": 1,
+			"x1": 3.35,
+			"y1": 21,
+			"height": 7.35,
+			"topTex": "brass",
+			"sideTex": "brass",
+			"baseZ": 7.18,
+			"solid": false
+		},
+		{
+			"x0": 22.65,
+			"y0": 1,
+			"x1": 22.95,
+			"y1": 21,
+			"height": 7.35,
+			"topTex": "brass",
+			"sideTex": "brass",
+			"baseZ": 7.18,
+			"solid": false
+		},
+		{
+			"x0": 11.3,
+			"y0": 1.02,
+			"x1": 14.7,
+			"y1": 5.95,
+			"height": 0.012,
+			"topTex": "carpet",
+			"sideTex": "carpet",
+			"baseZ": 0,
+			"solid": false
+		}
+	],
+	"fixtures": [
+		{
+			"type": "frontDoors",
+			"x": 13,
+			"y": 1
+		},
+		{
+			"type": "frontDesk",
+			"x": 13,
+			"y": 6.7
+		},
+		{
+			"type": "fountain",
+			"x": 13,
+			"y": 11
+		},
+		{
+			"type": "grandStairs",
+			"x": 13,
+			"y": 14.5
+		},
+		{
+			"type": "cardTable",
+			"x": 13,
+			"y": 36
+		}
+	],
+	"start": {
+		"x": 13,
+		"y": 4,
+		"facing": 90
+	},
+	"guests": [
+		{
+			"name": "Mr. Quill (front desk)",
+			"x": 13.0,
+			"y": 7.8,
+			"facing": -90,
+			"art": "hooded_keeper"
+		},
+		{
+			"name": "Cloakroom attendant",
+			"x": 20.0,
+			"y": 5.0,
+			"facing": 180,
+			"art": "female_staff"
+		},
+		{
+			"name": "Spinning guest",
+			"x": 11.0,
+			"y": 26,
+			"facing": 0,
+			"art": "masked_guest",
+			"spins": true
+		},
+		{
+			"name": "Colonel",
+			"x": 16.0,
+			"y": 28.6,
+			"facing": 180,
+			"art": "masked_guest"
+		},
+		{
+			"name": "Rotunda guest",
+			"x": 14.8,
+			"y": 26,
+			"facing": -90,
+			"art": "female_guest"
+		},
+		{
+			"name": "Dealer",
+			"x": 13.0,
+			"y": 37.3,
+			"facing": -90,
+			"art": "female_staff"
+		},
+		{
+			"name": "Seated lady",
+			"x": 12.1,
+			"y": 34.7,
+			"facing": 90,
+			"art": "female_guest_seated"
+		},
+		{
+			"name": "Seated gentleman",
+			"x": 14.0,
+			"y": 34.7,
+			"facing": 90,
+			"art": "male_guest_seated"
+		},
+		{
+			"name": "Strolling gentleman",
+			"x": 10.0,
+			"y": 25,
+			"facing": 90,
+			"art": "male_guest_walk",
+			"walkTo": {
+				"x": 10.0,
+				"y": 29
+			}
+		},
+		{
+			"name": "Strolling lady",
+			"x": 15.0,
+			"y": 27,
+			"facing": 90,
+			"art": "female_guest_walk",
+			"walkTo": {
+				"x": 15.0,
+				"y": 31
+			}
+		},
+		{
+			"name": "Pemberton",
+			"x": 9.5,
+			"y": 30,
+			"facing": 0,
+			"art": "male_staff"
+		}
+	],
+	"lights": [
+		{
+			"x": 13,
+			"y": 27,
+			"z": 4.4,
+			"radius": 9,
+			"power": 11
+		},
+		{
+			"x": 13,
+			"y": 36,
+			"z": 2.4,
+			"radius": 4.5,
+			"power": 11
+		},
+		{
+			"x": 13,
+			"y": 6,
+			"z": 3.8,
+			"radius": 10,
+			"power": 8
+		},
+		{
+			"x": 13,
+			"y": 15,
+			"z": 5.2,
+			"radius": 10,
+			"power": 8
+		}
+	],
+	"chandeliers": [
+		{
+			"x": 13,
+			"y": 27,
+			"z": 4.1,
+			"width": 1.5
+		},
+		{
+			"x": 13,
+			"y": 6,
+			"z": 5.1,
+			"width": 3
+		},
+		{
+			"x": 13,
+			"y": 15,
+			"z": 5.1,
+			"width": 3
+		}
+	]
+}
