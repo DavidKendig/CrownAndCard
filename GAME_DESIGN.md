@@ -447,9 +447,9 @@ Every game sits on a common framework:
 | Game | Room | Family | Players | AI load | Tier |
 |---|---|---|---|---|---|
 | Blackjack | Card Room | Banking | 1–7 vs dealer | Low | **T1 (slice)** |
-| Roulette | Grand Salon | Wheels | 1–8 vs house | Low | **T1 (slice)** |
+| Roulette | Card Room table *(current build)* | Wheels | 1 vs house | None | Added 2026-09-28 |
 | Texas Hold'em | Smoking Room | Poker | 2–9 | **High** | T2 (alpha) |
-| Craps | Grand Salon | Dice | 1–12 vs house | Low | T2 |
+| Craps | Card Room table *(current build)* | Dice | 1 vs house | None | Added 2026-09-28 |
 | Euchre | Library | Tricks | 4 (partners) | Med–High | T2 |
 | Baccarat | Card Room | Banking | 1–14 vs house | None | T2 |
 | Hearts | Library | Tricks | 4 | Med | T3 (launch) |
@@ -459,7 +459,7 @@ Every game sits on a common framework:
 | Three Card Poker | Card Room | Banking | 1–6 vs dealer | None | T3 |
 | Chemin de Fer | Observatory | Banking | 2–12 | Low–Med | T3 |
 | Video Poker | Clockwork Gallery | Machines | 1 | None | T3 |
-| Mechanical Slots | Clockwork Gallery | Machines | 1 | None | T3 |
+| Slots | Card Room table *(current build)* | Machines | 1 | None | Added 2026-09-28 |
 | Liar's Dice | Tavern Cellar | Dice | 2–6 | Med | T3 |
 | Big Six Wheel | Grand Salon | Wheels | 1–8 | None | T3 |
 | Chuck-a-luck | Tavern Cellar | Dice | 1–6 | None | T3 |
@@ -486,12 +486,14 @@ Every game sits on a common framework:
 - Inside bets: straight, split, street, corner, six-line, basket. Outside bets: dozens, columns, even-money.
 - French call bets (voisins, tiers, orphelins) with a racetrack UI.
 - Croupier "no more bets" timing, the dolly marker, and a number-history board that feeds NPC superstitions about hot and cold numbers.
+- *Implemented (`games.roulette`):* the full bet set above is in the rules engine and covered by `RouletteTest`, including La Partage. The seated table (still at the Card Room, pending the Grand Salon) offers straight-up numbers on a real 0-36 layout grid plus every outside bet; split/street/corner/six-line/basket wait on a mouse-driven racetrack UI. Bets sit on the felt and don't leave the purse until the wheel spins; the wheel itself is shown landed, not choreographed yet.
 
 **Craps**
 - Pass/Don't Pass, Come/Don't Come, Odds (3-4-5×), Place, Field, Big 6/8, Hardways, Props (Any 7, Any Craps, Yo, Horn, Hi-Lo).
 - **Shooter rotation:** when the dice reach you, you throw them. The flick gesture controls only the animation; the RNG decides the outcome.
 - The stickman calls the game ("Yo-leven!"). Hot rolls draw a crowd.
 - **Dice etiquette:** don't say "seven", keep hands clear, the dice must hit the back wall. "Dark side" (Don't Pass) bettors get side-eye.
+- *Implemented (`games.craps`):* Pass/Don't Pass and Come/Don't Come with 3-4-5x odds, Field, Place (4, 5, 6, 8, 9, 10), Hardways (4, 6, 8, 10), and the props Any Seven, Any Craps, Yo and Hi-Lo, all covered by `CrapsTest`. Big 6/8 and Horn aren't modeled: Place already covers 6 and 8 on better terms, and Horn is just Any Craps plus Yo bet separately. The seated table (still at the Card Room, pending the Grand Salon) walks the bet menu one family at a time rather than a mouse-driven layout; the dice are shown resolved, not tumbling.
 
 **Baccarat (Punto Banco)**
 - Full automatic third-card tableau, 5% Banker commission tracking.
@@ -546,6 +548,7 @@ Every game sits on a common framework:
 **Video Poker:** one machine, Jacks or Better (9/6). Optional optimal-hold hint.
 
 **Mechanical Slots:** one Victorian three-reel one-armed bandit. Authored reel strips with virtual-reel weighting to a target RTP. **Its RTP is engraved on a brass plaque** (the Honest Games pillar).
+- *Implemented (`games.slots`):* a single machine, three identical 33-stop reel strips (Crown, Seven, Bell, Bar, the four suits, Cherry and Blank), one payline. The RTP is exact (94.47%), not sampled: the strip is short enough that `SlotsTest` brute-forces every one of its 33³ equally likely stops. Seated at the Card Room table pending the Clockwork Gallery.
 
 **Liar's Dice:** cups, hidden dice, bidding and challenges. Heavy on bluffing and reactions.
 

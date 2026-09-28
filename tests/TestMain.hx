@@ -19,6 +19,9 @@ class TestMain {
 			new games.PokerTest(),
 			new games.ParlourTest(),
 			new games.MahjongTest(),
+			new games.CrapsTest(),
+			new games.RouletteTest(),
+			new games.SlotsTest(),
 		]);
 	}
 }

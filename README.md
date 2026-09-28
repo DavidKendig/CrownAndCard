@@ -40,6 +40,9 @@ Walk into the Card Room, step up to the card table and face it. The prompt shows
 | Game | Players | Stakes | Rules reference |
 |---|---|---|---|
 | Blackjack | You vs the dealer | Bets of 2–50 Sovereigns | [Bicycle Cards: Blackjack](https://bicyclecards.com/how-to-play/blackjack). There's no governing body; each casino sets its own table rules, and ours are in [GAME_DESIGN.md §6.4](GAME_DESIGN.md) |
+| Roulette | You vs the house | Straight up 35 to 1, down to even money | Single-zero European wheel with French La Partage. No governing body; house rules are in [GAME_DESIGN.md §6.4](GAME_DESIGN.md) |
+| Craps | You vs the house | Pass/Don't Pass, Come/Don't Come, Field, Place, Hardways, props | No governing body; house rules are in [GAME_DESIGN.md §6.4](GAME_DESIGN.md) |
+| Slots | Solo | Bets of 1–10 Sovereigns | One authored three-reel machine; house rules are in [GAME_DESIGN.md §6.4](GAME_DESIGN.md) |
 | Texas Hold'em | You and 3 NPCs | 100-Sovereign buy-in, blinds 1/2, no-limit | [Pagat: Texas Hold'em](https://www.pagat.com/poker/variants/texasholdem.html). For tournament play, the rules authority is the [Poker TDA](https://www.pokertda.com/view-poker-tda-rules/) |
 | Five-card draw | You and 3 NPCs | 100-Sovereign buy-in, ante 1, no-limit | [Pagat: Draw Poker](https://www.pagat.com/poker/variants/5draw.html) |
 | Spades | You and a partner vs 2 NPCs | Points (game to 500) | [Bicycle Cards: Spades](https://bicyclecards.com/how-to-play/spades) |
@@ -57,6 +60,9 @@ Poker (the Poker Tournament Directors Association, for tournaments) and Riichi M
 - **Menus:** arrow keys, WASD, the d-pad or the left stick move the highlight. E, Enter or A chooses; Esc or B goes back (or offers to leave the table). The mouse works too.
 - **Second action:** Space on the keyboard, the blue X on a controller. It slaps in Slapjack, marks cards to exchange in five-card draw, sends a card to a foundation (or finishes the game) in Solitaire, and toggles auto-play in War.
 - **Blackjack:** up/down sets the bet (even amounts, so 3:2 always pays whole Sovereigns). Hit, Stand, Double, Split and Surrender appear when they're allowed.
+- **Roulette:** pick Straight number, Outside bet, or Spin from the menu. A straight bet moves a cursor around the 0-36 layout with the arrows; up/down sets the amount before every bet is confirmed. Bets sit on the layout until you spin.
+- **Craps:** the menu walks you through each bet family (line, odds, Come/Don't Come, Field, Place, Hardway, props); up/down sets the amount. Roll the dice from the same menu once your bets are down.
+- **Slots:** up/down sets the bet, then pull the lever.
 - **Poker:** Fold, Check or Call, Bet or Raise, and All in; up/down changes the bet size. Leaving mid-hand folds, and your stack goes back to your purse.
 - **Spades:** left/right picks a card (only legal cards light up) or sets your bid.
 - **Go Fish:** left/right picks the rank to ask for, up/down picks the player.
@@ -84,7 +90,7 @@ The file format is described in [res/maps/README.md](res/maps/README.md).
 
 ## Launcher
 
-`launcher/` holds the Windows game launcher, `CrownAndCardLauncher.exe`. It's C# on the .NET Framework 4.8 that ships with Windows 10 and 11, so the exe runs without installing anything.
+`launcher/` holds the Windows game launcher's source; building it (see below) compiles `CrownAndCardLauncher.exe` to the repo root, next to `web/`, so it finds the dev build the same way a packaged release finds its own files. It's C# on the .NET Framework 4.8 that ships with Windows 10 and 11, so the exe runs without installing anything.
 
 The launcher follows the manor's navy, burgundy, brass and ivory palette. Its news page pairs a framed pixel-art masquerade scene with the Manor Gazette; settings and reports retain full-width layouts. The static PNG is embedded in the executable. Art provenance and the generation prompt are in [launcher/assets/README.md](launcher/assets/README.md).
 
@@ -104,7 +110,7 @@ The launcher follows the manor's navy, burgundy, brass and ivory palette. Its ne
 | Build the release: `dist\CrownAndCard\`, the portable zip and the Setup exe (run `haxe build-js.hxml` first; also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php): `winget install JRSoftware.InnoSetup`) | `powershell -File launcher\build.ps1 -Package` |
 | Show or bump the version (0.YY.BBB: year, then build number) | `python tools/version.py` / `python tools/version.py bump` |
 | Build, package and publish a GitHub release (needs `gh`) | `powershell -File tools\release.ps1 -Bump -Notes "What changed"` |
-| Check the menu music decodes and the audio device opens (result in `%LOCALAPPDATA%\CrownAndCard\launcher.log`) | `launcher\bin\CrownAndCardLauncher.exe --check-audio` |
+| Check the menu music decodes and the audio device opens (result in `%LOCALAPPDATA%\CrownAndCard\launcher.log`) | `CrownAndCardLauncher.exe --check-audio` |
 | Regenerate the launcher icon | `python tools/make_launcher_icon.py` |
 
 ## License
