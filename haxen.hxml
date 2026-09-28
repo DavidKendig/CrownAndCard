@@ -1,0 +1,8 @@
+# Haxen, the map editor (browser). Output goes next to web/haxen.html.
+#   haxe haxen.hxml
+# Then serve web/ and open haxen.html (the launcher's Haxen button does this for you).
+-cp src
+-main haxen.Haxen
+-resource res/maps/manor.json@manor
+-D analyzer-optimize
+-js web/haxen.js

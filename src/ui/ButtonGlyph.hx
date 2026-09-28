@@ -74,15 +74,28 @@ class ButtonGlyph {
 class InputMode {
 	public static var usingPad = false;
 
+	/** haxe.Timer.stamp() of the last controller input. **/
+	public static var lastPadInput = -100.0;
+
 	#if devtools
 	/** Dev-only: show controller prompts without a controller (crownDebug.padPrompts). **/
 	public static var forcePad = false;
 	#end
 
-	/** Call once at startup: any key or mouse press switches the prompts to the keyboard. **/
+	/**
+		True just after the controller was used. Mouse input then is most likely
+		the controller itself (Steam's desktop layout turns sticks and triggers
+		into mouse moves and clicks), so mouse look and prompt switching ignore it.
+	**/
+	public static var padRecent(get, never):Bool;
+
+	static function get_padRecent():Bool return haxe.Timer.stamp() - lastPadInput < 0.75;
+
+	/** Call once at startup: any key, or a mouse press that isn't the controller's, switches the prompts to the keyboard. **/
 	public static function listen():Void {
 		hxd.Window.getInstance().addEventTarget(e -> switch e.kind {
-			case EKeyDown, EPush: usingPad = false;
+			case EKeyDown: usingPad = false;
+			case EPush: if (!padRecent) usingPad = false;
 			default:
 		});
 	}
@@ -99,12 +112,13 @@ class InputMode {
 			usingPad = false;
 			return;
 		}
-		for (b in pad.buttons) if (b) {
+		var touched = false;
+		for (b in pad.buttons) if (b) touched = true;
+		if (Math.abs(pad.xAxis) > .5 || Math.abs(pad.yAxis) > .5 || Math.abs(pad.rxAxis) > .5 || Math.abs(pad.ryAxis) > .5) touched = true;
+		if (touched) {
 			usingPad = true;
-			return;
+			lastPadInput = haxe.Timer.stamp();
 		}
-		if (Math.abs(pad.xAxis) > .5 || Math.abs(pad.yAxis) > .5 || Math.abs(pad.rxAxis) > .5 || Math.abs(pad.ryAxis) > .5)
-			usingPad = true;
 	}
 }
 
@@ -138,7 +152,8 @@ class MenuInput {
 		down = K.isPressed(K.DOWN) || K.isPressed(K.S) || (p && pad.isPressed(pad.config.dpadDown)) || (sy == 1 && stickY != 1);
 		left = K.isPressed(K.LEFT) || K.isPressed(K.A) || (p && pad.isPressed(pad.config.dpadLeft)) || (sx == -1 && stickX != -1);
 		right = K.isPressed(K.RIGHT) || K.isPressed(K.D) || (p && pad.isPressed(pad.config.dpadRight)) || (sx == 1 && stickX != 1);
-		confirm = K.isPressed(K.E) || K.isPressed(K.ENTER) || (p && pad.isPressed(pad.config.A));
+		// Alt+Enter is the fullscreen toggle, not a menu choice.
+		confirm = K.isPressed(K.E) || (K.isPressed(K.ENTER) && !K.isDown(K.ALT)) || (p && pad.isPressed(pad.config.A));
 		alt = K.isPressed(K.SPACE) || (p && pad.isPressed(pad.config.X));
 		back = K.isPressed(K.ESCAPE) || K.isPressed(K.BACKSPACE) || (p && pad.isPressed(pad.config.B));
 		stickX = sx;

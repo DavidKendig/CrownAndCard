@@ -33,6 +33,8 @@ try {
 
     haxe build-js.hxml
     if ($LASTEXITCODE -ne 0) { throw "Game build failed." }
+    haxe haxen.hxml
+    if ($LASTEXITCODE -ne 0) { throw "Haxen build failed." }
     & powershell -NoProfile -ExecutionPolicy Bypass -File launcher\build.ps1 -Package
     if ($LASTEXITCODE -ne 0) { throw "Launcher build failed." }
 

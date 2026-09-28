@@ -23,17 +23,35 @@ static class Program
 		using var mutex = new Mutex(true, @"Local\CrownAndCardLauncher", out bool firstInstance);
 		if (!firstInstance)
 		{
-			MessageBox.Show("The Crown & Card launcher is already open.", "Crown & Card", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			// Ask the open launcher to come to the front instead of starting a second one.
+			if (EventWaitHandle.TryOpenExisting(ShowSignalName, out var signal))
+				using (signal)
+					signal.Set();
+			else
+				MessageBox.Show("The Crown & Card launcher is already open.", "Crown & Card", MessageBoxButtons.OK, MessageBoxIcon.Information);
 			return;
 		}
+		using var showSignal = new EventWaitHandle(false, EventResetMode.AutoReset, ShowSignalName);
 		Application.EnableVisualStyles();
 		Application.SetCompatibleTextRenderingDefault(false);
 		Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
 		Application.ThreadException += (_, e) => ReportFatal(e.Exception);
 		AppDomain.CurrentDomain.UnhandledException += (_, e) => ReportFatal(e.ExceptionObject as Exception);
 		SessionRecorder.RecoverAbandoned();
-		Application.Run(new LauncherForm());
+		var form = new LauncherForm();
+		new Thread(() =>
+		{
+			while (showSignal.WaitOne())
+			{
+				try { form.BeginInvoke(new Action(form.ShowFromAnotherLaunch)); }
+				catch (InvalidOperationException) { return; } // the form is gone
+			}
+		}) { IsBackground = true, Name = "ShowSignal" }.Start();
+		Application.Run(form);
 	}
+
+	/** Signalled by a second launch (for example the Start menu clicked twice). **/
+	const string ShowSignalName = @"Local\CrownAndCardLauncher.Show";
 
 	/**
 		`CrownAndCardLauncher.exe --check-audio`: decodes the whole embedded menu

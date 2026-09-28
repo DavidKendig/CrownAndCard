@@ -36,7 +36,7 @@ class SlapjackUI extends CardGameScreen {
 	var note = "";
 
 	public function new(parent:h2d.Object, faces:CardFaces, shuffle:rng.IRng, aiRng:rng.IRng) {
-		super(parent, faces);
+		super(parent, faces, "slapjack");
 		this.shuffle = shuffle;
 		this.aiRng = aiRng;
 		newGame();
@@ -60,7 +60,7 @@ class SlapjackUI extends CardGameScreen {
 
 	override public function update(w:Int, dt:Float, input:MenuInput):Void {
 		var cx = w / 2;
-		begin(w, 0x4A3020, 0x2A1A10);
+		begin(w);
 		drawTable(w, cx);
 		var over = game.winner >= 0 || game.out[0];
 		if (leaveCheck(input, !over, "This game of Slapjack will be abandoned.")) {

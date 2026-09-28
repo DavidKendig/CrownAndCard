@@ -30,22 +30,16 @@ class FoyerArt {
 		return result;
 	}
 
-	/** Fixed world planes: door and desk artwork never rotate toward the camera. */
-	public static function panels(palette:Palette, lut:h3d.mat.Texture, parent:h3d.scene.Object):Array<BuildShader> {
-		var shaders = [];
-		function panel(path:String,w:Int,h:Int,x0:Float,x1:Float,y:Float,z0:Float,z1:Float,facesNorth:Bool) {
-			var mb = new MeshBuilder();
-			var a = facesNorth ? x1 : x0, b = facesNorth ? x0 : x1;
-			mb.quad(new Point(a,y,z1),new Point(b,y,z1),new Point(b,y,z0),new Point(a,y,z0),
-				new UV(0,0),new UV(1,0),new UV(1,1),new UV(0,1),new Point(0,facesNorth?1:-1,0),4);
-			var mat = h3d.mat.Material.create(); mat.mainPass.enableLights=false; mat.shadows=false; mat.mainPass.culling=None;
-			var shader = new BuildShader(surface(path,palette,w,h).toIndexTexture(false,false),lut,false);
-			mat.mainPass.addShader(shader); new h3d.scene.Mesh(mb.toPrimitive(),mat,parent); shaders.push(shader);
-		}
-		panel("foyer/welcome-desk.png",256,80,10.8,15.2,6.085,.10,1.08,false);
-		panel("foyer/grand-doors.png",256,384,10.4,15.6,1.025,0,6.8,true);
-		// The upper doorway is a visual destination for the future second floor.
-		panel("foyer/grand-doors.png",192,288,11.5,14.5,20.975,3.6,7.8,false);
-		return shaders;
+	/** A fixed world plane (door and desk artwork never rotate toward the camera), parallel to the X axis at `y`. */
+	public static function panel(path:String, w:Int, h:Int, x0:Float, x1:Float, y:Float, z0:Float, z1:Float, facesNorth:Bool,
+			palette:Palette, lut:h3d.mat.Texture, parent:h3d.scene.Object):BuildShader {
+		var mb = new MeshBuilder();
+		var a = facesNorth ? x1 : x0, b = facesNorth ? x0 : x1;
+		mb.quad(new Point(a,y,z1),new Point(b,y,z1),new Point(b,y,z0),new Point(a,y,z0),
+			new UV(0,0),new UV(1,0),new UV(1,1),new UV(0,1),new Point(0,facesNorth?1:-1,0),4);
+		var mat = h3d.mat.Material.create(); mat.mainPass.enableLights=false; mat.shadows=false; mat.mainPass.culling=None;
+		var shader = new BuildShader(surface(path,palette,w,h).toIndexTexture(false,false),lut,false);
+		mat.mainPass.addShader(shader); new h3d.scene.Mesh(mb.toPrimitive(),mat,parent);
+		return shader;
 	}
 }

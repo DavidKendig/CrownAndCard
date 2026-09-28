@@ -12,11 +12,13 @@ class TestMain {
 			new world.GridMapTest(),
 			new world.FoyerTest(),
 			new world.CardRoomTest(),
+			new world.MapDataTest(),
 			new core.GuestRegisterTest(),
 			new games.BlackjackTest(),
 			new games.SpadesTest(),
 			new games.PokerTest(),
 			new games.ParlourTest(),
+			new games.MahjongTest(),
 		]);
 	}
 }

@@ -2,6 +2,7 @@
 package ui;
 
 import games.poker.PokerTable.Variant;
+import games.mahjong.MahjongGame.Variant as MahjongVariant;
 import render.Palette;
 import ui.ButtonGlyph;
 import ui.TableKit;
@@ -55,6 +56,8 @@ class CardTableUI {
 		{name: "Slapjack", detail: "Turn cards to the middle; slap the jacks\nfirst to take the pile. Win every card."},
 		{name: "War", detail: "You against Sir Reggie. Higher card\ntakes both; a tie means war."},
 		{name: "Solitaire", detail: "Klondike, turning one card at a time.\nBuild every suit from ace to king."},
+		{name: "Classic Mahjong", detail: "Hong Kong style with flowers and seasons.\nFaan scoring, one East round."},
+		{name: "Riichi Mahjong", detail: "Japanese riichi: yaku, dora, han and fu.\nWRC rules, one East round, 25,000 start."},
 		{name: "Stand up", detail: "Step away from the table."},
 	];
 
@@ -117,10 +120,19 @@ class CardTableUI {
 			case "Slapjack": screen(new SlapjackUI(gameLayer, faces, stream("shuffle"), stream("ai")));
 			case "War": screen(new WarUI(gameLayer, faces, stream("shuffle")));
 			case "Solitaire": screen(new SolitaireUI(gameLayer, faces, stream("shuffle")));
+			case "Classic Mahjong": screen(new MahjongUI(gameLayer, faces, tileFaces(), MahjongVariant.Classic, stream("shuffle")));
+			case "Riichi Mahjong": screen(new MahjongUI(gameLayer, faces, tileFaces(), MahjongVariant.Riichi, stream("shuffle")));
 			default: null;
 		}
 		if (seat != null) seats.set(name, seat);
 		return seat;
+	}
+
+	var tiles:Null<TileFaces>;
+
+	function tileFaces():TileFaces {
+		if (tiles == null) tiles = new TileFaces(palette);
+		return tiles;
 	}
 
 	function pick(i:Int):Void {

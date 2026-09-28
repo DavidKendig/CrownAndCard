@@ -54,6 +54,16 @@ static class GameLocator
 		return null;
 	}
 
+	/** The web folder holding Haxen, the map editor (it ships beside the web build). **/
+	public static string? FindHaxen(string overridePath)
+	{
+		foreach (var dir in CandidateDirs(overridePath))
+			foreach (var web in new[] { Path.Combine(dir, "web"), dir })
+				if (File.Exists(Path.Combine(web, "haxen.html")) && File.Exists(Path.Combine(web, "haxen.js")))
+					return Path.GetFullPath(web);
+		return null;
+	}
+
 	/** The override folder, then the launcher's folder and up to four parents (so a dev build finds the repo's web/). **/
 	static IEnumerable<string> CandidateDirs(string overridePath)
 	{

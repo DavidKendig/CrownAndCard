@@ -26,6 +26,7 @@ class SpadesTableUI extends h2d.Object {
 	final rng:rng.IRng;
 	final faces:CardFaces;
 	final bg:h2d.Graphics;
+	final tableArt:TableSurface;
 	final cardLayer:h2d.Object;
 	final handHits:Array<h2d.Interactive> = [];
 	final scoreText:h2d.Text;
@@ -52,6 +53,7 @@ class SpadesTableUI extends h2d.Object {
 		super(parent);
 		this.faces = faces;
 		this.rng = rng;
+		tableArt = new TableSurface("spades", this);
 		bg = new h2d.Graphics(this);
 		cardLayer = new h2d.Object(this);
 		for (i in 0...SpadesGame.HAND_SIZE) {
@@ -252,18 +254,7 @@ class SpadesTableUI extends h2d.Object {
 
 	function drawTable(w:Int):Void {
 		bg.clear();
-		bg.beginFill(0x1B120C);
-		bg.drawRect(0, 0, w, 360);
-		bg.endFill();
-		// Library card table: dark green baize inside a brass-edged wooden rim.
-		bg.beginFill(0x3A2416);
-		bg.drawRect(4, 4, w - 8, 352);
-		bg.endFill();
-		bg.beginFill(0x173A26);
-		bg.lineStyle(1, TableKit.BRASS, 1);
-		bg.drawRect(12.5, 12.5, w - 25, 335);
-		bg.endFill();
-		bg.lineStyle();
+		tableArt.fit(w);
 
 		scoreText.text = 'Us ${game.scores[0]}  (${bagCount(0)})\nThem ${game.scores[1]}  (${bagCount(1)})';
 		scoreText.x = 18;
@@ -271,6 +262,8 @@ class SpadesTableUI extends h2d.Object {
 		goalText.text = 'Game to ${SpadesGame.WINNING_SCORE}';
 		goalText.x = w - 18 - goalText.textWidth;
 		goalText.y = 16;
+		TableKit.panel(bg, scoreText.x - 3, scoreText.y - 2, scoreText.textWidth + 6, scoreText.textHeight + 4);
+		TableKit.panel(bg, goalText.x - 3, goalText.y - 2, goalText.textWidth + 6, goalText.textHeight + 4);
 	}
 
 	function bagCount(team:Int):String {

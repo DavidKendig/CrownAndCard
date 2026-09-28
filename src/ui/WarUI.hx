@@ -17,7 +17,7 @@ class WarUI extends CardGameScreen {
 	var timer = 0.0;
 
 	public function new(parent:h2d.Object, faces:CardFaces, shuffle:rng.IRng) {
-		super(parent, faces);
+		super(parent, faces, "war");
 		this.shuffle = shuffle;
 		newGame();
 	}
@@ -40,7 +40,7 @@ class WarUI extends CardGameScreen {
 
 	override public function update(w:Int, dt:Float, input:MenuInput):Void {
 		var cx = w / 2;
-		begin(w, 0x3A2A48, 0x2A1A10);
+		begin(w);
 		drawTable(cx);
 		if (leaveCheck(input, false, "")) {
 			end(cx);

@@ -6,3 +6,5 @@ web/game.js
 web/game.js.map
 launcher/bin/
 dist/
+web/haxen.js
+web/haxen.js.map

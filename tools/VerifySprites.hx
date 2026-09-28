@@ -25,8 +25,10 @@ class VerifySprites {
 				if (row > 0 && changed < 50) throw 'Repeated animation in $name frame $frame row $row';
 			}
 		}
-		var map = world.Greybox.map();
-		for (spawn in world.Greybox.GUESTS) {
+		// The manor as the game loads it (res/maps/manor.json).
+		var level = new world.Level(world.MapData.parse(hxd.Res.load("maps/manor.json").toText()));
+		var map = level.map;
+		for (spawn in level.data.guests) {
 			if (SpriteArt.CHARACTERS.indexOf(spawn.art) < 0) throw 'Missing art for ${spawn.name}';
 			if (spawn.walkTo == null) continue;
 			var walk = new world.GuestWalkPath(spawn.x, spawn.y, spawn.walkTo.x, spawn.walkTo.y);
@@ -41,9 +43,9 @@ class VerifySprites {
 			}
 			if (!turned || [for (_ in phases.keys()) 1].length != 4) throw "Walk did not turn and animate";
 		}
-		if (world.Greybox.GUESTS[0].art != "hooded_keeper") throw "Front desk must use the hooded keeper";
-		var start=world.Greybox.PLAYER_START;
-		if(map.blocked(start.x,start.y,.25) || !world.Foyer.atDesk(start.x,start.y,start.yaw)) throw "Invalid foyer spawn";
+		if (level.data.guests[0].art != "hooded_keeper") throw "Front desk must use the hooded keeper";
+		var start=level.data.start;
+		if(map.blocked(start.x,start.y,.25) || !level.atDesk(start.x,start.y,level.startYaw)) throw "Invalid foyer spawn";
 		// Both side aisles must reach the original playable rooms without crossing ropes.
 		for (x in [7.5,18.5]) {
 			var p={x:start.x,y:start.y};

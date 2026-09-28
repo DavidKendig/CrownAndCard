@@ -32,7 +32,7 @@ class PokerTableUI extends CardGameScreen {
 	var decisionKey = "";
 
 	public function new(parent:h2d.Object, faces:CardFaces, variant:Variant, wallet:core.Wallet, shuffle:rng.IRng, aiRng:rng.IRng) {
-		super(parent, faces);
+		super(parent, faces, variant == Holdem ? "holdem" : "draw");
 		this.variant = variant;
 		this.wallet = wallet;
 		this.shuffle = shuffle;
@@ -98,7 +98,7 @@ class PokerTableUI extends CardGameScreen {
 
 	override public function update(w:Int, dt:Float, input:MenuInput):Void {
 		var cx = w / 2;
-		begin(w, variant == Holdem ? 0x173A26 : 0x5A3A22, variant == Holdem ? 0x3A2416 : 0x2A1A10);
+		begin(w);
 		drawSeats(w, cx);
 
 		var inHand = table.phase == Betting || table.phase == Drawing;

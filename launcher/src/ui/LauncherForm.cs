@@ -17,6 +17,9 @@ sealed class LauncherForm : Form
 	readonly Panel content = new() { Dock = DockStyle.Fill, Padding = new Padding(28, 18, 28, 10), BackColor = Theme.Background };
 	readonly ManorPanel manor = new() { Dock = DockStyle.Left, Width = 338 };
 	readonly Button play = new() { Text = "PLAY", Size = new Size(210, 56), Font = Theme.Play };
+	readonly Button haxen = new() { Text = "HAXEN", Size = new Size(110, 40), Font = Theme.Tab };
+	readonly Button mapButton = new() { Text = "MAP", Size = new Size(230, 40), Font = Theme.Tab, TextAlign = ContentAlignment.MiddleLeft };
+	readonly MapStore maps = new(Paths.MapsDir);
 	readonly Label gameLabel = Theme.Label("", Theme.Body, Theme.Cream);
 	readonly Label sessionLabel = Theme.Label("", Theme.Small, Theme.Muted);
 	readonly List<TabButton> tabs = [];
@@ -106,17 +109,26 @@ sealed class LauncherForm : Form
 		var footer = new FooterPanel { Dock = DockStyle.Bottom, Height = 92 };
 		Theme.StyleButton(play, primary: true);
 		play.Click += (_, _) => Play();
+		Theme.StyleButton(haxen);
+		Theme.StyleButton(mapButton);
+		haxen.Click += (_, _) => OpenHaxen();
+		mapButton.Click += (_, _) => ShowMapMenu();
+		new ToolTip().SetToolTip(haxen, "Haxen, the map editor: open the manor or make your own maps");
+		UpdateMapButton();
+		server.PlaytestRequested = name => (string?)Invoke(new Func<string?>(() => StartPlaytest(name)));
 		gameLabel.Location = new Point(28, 20);
 		sessionLabel.Location = new Point(28, 48);
 		versionLabel.Location = new Point(28, 68);
 		versionLabel.SizeChanged += (_, _) => updateLink.Left = versionLabel.Right + 10;
 		updateLink.Location = new Point(versionLabel.Right + 10, 68);
 		updateLink.LinkClicked += (_, _) => updateAction?.Invoke();
-		footer.Controls.AddRange([gameLabel, sessionLabel, versionLabel, updateLink, play]);
+		footer.Controls.AddRange([gameLabel, sessionLabel, versionLabel, updateLink, play, haxen, mapButton]);
 		footer.Resize += (_, _) =>
 		{
 			play.Location = new Point(footer.Width - play.Width - 28, (footer.Height - play.Height) / 2 + 2);
-			gameLabel.MaximumSize = sessionLabel.MaximumSize = new Size(Math.Max(200, play.Left - 56), 0);
+			haxen.Location = new Point(play.Left - haxen.Width - 12, (footer.Height - haxen.Height) / 2 + 2);
+			mapButton.Location = new Point(haxen.Left - mapButton.Width - 8, haxen.Top);
+			gameLabel.MaximumSize = sessionLabel.MaximumSize = new Size(Math.Max(200, mapButton.Left - 40), 0);
 		};
 
 		var body = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Background };
@@ -140,6 +152,15 @@ sealed class LauncherForm : Form
 			SetUpdateStatus("Check for updates", CheckForUpdates);
 		AcceptButton = play;
 		UpdateMusic();
+	}
+
+	/** Another launch of the launcher asked this one to show itself. **/
+	public void ShowFromAnotherLaunch()
+	{
+		if (WindowState == FormWindowState.Minimized)
+			WindowState = FormWindowState.Normal;
+		Activate();
+		BringToFront();
 	}
 
 	/** Menu music plays while the launcher is open, not during a game, and (optionally) not in the background. **/
@@ -300,14 +321,94 @@ sealed class LauncherForm : Form
 		play.Enabled = plan != null && session == null && !updating;
 	}
 
-	void Play()
+	/** Chooses which map PLAY starts: the manor, or a custom map saved from Haxen (§13.6). **/
+	void ShowMapMenu()
+	{
+		var menu = new ContextMenuStrip { ShowCheckMargin = true, ShowImageMargin = false, Font = Theme.Body };
+		void Choose(string name)
+		{
+			settings.Map = name;
+			settings.Save();
+			UpdateMapButton();
+		}
+		var manor = new ToolStripMenuItem("Dodriec Manor (the game's map)") { Checked = settings.Map.Length == 0 };
+		manor.Click += (_, _) => Choose("");
+		menu.Items.Add(manor);
+		var custom = maps.List();
+		if (custom.Count > 0)
+			menu.Items.Add(new ToolStripSeparator());
+		foreach (var name in custom)
+		{
+			var item = new ToolStripMenuItem(name) { Checked = settings.Map == name };
+			item.Click += (_, _) => Choose(name);
+			menu.Items.Add(item);
+		}
+		menu.Items.Add(new ToolStripSeparator());
+		var edit = new ToolStripMenuItem("Make or edit maps in Haxen…");
+		edit.Click += (_, _) => OpenHaxen();
+		menu.Items.Add(edit);
+		var folder = new ToolStripMenuItem("Open the maps folder");
+		folder.Click += (_, _) =>
+		{
+			System.IO.Directory.CreateDirectory(maps.Folder);
+			System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(maps.Folder) { UseShellExecute = true });
+		};
+		menu.Items.Add(folder);
+		menu.Show(mapButton, new Point(0, mapButton.Height));
+	}
+
+	void UpdateMapButton()
+	{
+		// A chosen map that's since been deleted falls back to the manor.
+		if (settings.Map.Length > 0 && maps.Read(settings.Map) == null)
+		{
+			settings.Map = "";
+			settings.Save();
+		}
+		mapButton.Text = "  MAP:  " + (settings.Map.Length == 0 ? "Dodriec Manor" : settings.Map) + "  ▾";
+	}
+
+	void OpenHaxen()
+	{
+		var web = GameLocator.FindHaxen(settings.GamePath);
+		if (web == null)
+		{
+			MessageBox.Show(this, "Haxen wasn't found next to the game (web\\haxen.html). Reinstall, or set the game folder in Settings.",
+				"Crown & Card", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+			return;
+		}
+		try
+		{
+			HaxenWindow.Open(server, web);
+		}
+		catch (Exception e)
+		{
+			Log.Write("Couldn't open Haxen: " + e);
+			MessageBox.Show(this, $"Haxen couldn't be opened:\n\n{e.Message}", "Crown & Card", MessageBoxButtons.OK, MessageBoxIcon.Error);
+		}
+	}
+
+	/** Haxen's "Play test": start the game on that map (on the UI thread). **/
+	string? StartPlaytest(string name)
+	{
+		if (session != null)
+			return "busy";
+		DetectGame();
+		if (plan == null)
+			return "no game";
+		Play(name);
+		return session == null ? "failed" : null;
+	}
+
+	void Play(string? mapOverride = null)
 	{
 		DetectGame();
+		UpdateMapButton();
 		if (plan == null || session != null)
 			return;
 		try
 		{
-			session = GameSession.Start(plan, settings, server);
+			session = GameSession.Start(plan, settings, server, mapOverride);
 		}
 		catch (Exception e)
 		{
@@ -319,7 +420,8 @@ sealed class LauncherForm : Form
 		play.Text = "PLAYING…";
 		play.Enabled = false;
 		UpdateMusic();
-		sessionLabel.Text = "Starting the game…  Recording to " + session.Recorder.Dir;
+		var mapName = mapOverride ?? (settings.Map.Length == 0 ? null : settings.Map);
+		sessionLabel.Text = (mapName == null ? "Starting the game…" : $"Starting the game on {mapName}…") + "  Recording to " + session.Recorder.Dir;
 		if (settings.MinimizeWhilePlaying)
 			WindowState = FormWindowState.Minimized;
 	}

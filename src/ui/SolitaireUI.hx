@@ -35,7 +35,7 @@ class SolitaireUI extends CardGameScreen {
 	var note = "";
 
 	public function new(parent:h2d.Object, faces:CardFaces, shuffle:rng.IRng) {
-		super(parent, faces);
+		super(parent, faces, "solitaire");
 		this.shuffle = shuffle;
 		overlay = new h2d.Graphics(this);
 		newGame();
@@ -68,7 +68,7 @@ class SolitaireUI extends CardGameScreen {
 
 	override public function update(w:Int, dt:Float, input:MenuInput):Void {
 		var cx = w / 2;
-		begin(w, 0x1F4A2E, 0x3A2416);
+		begin(w);
 		overlay.clear();
 		drawTable();
 		// Back cancels a held card before it offers to leave.
@@ -219,7 +219,8 @@ class SolitaireUI extends CardGameScreen {
 			if (f.length > 0) card(faces.face(f[f.length - 1]), colX(3 + i), TOP_Y) else pile(0, colX(3 + i), TOP_Y, false);
 			hit(203 + i, colX(3 + i), TOP_Y, CardFaces.W, CardFaces.H);
 		}
-		label('Moves ${game.moves}', 20, 16, TableKit.DIM);
+		var moves = label('Moves ${game.moves}', 20, 16, TableKit.CREAM);
+		TableKit.panel(bg, 16, 13, moves.textWidth + 8, 17, .86);
 		// The tableau.
 		for (c in 0...7) {
 			var t = game.tableau[c];

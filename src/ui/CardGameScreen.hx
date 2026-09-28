@@ -19,6 +19,7 @@ class CardGameScreen extends h2d.Object {
 
 	final faces:CardFaces;
 	final bg:h2d.Graphics;
+	final tableArt:TableSurface;
 	final cardLayer:h2d.Object;
 	final textLayer:h2d.Object;
 	final hitLayer:h2d.Object;
@@ -49,9 +50,10 @@ class CardGameScreen extends h2d.Object {
 	var confirmLeave = false;
 	var screenW = 640;
 
-	public function new(parent:h2d.Object, faces:CardFaces) {
+	public function new(parent:h2d.Object, faces:CardFaces, tabletop:String) {
 		super(parent);
 		this.faces = faces;
+		tableArt = new TableSurface(tabletop, this);
 		bg = new h2d.Graphics(this);
 		cardLayer = new h2d.Object(this);
 		hitLayer = new h2d.Object(this);
@@ -72,21 +74,11 @@ class CardGameScreen extends h2d.Object {
 
 	public function update(w:Int, dt:Float, input:MenuInput):Void {}
 
-	/** Starts a frame: draws the table (felt inside a wooden rim) and resets the pools. **/
-	function begin(w:Int, felt = 0x173A26, rim = 0x3A2416):Void {
+	/** Starts a frame: fits the authored tabletop and resets the overlay pools. **/
+	function begin(w:Int):Void {
 		screenW = w;
 		bg.clear();
-		bg.beginFill(0x1B120C);
-		bg.drawRect(0, 0, w, 360);
-		bg.endFill();
-		bg.beginFill(rim);
-		bg.drawRect(4, 4, w - 8, 352);
-		bg.endFill();
-		bg.beginFill(felt);
-		bg.lineStyle(1, TableKit.BRASS, 1);
-		bg.drawRect(12.5, 12.5, w - 25, 335);
-		bg.endFill();
-		bg.lineStyle();
+		tableArt.fit(w);
 		usedBitmaps = usedTexts = usedHits = 0;
 		title = body = "";
 		hintItems = [];

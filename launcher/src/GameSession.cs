@@ -32,6 +32,9 @@ sealed class GameSession
 	readonly LocalServer server;
 	readonly GameKind kind;
 
+	/** A map to play instead of the one chosen in the launcher (Haxen's play test). **/
+	readonly string? mapOverride;
+
 	/** The process being watched. For the web build this can change once, when the browser hands off. **/
 	volatile Process? process;
 	int endedFlag;
@@ -40,9 +43,10 @@ sealed class GameSession
 	/** False when there's no process to watch, so the session is tracked by heartbeat alone. **/
 	volatile bool processTracked;
 
-	GameSession(GamePlan plan, LauncherSettings settings, LocalServer server)
+	GameSession(GamePlan plan, LauncherSettings settings, LocalServer server, string? mapOverride)
 	{
 		this.server = server;
+		this.mapOverride = mapOverride;
 		kind = plan.Kind;
 		// Start recording before the game starts, so its first reports aren't missed.
 		Recorder = SessionRecorder.Begin(plan, settings);
@@ -90,12 +94,25 @@ sealed class GameSession
 		Finish(code, "game process exited");
 	}
 
-	public static GameSession Start(GamePlan plan, LauncherSettings settings, LocalServer server) => new(plan, settings, server);
+	public static GameSession Start(GamePlan plan, LauncherSettings settings, LocalServer server, string? mapOverride = null) =>
+		new(plan, settings, server, mapOverride);
+
+	/** The settings' options, with the map swapped for a play test. **/
+	System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> Options(LauncherSettings s)
+	{
+		var options = s.GameOptions();
+		if (mapOverride != null)
+		{
+			options.RemoveAll(kv => kv.Key == "map");
+			options.Add(new("map", mapOverride));
+		}
+		return options;
+	}
 
 	Process? StartWeb(GamePlan plan, LauncherSettings s)
 	{
 		server.WebRoot = plan.Path;
-		var query = string.Join("&", s.GameOptions().Select(kv => kv.Key + "=" + Uri.EscapeDataString(kv.Value)));
+		var query = string.Join("&", Options(s).Select(kv => kv.Key + "=" + Uri.EscapeDataString(kv.Value)));
 		var url = $"{server.BaseUrl}index.html?{query}&telemetry={Uri.EscapeDataString(server.ApiUrl)}";
 		var browser = GameLocator.FindBrowser();
 		if (browser == null)
@@ -122,7 +139,7 @@ sealed class GameSession
 
 	Process StartNative(GamePlan plan, LauncherSettings s)
 	{
-		var options = s.GameOptions().Select(kv => Quote($"--{kv.Key}={kv.Value}")).ToList();
+		var options = Options(s).Select(kv => Quote($"--{kv.Key}={kv.Value}")).ToList();
 		options.Add(Quote("--telemetry=" + server.ApiUrl));
 		if (plan.Bytecode != null)
 			options.Insert(0, Quote(plan.Bytecode));
