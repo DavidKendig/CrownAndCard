@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 <#
 .SYNOPSIS
-  Builds launcher\bin\CrownAndCardLauncher.exe (and, with -Package, the release).
+  Builds CrownAndCardLauncher.exe at the repo root (and, with -Package, the release).
 
 .DESCRIPTION
   1. Compiles the menu-music decoder (native\cc_vorbis.c, a wrapper around
@@ -68,7 +68,7 @@ exit `$LASTEXITCODE
     & powershell -NoProfile -ExecutionPolicy Bypass -Command $native 2>&1 | Out-Host
     $ErrorActionPreference = "Stop"
     if ($LASTEXITCODE -ne 0) { throw "Native decoder build failed." }
-    Copy-Item "bin\native\cc_vorbis.dll" "bin\cc_vorbis.dll" -Force
+    Copy-Item "bin\native\cc_vorbis.dll" (Join-Path $repo "cc_vorbis.dll") -Force
 
     # 2. Launcher, with the version baked in.
     @(
@@ -80,10 +80,11 @@ exit `$LASTEXITCODE
         "static class BuildInfo { public const string Version = `"$version`"; }"
     ) | Set-Content -Encoding UTF8 "bin\generated\BuildInfo.cs"
     $sources = @(Get-ChildItem "src" -Recurse -Filter *.cs | ForEach-Object { Resolve-Path -Relative $_.FullName }) + "bin\generated\BuildInfo.cs"
+    $exe = Join-Path $repo "CrownAndCardLauncher.exe"
     $arguments = @(
         "/nologo", "/noconfig", "/nostdlib+", "/target:winexe", "/platform:x64", "/optimize+",
         "/langversion:latest", "/nullable:enable", "/warn:4",
-        "/out:bin\CrownAndCardLauncher.exe",
+        "/out:$exe",
         "/win32icon:assets\launcher.ico",
         "/resource:assets\manor-launcher.png,CrownAndCard.Manor.png",
         "/resource:assets\launcher-icon.png,CrownAndCard.Emblem.png",
@@ -92,6 +93,8 @@ exit `$LASTEXITCODE
     ) + $references + $sources
     & $csc @arguments
     if ($LASTEXITCODE -ne 0) { throw "Compile failed." }
+    # The .NET Framework runtime reads <exe>.exe.config automatically; it isn't compiled in.
+    Copy-Item "App.config" "$exe.config" -Force
 
     # 3. Optional: the launcher's local API, saves and custom maps (tools\VerifyLocalApi.cs).
     if ($Verify) {
@@ -106,7 +109,6 @@ exit `$LASTEXITCODE
 finally {
     Pop-Location
 }
-$exe = Join-Path $root "bin\CrownAndCardLauncher.exe"
 Write-Host "Built $exe ($version)"
 
 if ($Package) {
@@ -116,7 +118,7 @@ if ($Package) {
     $dist = Join-Path $repo "dist\CrownAndCard"
     if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
     New-Item -ItemType Directory -Force (Join-Path $dist "web"), (Join-Path $dist "music") | Out-Null
-    Copy-Item $exe, (Join-Path $root "bin\cc_vorbis.dll") $dist
+    Copy-Item $exe, "$exe.config", (Join-Path $repo "cc_vorbis.dll") $dist
     Copy-Item (Join-Path $web "index.html"), (Join-Path $web "game.js"), (Join-Path $web "haxen.html"), (Join-Path $web "haxen.js") (Join-Path $dist "web")
     Copy-Item (Join-Path $repo "res\audio\music\menu-loop-dark.ogg") (Join-Path $dist "music")
     Copy-Item (Join-Path $repo "LICENSE"), (Join-Path $repo "LICENSE-ASSETS"), (Join-Path $repo "version.json") $dist

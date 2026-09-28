@@ -49,6 +49,9 @@ class CardTableUI {
 
 	static final GAMES = [
 		{name: "Blackjack", detail: "Six decks. Blackjack pays 3 to 2.\nDealer stands on all 17s. Bets 2 to 50."},
+		{name: "Roulette", detail: "Single-zero wheel, La Partage on the\neven-money bets. Straight pays 35 to 1."},
+		{name: "Craps", detail: "Pass, Don't Pass, Come, Field, Place\nand the props. Shake 'em and let fly."},
+		{name: "Slots", detail: "One three-reel bandit. Its RTP is\nengraved on the brass plaque."},
 		{name: "Texas Hold'em", detail: "No-limit, blinds 1 and 2, buy in for 100.\nWith the Deacon, the Colonel and Crake."},
 		{name: "Five-card draw", detail: "No-limit, ante 1, draw up to three.\nWith Tuppence, Reggie and the Colonel."},
 		{name: "Spades", detail: "You and Prof. Oyelaran against the\nVasquez twins. Nil and blind nil. To 500."},
@@ -110,6 +113,18 @@ class CardTableUI {
 				var b = new BlackjackTableUI(gameLayer, palette, faces, wallet, stream("shuffle"));
 				b.onLeave = show;
 				{view: b, sit: b.sit, update: b.update, status: () -> b.status};
+			case "Roulette":
+				var r = new RouletteTableUI(gameLayer, wallet, stream("outcome"));
+				r.onLeave = show;
+				{view: r, sit: r.sit, update: r.update, status: () -> r.status};
+			case "Craps":
+				var c = new CrapsTableUI(gameLayer, wallet, stream("outcome"));
+				c.onLeave = show;
+				{view: c, sit: c.sit, update: c.update, status: () -> c.status};
+			case "Slots":
+				var s = new SlotsTableUI(gameLayer, wallet, stream("outcome"));
+				s.onLeave = show;
+				{view: s, sit: s.sit, update: s.update, status: () -> s.status};
 			case "Spades":
 				var s = new SpadesTableUI(gameLayer, faces, stream("shuffle"));
 				s.onLeave = show;

@@ -8,3 +8,6 @@ launcher/bin/
 dist/
 web/haxen.js
 web/haxen.js.map
+/CrownAndCardLauncher.exe
+/CrownAndCardLauncher.exe.config
+/cc_vorbis.dll

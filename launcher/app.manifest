@@ -18,7 +18,11 @@
   </compatibility>
   <application xmlns="urn:schemas-microsoft-com:asm.v3">
     <windowsSettings>
-      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true</dpiAware>
+      <!-- Per-Monitor V2 (Windows 10 1703+): the window queries its actual monitor's DPI
+           at creation and on WM_DPICHANGED, instead of the legacy System DPI Aware mode,
+           which could pick up a stale or virtualized DPI and open the window undersized. -->
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/PM</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
     </windowsSettings>
   </application>
   <dependency>
