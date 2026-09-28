@@ -1091,6 +1091,7 @@ CrownAndCard/
 ├─ tools/          sim harness, rng dump (PractRand), asset scripts, rng reference, lint
 ├─ web/            index.html for the WebGL build (game.js is generated)
 ├─ launcher/       Windows game launcher (C#, .NET Framework 4.8), §13.12
+├─ installer/      Inno Setup script for the Windows installer, §13.12
 └─ docs/           per-game specs and art bible, split out as this doc grows
 ```
 
@@ -1190,7 +1191,7 @@ The README explains the split for visitors.
 
 ### 13.12 Game Launcher (LOCKED)
 
-A small Windows launcher, `CrownAndCardLauncher.exe` (`launcher/`), sits in front of the game. It's written in C# for the .NET Framework 4.8 that ships with Windows 10 and 11, so it's a single exe with nothing to install.
+A small Windows launcher, `CrownAndCardLauncher.exe` (`launcher/`), sits in front of the game. It's written in C# for the .NET Framework 4.8 that ships with Windows 10 and 11, so it needs no runtime installed. It ships with its decoder DLL, the menu music and the web build, installed by a per-user Setup exe.
 
 | Feature | How it works |
 |---|---|
@@ -1198,8 +1199,10 @@ A small Windows launcher, `CrownAndCardLauncher.exe` (`launcher/`), sits in fron
 | **Settings pass-through** | Graphics (display mode, window size, pixel scaling, FOV, head bob, look style, FPS counter) and audio (master, music, effects, voices, mute in background). Passed as `--key=value` arguments to native builds and as URL parameters to the web build, using the same keys the game reads (`src/core/Settings.hx`). The game clamps every value. Audio values are stored until the game has sound. |
 | **Error tracking** | The launcher runs a tiny HTTP server on 127.0.0.1 only, behind a random per-launch token. The game (`src/core/Telemetry.hx`) posts a state heartbeat every 5 seconds (room, position, heading, FPS, view size) and start, error and quit events. The launcher writes one folder per session under `%LOCALAPPDATA%\CrownAndCard\sessions\` and keeps the last 30. Each session ends as OK, errors reported, crashed, lost contact or unknown. The Reports tab shows them and can copy a text report. **Nothing is uploaded.** The game refuses telemetry URLs that aren't local. |
 | **Launch** | Prefers a native build (`CrownAndCard.exe`, or `hl.exe` + `game.hl`) next to the launcher. Otherwise it serves the web build and opens it as an Edge or Chrome app window in guest mode, with its own data folder. Guest mode keeps the window from signing in to the player's browser account or syncing data. |
-| **Menu music** | Loops the menu theme (`res/audio/music/menu-loop-dark.ogg`, embedded in the exe) seamlessly. It follows the Master × Music sliders, fades out while the game runs (and in the background when "Mute in background" is on), and has an on/off switch in the header. Decoded by stb_vorbis, built into a small embedded DLL, and played through the Windows waveOut API. |
-| **Updates** | Checks https://github.com/DavidKendig/CrownAndCard for the latest release (tag `v0.YY.BBB`, asset `CrownAndCard-0.YY.BBB-win64.zip`). If it's newer, the launcher downloads it and verifies the SHA-256 digest GitHub publishes (or a `.sha256` file). It then swaps the files in with a rollback copy and restarts. On by default, with a setting to install manually. A development copy inside a git checkout is never overwritten. Releases are published with `tools/release.ps1`. |
+| **Menu music** | Loops the menu theme (`music\menu-loop-dark.ogg`, shipped next to the exe) seamlessly. It follows the Master × Music sliders, fades out while the game runs (and in the background when "Mute in background" is on), and has an on/off switch in the header. Decoded by stb_vorbis in `cc_vorbis.dll` (also shipped next to the exe) and played through the Windows waveOut API. |
+| **Installer** | Inno Setup (`installer/CrownAndCard.iss`) builds `CrownAndCard-Setup-0.YY.BBB.exe`. It installs per user into `%LOCALAPPDATA%\Programs\CrownAndCard` with no admin prompt, adds a Start menu entry, an optional desktop icon and a standard uninstaller, and closes a running launcher through Windows Restart Manager. |
+| **Updates** | Checks https://github.com/DavidKendig/CrownAndCard for the latest release (tag `v0.YY.BBB`) at startup (a setting turns this off) and offers anything newer. Installing always needs the player's click: the launcher downloads that release's Setup exe, verifies the SHA-256 digest GitHub publishes, runs it and exits. A development copy inside a git checkout only reports the new version. Releases are published with `tools/release.ps1`. |
+| **Antivirus** | Behavior-based antivirus (Bitdefender's Advanced Threat Control flagged 0.26.001) reacts to malware-like patterns. So the launcher never unpacks and loads code at run time, never rewrites or relaunches its own exe, and never scans or kills other processes; updates go through the installer. Signing the exe and installer (for example Azure Trusted Signing, or SignPath's free open-source program) is the remaining step to stop unsigned-file warnings. |
 | **Versioning** | `version.json` holds **0.YY.BBB**: 0, the two-digit year, then a build number from 001 (`python tools/version.py bump`; a new year resets it to 001). The game, the launcher and the release tag all read it. |
 | **Controller** | The launcher reads XInput: A or Start plays, LB/RB switch tabs, Y toggles the music. In the game, the left stick (or d-pad) moves, the right stick looks, LB or L3 runs, and R3 or Y re-centers the view. |
 
@@ -1389,6 +1392,7 @@ flowchart LR
 | 2026-09-27 | Licensing: **AGPL-3.0 for code, CC BY-NC-SA 4.0 for assets** (§13.11) | David |
 | 2026-09-27 | A **Windows launcher** shows davidkendig.info news, passes graphics and audio settings through, records game state for error tracking, and launches the game (§13.12) | David |
 | 2026-09-27 | **Versioning 0.YY.BBB** (year, then build number), starting at **0.26.001**. The launcher **self-updates from GitHub releases**, and the game and launcher get **controller support** (§13.12). | David |
+| 2026-09-27 | After an antivirus detection, 0.26.002 ships an **Inno Setup installer**. Updates run through it with the player's OK, and the launcher avoids malware-like runtime behavior (§13.12). | David |
 
 ---
 

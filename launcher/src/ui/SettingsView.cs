@@ -34,7 +34,7 @@ sealed class SettingsView : UserControl
 
 	readonly Choice newsCategory = new(("all", "All posts"), ("news", "News"), ("games", "Games"));
 	readonly CheckBox minimize = Check("Minimize the launcher while playing");
-	readonly CheckBox autoUpdate = Check("Install updates from GitHub automatically");
+	readonly CheckBox autoUpdate = Check("Check GitHub for updates when the launcher starts");
 	readonly TextBox gamePath = new() { Width = 240, BackColor = Theme.Card, ForeColor = Theme.Cream, BorderStyle = BorderStyle.FixedSingle, Font = Theme.Body };
 	readonly Button browse = new() { Text = "Browse…", AutoSize = true };
 

@@ -130,9 +130,10 @@ sealed class LauncherForm : Form
 		ticker.Start();
 		padTimer.Tick += (_, _) => PollController();
 		padTimer.Start();
-		if (Program.UpdatedFrom != null)
-			SetUpdateStatus($"Updated from {Program.UpdatedFrom}", null);
-		CheckForUpdates();
+		if (settings.AutoUpdate)
+			CheckForUpdates();
+		else
+			SetUpdateStatus("Check for updates", CheckForUpdates);
 		AcceptButton = play;
 		UpdateMusic();
 	}
@@ -177,34 +178,30 @@ sealed class LauncherForm : Form
 			UpdateMusic();
 	}
 
-	/** Checks GitHub for a newer release and, if allowed, installs it (§13.12). **/
+	/** Checks GitHub for a newer release and offers it (§13.12). Installing always needs the player's click. **/
 	async void CheckForUpdates()
 	{
 		if (updating)
 			return;
-		if (Program.UpdatedFrom == null)
-			SetUpdateStatus("Checking for updates…", null);
+		SetUpdateStatus("Checking for updates…", null);
 		try
 		{
 			var release = await Updater.CheckAsync();
 			if (release == null || !Updater.IsNewer(release.Version, Program.Version))
 			{
 				pendingRelease = null;
-				SetUpdateStatus(Program.UpdatedFrom != null ? $"Updated from {Program.UpdatedFrom}  ·  up to date" : "Up to date  ·  check again", CheckForUpdates);
+				SetUpdateStatus("Up to date  ·  check again", CheckForUpdates);
 				return;
 			}
 			pendingRelease = release;
-			var reason = Updater.CannotSelfUpdateReason();
+			var reason = Updater.CannotUpdateReason();
 			if (reason != null)
 			{
-				Log.Write($"Version {release.Version} is on GitHub, but not installing it: {reason}");
+				Log.Write($"Version {release.Version} is on GitHub; not offering to install it: {reason}");
 				SetUpdateStatus($"Version {release.Version} is on GitHub  ·  view release", () => OpenUrl(release.PageUrl));
 				return;
 			}
-			if (settings.AutoUpdate && session == null)
-				await InstallUpdate(release);
-			else
-				SetUpdateStatus($"Version {release.Version} is available  ·  install", () => _ = InstallUpdate(release));
+			SetUpdateStatus($"Version {release.Version} is available  ·  install", () => _ = InstallUpdate(release));
 		}
 		catch (Exception e)
 		{
@@ -217,15 +214,15 @@ sealed class LauncherForm : Form
 	{
 		if (session != null)
 		{
-			SetUpdateStatus($"Version {release.Version} will install when you finish playing", null);
+			SetUpdateStatus($"Finish playing first, then install {release.Version}", () => _ = InstallUpdate(release));
 			return;
 		}
 		updating = true;
 		play.Enabled = false;
 		try
 		{
-			await Updater.InstallAsync(release, new Progress<string>(text => SetUpdateStatus(text, null)));
-			Log.Write($"Installed {release.Version}; restarting");
+			await Updater.DownloadAndRunSetupAsync(release, new Progress<string>(text => SetUpdateStatus(text, null)));
+			Log.Write($"Started the {release.Version} installer; closing so it can update the launcher");
 			Close();
 		}
 		catch (Exception e)
@@ -341,8 +338,8 @@ sealed class LauncherForm : Form
 		play.Text = "PLAY";
 		DetectGame();
 		UpdateMusic();
-		if (pendingRelease != null && settings.AutoUpdate && Updater.CannotSelfUpdateReason() == null)
-			_ = InstallUpdate(pendingRelease);
+		if (pendingRelease is { } release && Updater.CannotUpdateReason() == null)
+			SetUpdateStatus($"Version {release.Version} is available  ·  install", () => _ = InstallUpdate(release));
 		if (WindowState == FormWindowState.Minimized)
 			WindowState = FormWindowState.Normal;
 		Activate();

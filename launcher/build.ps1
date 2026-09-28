@@ -1,42 +1,45 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 <#
 .SYNOPSIS
-  Builds launcher\bin\CrownAndCardLauncher.exe.
+  Builds launcher\bin\CrownAndCardLauncher.exe (and, with -Package, the release).
 
 .DESCRIPTION
   1. Compiles the menu-music decoder (native\cc_vorbis.c, a wrapper around
-     stb_vorbis) into a 64-bit DLL with MSVC.
+     stb_vorbis) into a 64-bit cc_vorbis.dll with MSVC, using Visual Studio's
+     own DevShell for the compiler environment.
   2. Compiles the launcher with the C# compiler, targeting .NET Framework 4.8,
-     which ships with Windows 10 and 11. The decoder DLL and the menu loop
-     (res\audio\music\menu-loop-dark.ogg) are embedded, so the exe is a single
-     file with nothing to install.
+     which ships with Windows 10 and 11.
 
-  Needs Visual Studio Build Tools with the C# and C++ (MSVC) workloads.
+  The DLL and the menu loop ship as ordinary files next to the exe
+  (cc_vorbis.dll, music\menu-loop-dark.ogg). Nothing is embedded and unpacked
+  at run time: behavior-based antivirus treats that pattern as malware.
 
-  -Package also assembles dist\CrownAndCard\ (the launcher plus the web build;
-  run `haxe build-js.hxml` first) and zips it as
-  dist\CrownAndCard-<version>-win64.zip with a .sha256 file: the GitHub
-  release asset the launcher's updater installs (see tools\release.ps1).
+  -Package also assembles dist\CrownAndCard\ (the launcher, the web build,
+  the music and the licenses; run `haxe build-js.hxml` first), zips it as
+  dist\CrownAndCard-<version>-win64.zip (+ .sha256), and builds the installer
+  dist\CrownAndCard-Setup-<version>.exe with Inno Setup (installer\CrownAndCard.iss).
+
+  Needs Visual Studio Build Tools (C# and C++ workloads); -Package also needs
+  Inno Setup 6 (winget install JRSoftware.InnoSetup).
 #>
 param([switch]$Package)
 $ErrorActionPreference = "Stop"
 
 $root = $PSScriptRoot
+$repo = Split-Path $root -Parent
 $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
 if (-not (Test-Path $vswhere)) { throw "Visual Studio Build Tools weren't found (no vswhere.exe)." }
+$vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1
+if (-not $vsPath) { throw "MSVC wasn't found. Install Visual Studio Build Tools with the C++ build tools." }
 $csc = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\Roslyn\csc.exe" | Select-Object -First 1
 if (-not $csc) { throw "The C# compiler (Roslyn csc.exe) wasn't found. Install Visual Studio Build Tools with the .NET desktop build tools." }
-$vcvars = & $vswhere -latest -products * -find "VC\Auxiliary\Build\vcvars64.bat" | Select-Object -First 1
-if (-not $vcvars) { throw "MSVC (vcvars64.bat) wasn't found. Install Visual Studio Build Tools with the C++ build tools." }
 
 $framework = Join-Path $env:WINDIR "Microsoft.NET\Framework64\v4.0.30319"
 $references = "mscorlib.dll", "System.dll", "System.Core.dll", "System.Drawing.dll", "System.Windows.Forms.dll",
-    "System.Net.Http.dll", "System.Web.Extensions.dll", "System.Xml.dll", "System.Xml.Linq.dll", "System.Management.dll",
-    "System.IO.Compression.dll", "System.IO.Compression.FileSystem.dll" |
+    "System.Net.Http.dll", "System.Web.Extensions.dll", "System.Xml.dll", "System.Xml.Linq.dll" |
     ForEach-Object { "/reference:" + (Join-Path $framework $_) }
 
 # Version: 0.YY.BBB from version.json (bump with `python tools\version.py bump`).
-$repo = Split-Path $root -Parent
 $version = (Get-Content (Join-Path $repo "version.json") -Raw | ConvertFrom-Json).version
 if ($version -notmatch '^(\d+)\.(\d+)\.(\d+)$') { throw "version.json has '$version'; expected 0.YY.BBB." }
 $numeric = "{0}.{1}.{2}.0" -f [int]$Matches[1], [int]$Matches[2], [int]$Matches[3]
@@ -45,26 +48,26 @@ $numeric = "{0}.{1}.{2}.0" -f [int]$Matches[1], [int]$Matches[2], [int]$Matches[
 # spaces, which Windows PowerShell quotes in a way csc's /win32icon: parsing rejects.
 Push-Location $root
 try {
-    New-Item -ItemType Directory -Force "bin\native" | Out-Null
+    New-Item -ItemType Directory -Force "bin\native", "bin\generated" | Out-Null
 
-    # 1. Native decoder. A generated .cmd runs vcvars64 and cl in one cmd session,
-    #    which avoids PowerShell's quoting of paths with spaces.
-    $music = "..\res\audio\music\menu-loop-dark.ogg"
-    if (-not (Test-Path $music)) { throw "Missing $music (the menu loop)." }
-    @(
-        "@echo off",
-        "set `"PATH=$(Split-Path $vswhere);%PATH%`"",
-        "call `"$vcvars`" >nul 2>&1 || exit /b 1",
-        "cl /nologo /O2 /LD /MT /W3 /wd4244 /wd4245 /wd4456 /wd4457 /wd4701 /wd4996 /DNDEBUG native\cc_vorbis.c /Fobin\native\ /Febin\native\cc_vorbis.dll /link /NOLOGO 2>&1"
-    ) | Set-Content -Encoding ASCII "bin\native\build-native.cmd"
+    # 1. Native decoder, in a child PowerShell so the compiler environment doesn't leak into this one.
+    $native = @"
+`$ErrorActionPreference = 'Stop'
+`$env:PATH = '$(Split-Path $vswhere);' + `$env:PATH
+Import-Module '$vsPath\Common7\Tools\Microsoft.VisualStudio.DevShell.dll'
+Enter-VsDevShell -VsInstallPath '$vsPath' -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -host_arch=x64 -no_logo' | Out-Null
+Set-Location '$root'
+cl /nologo /O2 /LD /MT /W3 /wd4244 /wd4245 /wd4456 /wd4457 /wd4701 /wd4996 /DNDEBUG native\cc_vorbis.c /Fobin\native\ /Febin\native\cc_vorbis.dll /link /NOLOGO
+exit `$LASTEXITCODE
+"@
     # Windows PowerShell treats any stderr text from a native tool as an error; judge by exit code instead.
     $ErrorActionPreference = "Continue"
-    & cmd /c "bin\native\build-native.cmd" | Out-Host
+    & powershell -NoProfile -ExecutionPolicy Bypass -Command $native 2>&1 | Out-Host
     $ErrorActionPreference = "Stop"
     if ($LASTEXITCODE -ne 0) { throw "Native decoder build failed." }
+    Copy-Item "bin\native\cc_vorbis.dll" "bin\cc_vorbis.dll" -Force
 
     # 2. Launcher, with the version baked in.
-    New-Item -ItemType Directory -Force "bin\generated" | Out-Null
     @(
         "// Generated by build.ps1 from version.json. Don't edit.",
         "[assembly: System.Reflection.AssemblyVersion(`"$numeric`")]",
@@ -79,9 +82,7 @@ try {
         "/langversion:latest", "/nullable:enable", "/warn:4",
         "/out:bin\CrownAndCardLauncher.exe",
         "/win32icon:assets\launcher.ico",
-        "/win32manifest:app.manifest",
-        "/resource:bin\native\cc_vorbis.dll,CrownAndCard.Launcher.cc_vorbis.dll",
-        "/resource:$music,CrownAndCard.Launcher.menu-loop-dark.ogg"
+        "/win32manifest:app.manifest"
     ) + $references + $sources
     & $csc @arguments
     if ($LASTEXITCODE -ne 0) { throw "Compile failed." }
@@ -97,19 +98,29 @@ if ($Package) {
     if (-not (Test-Path (Join-Path $web "game.js"))) { throw "web\game.js is missing; run 'haxe build-js.hxml' first." }
     $dist = Join-Path $repo "dist\CrownAndCard"
     if (Test-Path $dist) { Remove-Item -Recurse -Force $dist }
-    New-Item -ItemType Directory -Force (Join-Path $dist "web") | Out-Null
-    Copy-Item $exe $dist
+    New-Item -ItemType Directory -Force (Join-Path $dist "web"), (Join-Path $dist "music") | Out-Null
+    Copy-Item $exe, (Join-Path $root "bin\cc_vorbis.dll") $dist
     Copy-Item (Join-Path $web "index.html"), (Join-Path $web "game.js") (Join-Path $dist "web")
+    Copy-Item (Join-Path $repo "res\audio\music\menu-loop-dark.ogg") (Join-Path $dist "music")
     Copy-Item (Join-Path $repo "LICENSE"), (Join-Path $repo "LICENSE-ASSETS"), (Join-Path $repo "version.json") $dist
     Write-Host "Packaged $dist"
 
-    # The GitHub release asset the launcher's updater looks for, plus its SHA-256.
+    # Portable zip (for players who'd rather not install), plus its SHA-256.
     $zip = Join-Path $repo "dist\CrownAndCard-$version-win64.zip"
     if (Test-Path $zip) { Remove-Item -Force $zip }
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::CreateFromDirectory($dist, $zip, [System.IO.Compression.CompressionLevel]::Optimal, $false)
     $hash = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
     "$hash  $(Split-Path $zip -Leaf)" | Set-Content -Encoding ASCII "$zip.sha256"
-    Write-Host "Release zip: $zip"
-    Write-Host "SHA-256:     $hash"
+    Write-Host "Portable zip: $zip"
+
+    # Installer (Inno Setup). The launcher's updater downloads and runs this.
+    $iscc = @("$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe", "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe") |
+        Where-Object { Test-Path $_ } | Select-Object -First 1
+    if (-not $iscc) { throw "Inno Setup 6 wasn't found (winget install JRSoftware.InnoSetup)." }
+    & $iscc /Q "/DAppVersion=$version" "/DNumericVersion=$numeric" (Join-Path $repo "installer\CrownAndCard.iss")
+    if ($LASTEXITCODE -ne 0) { throw "Installer build failed." }
+    $setup = Join-Path $repo "dist\CrownAndCard-Setup-$version.exe"
+    Write-Host "Installer:    $setup"
+    Write-Host "SHA-256:      $((Get-FileHash -Algorithm SHA256 $setup).Hash.ToLowerInvariant())"
 }

@@ -32,7 +32,7 @@ sealed class LauncherSettings
 	public string NewsCategory = "all"; // "all" posts, or a davidkendig.info category slug
 	public bool MinimizeWhilePlaying = true;
 	public bool LauncherMusic = true; // the menu loop in the launcher
-	public bool AutoUpdate = true; // install newer GitHub releases automatically
+	public bool AutoUpdate = true; // check GitHub for a newer release at startup (installing always asks)
 	public string GamePath = ""; // optional override; empty = auto-detect
 
 	public static readonly (int W, int H)[] WindowSizes = [(1280, 720), (1600, 900), (1920, 1080), (2560, 1440)];

@@ -1,26 +1,25 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 using System;
-using System.ComponentModel;
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
 using System.Threading;
 
 namespace CrownAndCard.Launcher;
 
 /**
-	Plays the menu loop (res/audio/music/menu-loop-dark.ogg, embedded in the
-	exe) on repeat, seamlessly.
+	Plays the menu loop on repeat, seamlessly.
 
-	- Decoding: stb_vorbis, built into cc_vorbis.dll (also embedded, unpacked to
-	  %LOCALAPPDATA%\CrownAndCard\native\ on first run).
+	- The music is `music\menu-loop-dark.ogg` next to the launcher (in a dev
+	  checkout, `res\audio\music\menu-loop-dark.ogg`).
+	- Decoding: stb_vorbis, built into `cc_vorbis.dll`, which ships next to the
+	  launcher and loads the ordinary way. Nothing is unpacked or loaded from
+	  elsewhere: that pattern looks like malware to behavior-based antivirus.
 	- Output: the Windows waveOut API, streamed from a background thread.
 	- Fades in and out when `Playing` changes; `Volume` follows the audio settings.
 **/
 sealed class MusicPlayer : IDisposable
 {
-	const string MusicResource = "CrownAndCard.Launcher.menu-loop-dark.ogg";
-	const string DecoderResource = "CrownAndCard.Launcher.cc_vorbis.dll";
+	const string MusicFile = "menu-loop-dark.ogg";
 	const int BufferMilliseconds = 100;
 	const int BufferCount = 4;
 	const float FadeSeconds = 0.8f;
@@ -50,7 +49,7 @@ sealed class MusicPlayer : IDisposable
 	{
 		try
 		{
-			NativeVorbis.EnsureLoaded();
+			NativeVorbis.EnsureAvailable();
 			return new MusicPlayer(volume, playing);
 		}
 		catch (Exception e)
@@ -60,11 +59,11 @@ sealed class MusicPlayer : IDisposable
 		}
 	}
 
-	/** Decodes the whole embedded loop once (for `--check-audio`). Returns frames, channels and rate. **/
+	/** Decodes the whole loop once (for `--check-audio`). Returns frames, channels and rate. **/
 	public static (long Frames, int Channels, int Rate) DecodeAll()
 	{
-		NativeVorbis.EnsureLoaded();
-		using var ogg = new NativeVorbis.OggStream(ReadResource(MusicResource));
+		NativeVorbis.EnsureAvailable();
+		using var ogg = new NativeVorbis.OggStream(ReadMusic());
 		var buffer = new short[4096 * ogg.Channels];
 		long frames = 0;
 		int n;
@@ -88,7 +87,7 @@ sealed class MusicPlayer : IDisposable
 
 	void StreamMusic()
 	{
-		using var ogg = new NativeVorbis.OggStream(ReadResource(MusicResource));
+		using var ogg = new NativeVorbis.OggStream(ReadMusic());
 		int channels = ogg.Channels, rate = ogg.SampleRate;
 		int framesPerBuffer = rate * BufferMilliseconds / 1000;
 		int bytesPerBuffer = framesPerBuffer * channels * 2;
@@ -186,15 +185,19 @@ sealed class MusicPlayer : IDisposable
 		}
 	}
 
-	static byte[] ReadResource(string name)
+	/** The menu loop: `music\` next to the launcher, or the repo's `res\audio\music\` in a dev checkout. **/
+	static byte[] ReadMusic()
 	{
-		using var s = typeof(MusicPlayer).Assembly.GetManifestResourceStream(name)
-			?? throw new FileNotFoundException("Missing embedded resource " + name);
-		var bytes = new byte[s.Length];
-		int read = 0;
-		while (read < bytes.Length)
-			read += s.Read(bytes, read, bytes.Length - read);
-		return bytes;
+		var installed = Path.Combine(Paths.ExeDir, "music", MusicFile);
+		if (File.Exists(installed))
+			return File.ReadAllBytes(installed);
+		for (var d = new DirectoryInfo(Paths.ExeDir); d != null; d = d.Parent)
+		{
+			var dev = Path.Combine(d.FullName, "res", "audio", "music", MusicFile);
+			if (File.Exists(dev))
+				return File.ReadAllBytes(dev);
+		}
+		throw new FileNotFoundException("The menu music isn't installed (music\\" + MusicFile + ")");
 	}
 
 	public void Dispose()
@@ -203,7 +206,7 @@ sealed class MusicPlayer : IDisposable
 		thread.Join(1000);
 	}
 
-	/** Loads the embedded stb_vorbis DLL and wraps its four functions. **/
+	/** Wraps the four functions of cc_vorbis.dll (stb_vorbis), which sits next to the launcher. **/
 	static class NativeVorbis
 	{
 		const string Dll = "cc_vorbis.dll";
@@ -220,32 +223,13 @@ sealed class MusicPlayer : IDisposable
 		[DllImport(Dll, CallingConvention = CallingConvention.Cdecl)]
 		static extern void ccv_close(IntPtr v);
 
-		[DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-		static extern IntPtr LoadLibrary(string path);
-
-		static bool loaded;
-
-		/** Unpacks the DLL into a folder named after its hash (so upgrades never clash) and loads it. **/
-		public static void EnsureLoaded()
+		/** Fails early with a clear message instead of a DllNotFoundException on the audio thread. **/
+		public static void EnsureAvailable()
 		{
-			if (loaded)
-				return;
 			if (IntPtr.Size != 8)
 				throw new PlatformNotSupportedException("the music decoder is 64-bit only");
-			var bytes = ReadResource(DecoderResource);
-			string hash;
-			using (var sha = SHA256.Create())
-				hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").Substring(0, 16).ToLowerInvariant();
-			var dir = Path.Combine(Paths.DataDir, "native", hash);
-			var path = Path.Combine(dir, Dll);
-			if (!File.Exists(path) || new FileInfo(path).Length != bytes.Length)
-			{
-				Directory.CreateDirectory(dir);
-				File.WriteAllBytes(path, bytes);
-			}
-			if (LoadLibrary(path) == IntPtr.Zero)
-				throw new Win32Exception(Marshal.GetLastWin32Error(), "Couldn't load " + path);
-			loaded = true;
+			if (!File.Exists(Path.Combine(Paths.ExeDir, Dll)))
+				throw new FileNotFoundException(Dll + " isn't next to the launcher");
 		}
 
 		/** One open Ogg Vorbis stream, decoding from a private copy of the file in unmanaged memory. **/

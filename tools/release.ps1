@@ -6,10 +6,12 @@
 
 .DESCRIPTION
   1. Optionally bumps the build number (-Bump): 0.YY.BBB -> 0.YY.BBB+1.
-  2. Builds the web game and the launcher, and packages
+  2. Builds the web game and the launcher, and packages the installer
+     dist\CrownAndCard-Setup-<version>.exe plus the portable
      dist\CrownAndCard-<version>-win64.zip (+ .sha256).
-  3. Creates GitHub release v<version> on DavidKendig/CrownAndCard with the zip
-     and checksum attached (needs the GitHub CLI, `gh auth login`).
+  3. Creates GitHub release v<version> on DavidKendig/CrownAndCard with those
+     attached (needs the GitHub CLI, `gh auth login`). The launcher's updater
+     offers the Setup exe to installed copies.
 
   Commit and push the version bump before publishing, so the tag points at
   the code that built the release.
@@ -35,7 +37,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Launcher build failed." }
 
     $zip = "dist\CrownAndCard-$version-win64.zip"
-    $args = @("release", "create", "v$version", $zip, "$zip.sha256",
+    $setup = "dist\CrownAndCard-Setup-$version.exe"
+    # The launcher's updater looks for the Setup exe; the zip is the portable build.
+    $args = @("release", "create", "v$version", $setup, $zip, "$zip.sha256",
         "--repo", "DavidKendig/CrownAndCard",
         "--title", "Crown & Card $version",
         "--notes", $(if ($Notes) { $Notes } else { "Crown & Card $version" }))

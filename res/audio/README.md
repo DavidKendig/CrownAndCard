@@ -14,4 +14,4 @@ The encode keeps the exact sample count of the source (9,964,800 frames, 207.600
 ffmpeg -i "C&C Menu Loop Dark.wav" -map_metadata -1 -c:a libvorbis -q:a 6 -metadata title="C&C Menu Loop Dark" -metadata album="Crown & Card" res/audio/music/menu-loop-dark.ogg
 ```
 
-Then rebuild the launcher (`powershell -File launcher\build.ps1`), which embeds the loop, and run `launcher\bin\CrownAndCardLauncher.exe --check-audio` to confirm it decodes to the same length (the result goes to `%LOCALAPPDATA%\CrownAndCard\launcher.log`).
+Then run `launcher\bin\CrownAndCardLauncher.exe --check-audio` (a dev copy reads the loop from `res/audio/music/`; release packages copy it to `music\` next to the exe) to confirm it decodes to the same length (the result goes to `%LOCALAPPDATA%\CrownAndCard\launcher.log`).

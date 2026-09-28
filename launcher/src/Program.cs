@@ -11,9 +11,6 @@ static class Program
 	/** 0.YY.BBB, from version.json (generated into BuildInfo by build.ps1). **/
 	public const string Version = BuildInfo.Version;
 
-	/** Set when this launcher was just started by an update from that version. **/
-	public static string? UpdatedFrom;
-
 	[STAThread]
 	static void Main(string[] args)
 	{
@@ -23,31 +20,7 @@ static class Program
 			Environment.ExitCode = CheckAudio();
 			return;
 		}
-		foreach (var arg in args)
-		{
-			if (arg.StartsWith("--updated-from=", StringComparison.Ordinal))
-			{
-				UpdatedFrom = arg.Substring("--updated-from=".Length);
-				Log.Write($"Updated from {UpdatedFrom} to {Version}");
-				Updater.CleanUpAfterUpdate();
-			}
-			// Test hook: only local feeds are accepted, so this can't redirect real updates.
-			else if (arg.StartsWith("--update-feed=http://127.0.0.1:", StringComparison.Ordinal))
-				Updater.FeedUrl = arg.Substring("--update-feed=".Length);
-		}
 		using var mutex = new Mutex(true, @"Local\CrownAndCardLauncher", out bool firstInstance);
-		if (!firstInstance && UpdatedFrom != null)
-		{
-			// Just updated: the old launcher is still closing, so wait for it.
-			try
-			{
-				firstInstance = mutex.WaitOne(TimeSpan.FromSeconds(15));
-			}
-			catch (AbandonedMutexException)
-			{
-				firstInstance = true;
-			}
-		}
 		if (!firstInstance)
 		{
 			MessageBox.Show("The Crown & Card launcher is already open.", "Crown & Card", MessageBoxButtons.OK, MessageBoxIcon.Information);

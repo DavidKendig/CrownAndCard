@@ -37,17 +37,18 @@ The render spike uses generated PNG guest angles and a brass chandelier from `re
 - **Settings:** graphics and audio options, passed to the game as `--key=value` arguments (native builds) or URL parameters (web build).
 - **Error tracking:** the game reports its state every 5 seconds, plus any errors, to the launcher, which records each session under `%LOCALAPPDATA%\CrownAndCard\sessions\`. Reports stay on the computer; nothing is uploaded.
 - **Play:** starts the native build if there is one, otherwise the web build, served locally and opened as an Edge or Chrome app window in guest mode.
-- **Updates:** on start it checks the latest [GitHub release](https://github.com/DavidKendig/CrownAndCard/releases). If it's newer, the launcher downloads `CrownAndCard-<version>-win64.zip`, checks its SHA-256, installs it with a rollback copy, and restarts. A copy inside a git checkout is never overwritten; it only reports the new version.
+- **Install:** `CrownAndCard-Setup-<version>.exe` (Inno Setup) installs for the current user into `%LOCALAPPDATA%\Programs\CrownAndCard` with no admin prompt. It adds a Start menu entry (and an optional desktop icon) and a normal uninstaller in Windows' installed apps. The zip is a portable alternative.
+- **Updates:** on start it checks the latest [GitHub release](https://github.com/DavidKendig/CrownAndCard/releases) and offers anything newer. When you click Install, it downloads that release's Setup exe, checks its SHA-256 against GitHub's digest, runs it and closes; the installer replaces the files. A copy inside a git checkout only reports the new version.
 - **Controller:** A or Start plays, LB/RB switch tabs, Y toggles the music.
-- **Menu music:** plays the menu loop (`res/audio/music/menu-loop-dark.ogg`, embedded in the exe) on repeat. It follows the Master and Music sliders, fades out while the game runs, and has an on/off switch in the header. It's decoded by [stb_vorbis](launcher/native/README.md) (MIT or public domain).
+- **Menu music:** plays the menu loop (`music\menu-loop-dark.ogg` next to the exe, from `res/audio/music/`) on repeat. It follows the Master and Music sliders, fades out while the game runs, and has an on/off switch in the header. It's decoded by [stb_vorbis](launcher/native/README.md) (MIT or public domain).
 
 | Task | Command |
 |---|---|
 | Build the exe (needs Visual Studio Build Tools with the C# and C++ build tools) | `powershell -File launcher\build.ps1` |
+| Build the release: `dist\CrownAndCard\`, the portable zip and the Setup exe (run `haxe build-js.hxml` first; also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php): `winget install JRSoftware.InnoSetup`) | `powershell -File launcher\build.ps1 -Package` |
 | Show or bump the version (0.YY.BBB: year, then build number) | `python tools/version.py` / `python tools/version.py bump` |
 | Build, package and publish a GitHub release (needs `gh`) | `powershell -File tools\release.ps1 -Bump -Notes "What changed"` |
 | Check the menu music decodes and the audio device opens (result in `%LOCALAPPDATA%\CrownAndCard\launcher.log`) | `launcher\bin\CrownAndCardLauncher.exe --check-audio` |
-| Build and package with the web build into `dist\CrownAndCard\` | `haxe build-js.hxml`, then `powershell -File launcher\build.ps1 -Package` |
 | Regenerate the launcher icon | `python tools/make_launcher_icon.py` |
 
 ## License

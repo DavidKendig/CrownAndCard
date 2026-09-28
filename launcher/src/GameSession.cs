@@ -3,7 +3,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Management;
 using System.Threading;
 
 namespace CrownAndCard.Launcher;
@@ -81,57 +80,14 @@ sealed class GameSession
 		if (kind == GameKind.Web && code == 0 && (DateTime.Now - Recorder.StartedAt).TotalSeconds < 10)
 		{
 			// Edge and Chrome often relaunch themselves: the process we started quits straight
-			// away and another one opens the window. Find that one and watch it instead.
+			// away and another one opens the window. Follow the game's heartbeats from here on.
+			// (The launcher deliberately doesn't scan or control other processes; antivirus
+			// behavior monitors treat that as suspicious.)
 			processTracked = false;
-			ThreadPool.QueueUserWorkItem(_ => AdoptBrowserProcess());
+			Recorder.Note("The browser relaunched itself; tracking the session by heartbeat.");
 			return;
 		}
 		Finish(code, "game process exited");
-	}
-
-	void AdoptBrowserProcess()
-	{
-		for (int attempt = 0; attempt < 10 && !Recorder.Ended; attempt++)
-		{
-			var found = FindBrowserProcess(Paths.BrowserProfileDir);
-			if (found != null)
-			{
-				Recorder.Note($"The browser relaunched itself; now watching process {found.Id}.");
-				Watch(found);
-				return;
-			}
-			Thread.Sleep(500);
-		}
-		Recorder.Note("The browser relaunched itself and its new process wasn't found; tracking by heartbeat instead.");
-	}
-
-	/** The main browser process (not a renderer or helper) using the given data folder. **/
-	static Process? FindBrowserProcess(string dataDir)
-	{
-		try
-		{
-			using var search = new ManagementObjectSearcher("SELECT ProcessId, CommandLine FROM Win32_Process WHERE Name = 'msedge.exe' OR Name = 'chrome.exe'");
-			foreach (var item in search.Get())
-			{
-				using var mo = (ManagementObject)item;
-				var cmd = mo["CommandLine"] as string;
-				if (cmd == null || cmd.IndexOf(dataDir, StringComparison.OrdinalIgnoreCase) < 0 || cmd.Contains("--type="))
-					continue;
-				try
-				{
-					return Process.GetProcessById(Convert.ToInt32(mo["ProcessId"]));
-				}
-				catch
-				{
-					// It exited between the query and now.
-				}
-			}
-		}
-		catch (Exception e)
-		{
-			Log.Write("Process search failed: " + e.Message);
-		}
-		return null;
 	}
 
 	public static GameSession Start(GamePlan plan, LauncherSettings settings, LocalServer server) => new(plan, settings, server);
@@ -197,19 +153,6 @@ sealed class GameSession
 		if (quitAt != null && (now - quitAt.Value).TotalSeconds > QuitGraceSeconds && Recorder.LastContact <= quitAt.Value)
 		{
 			// The game page closed and nothing came back (a reload would have sent "start").
-			// An app window can linger as a background process; it's our own profile, so close it.
-			var p = process;
-			if (processTracked && p != null && kind == GameKind.Web && !p.HasExited)
-			{
-				try
-				{
-					p.Kill();
-				}
-				catch
-				{
-					// It may have exited in the meantime.
-				}
-			}
 			Finish(null, "game window closed");
 			return;
 		}
