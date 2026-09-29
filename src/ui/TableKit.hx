@@ -35,6 +35,9 @@ class TableKit {
 	highlight; E / A picks it; the mouse can hover and click.
 **/
 class ChoiceRow extends h2d.Object {
+	/** A vertical list longer than this scrolls, keeping the highlight in view, instead of overflowing the panel. **/
+	static inline var MAX_VISIBLE = 10;
+
 	public var selected = 0;
 	public var onChoose:Int->Void = _ -> {};
 
@@ -45,6 +48,7 @@ class ChoiceRow extends h2d.Object {
 	final texts:Array<h2d.Text> = [];
 	final hits:Array<h2d.Interactive> = [];
 	var widths:Array<Float> = [];
+	var scrollStart = 0;
 
 	public function new(parent:h2d.Object, vertical = false) {
 		super(parent);
@@ -94,10 +98,17 @@ class ChoiceRow extends h2d.Object {
 		if (input.confirm && enabled[selected]) onChoose(selected);
 	}
 
-	/** Lays the buttons out centered on `cx`, starting at `y`. **/
+	/** Lays the buttons out centered on `cx`, starting at `y`. A long vertical list scrolls to keep the highlight in view. **/
 	public function layout(cx:Float, y:Float, minWidth = 0.0):Void {
 		bg.clear();
 		var h = 17.0, gap = 6.0;
+		var scrolling = vertical && labels.length > MAX_VISIBLE;
+		if (scrolling) {
+			if (selected < scrollStart) scrollStart = selected;
+			if (selected >= scrollStart + MAX_VISIBLE) scrollStart = selected - MAX_VISIBLE + 1;
+			scrollStart = Std.int(Math.max(0, Math.min(scrollStart, labels.length - MAX_VISIBLE)));
+		} else scrollStart = 0;
+		var visibleEnd = scrolling ? scrollStart + MAX_VISIBLE : labels.length;
 		widths = [for (t in texts) Math.max(minWidth, t.textWidth + 16)];
 		if (vertical) {
 			var w = 0.0;
@@ -105,10 +116,15 @@ class ChoiceRow extends h2d.Object {
 			for (i in 0...widths.length) widths[i] = w;
 		}
 		var total = 0.0;
-		for (v in widths) total += v;
-		total += gap * Math.max(0, widths.length - 1);
+		for (i in scrollStart...visibleEnd) total += widths[i];
+		total += gap * Math.max(0, (visibleEnd - scrollStart) - 1);
 		var x = vertical ? cx - widths[0] / 2 : cx - total / 2, yy = y;
 		for (i in 0...texts.length) {
+			if (i < scrollStart || i >= visibleEnd) {
+				texts[i].visible = false;
+				hits[i].width = hits[i].height = 0;
+				continue;
+			}
 			var w = widths[i], sel = i == selected && enabled[i];
 			var bx = Math.round(x), by = Math.round(yy);
 			bg.beginFill(sel ? 0x3A2A10 : 0x0C1020, sel ? .95 : .8);
@@ -117,6 +133,7 @@ class ChoiceRow extends h2d.Object {
 			bg.endFill();
 			bg.lineStyle();
 			var t = texts[i];
+			t.visible = true;
 			t.text = labels[i];
 			t.textColor = !enabled[i] ? 0x5A5448 : sel ? TableKit.GOLD : TableKit.CREAM;
 			t.x = Math.round(bx + (w - t.textWidth) / 2);
@@ -131,7 +148,7 @@ class ChoiceRow extends h2d.Object {
 
 	public var height(get, never):Float;
 
-	function get_height():Float return vertical ? labels.length * 21 : 17;
+	function get_height():Float return vertical ? Math.min(labels.length, MAX_VISIBLE) * 21 : 17;
 }
 
 /** A centered line of button prompts: glyph, label, glyph, label... **/

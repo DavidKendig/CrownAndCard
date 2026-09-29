@@ -92,18 +92,18 @@ class Fixtures {
 				// Twenty true treads rise to a 3.6 m landing. Future access only needs rope removal.
 				for (i in 0...20) {
 					var y = i * .3, z = (i + 1) * .18;
-					map.props.push({x0: ax - 4, y0: ay + y, x1: ax + 4, y1: ay + y + .3, height: z, topTex: "stone", sideTex: "stone", walkable: true, kind: "stair"});
+					map.props.push({x0: ax - 4, y0: ay + y, x1: ax + 4, y1: ay + y + .3, height: z, topTex: "stairMarble", sideTex: "stairMarble", walkable: true, kind: "stair"});
 					box(-1.75, y, 1.75, y + .3, z + .008, "carpet", z, false);
 					// Brass nosings make the individual risers legible from below.
 					box(-3.95, y - .012, 3.95, y + .035, z + .012, "brass", z - .025, false);
 					for (dx in [-3.88, 3.88]) {
-						box(dx - .07, y + .10, dx + .07, y + .20, z + .9, "ivory", z, false);
-						box(dx - .11, y, dx + .11, y + .3, z + 1, "brass", z + .92, false);
+						box(dx - .07, y + .10, dx + .07, y + .20, z + .9, "banisterWood", z, false);
+						box(dx - .11, y, dx + .11, y + .3, z + 1, "banisterWood", z + .92, false);
 					}
 				}
-				map.props.push({x0: ax - 4, y0: ay + 6, x1: ax + 4, y1: ay + 6.5, height: 3.6, topTex: "stone", sideTex: "stone", walkable: true, kind: "landing"});
+				map.props.push({x0: ax - 4, y0: ay + 6, x1: ax + 4, y1: ay + 6.5, height: 3.6, topTex: "stairMarble", sideTex: "stairMarble", walkable: true, kind: "landing"});
 				box(-1.75, 6, 1.75, 6.48, 3.608, "carpet", 3.6, false);
-				for (dx in [-3.9, 3.9]) box(dx - .25, -.2, dx + .25, .3, 1.25, "ivory");
+				for (dx in [-3.9, 3.9]) box(dx - .25, -.2, dx + .25, .3, 1.25, "banisterWood");
 				rope(map, ax - 4.4, ay - .6, ax + 4.4, ay - .6);
 				rope(map, ax - 4.4, ay - .6, ax - 4.4, ay + 6.3);
 				rope(map, ax + 4.4, ay - .6, ax + 4.4, ay + 6.3);
@@ -126,7 +126,7 @@ class Fixtures {
 			var a = i / pieces, b = (i + 1) / pieces;
 			var z = .92 - .23 * Math.sin(Math.PI * ((i % 12) + .5) / 12);
 			map.props.push({x0: x0 + (x1 - x0) * a - .025, y0: y0 + (y1 - y0) * a - .025, x1: x0 + (x1 - x0) * b + .025, y1: y0 + (y1 - y0) * b + .025,
-				height: z + .065, baseZ: z, topTex: "velvet", sideTex: "velvet", solid: false});
+				height: z + .065, baseZ: z, topTex: "ropeBraid", sideTex: "ropeBraid", solid: false});
 		}
 	}
 

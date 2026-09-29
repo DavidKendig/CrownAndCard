@@ -468,7 +468,12 @@ Every game sits on a common framework:
 | Slapjack | Card Room table *(current build)* | Parlour | 4 | Low (reaction times) | Added 2026-09-28 |
 | War | Card Room table *(current build)* | Parlour | 2 | None | Added 2026-09-28 |
 | Solitaire (Klondike) | Card Room table *(current build)* | Parlour | 1 | None | Added 2026-09-28 |
-| Omaha, Bridge, Whist, Cribbage, Gin Rummy, Sic Bo, Pai Gow, Caribbean Stud, Let It Ride, Spanish 21, Bagatelle | various | various | | | T4 (post-launch) |
+| Gin Rummy | Card Room table *(current build)* | Rummy | 2 | Med | Added 2026-09-28 |
+| Canasta | Card Room table *(current build)* | Rummy | 4 (partners) | Med | Added 2026-09-28 |
+| Bridge | Card Room table *(current build)* | Tricks | 4 (partners) | High | Added 2026-09-28 |
+| Egyptian Rat Screw | Card Room table *(current build)* | Parlour | 4 | Low (reaction times) | Added 2026-09-28 |
+| Durak | Card Room table *(current build)* | Beating | 2 | Med | Added 2026-09-28 |
+| Omaha, Whist, Cribbage, Sic Bo, Pai Gow, Caribbean Stud, Let It Ride, Spanish 21, Bagatelle | various | various | | | T4 (post-launch) |
 
 > **Scope guard:** 18 launch games is ambitious. The **minimum viable launch** is T1 + T2 + Hearts, Spades, Video Poker, Chemin de Fer and *Crown & Card* (11 games). Every room keeps at least one table. The rest can slip to post-launch.
 
@@ -532,8 +537,27 @@ Every game sits on a common framework:
 - Table rules: stick the dealer.
 - The NPC partner follows standard conventions ("next", leading trump to a partner who called).
 - **The Twins cheat by signaling.** The player can spot and report them (§2.5).
+- *Implemented (`games.euchre`):* the player (South) partners Colonel Blythe (North) against the Vasquez twins. Bower-aware `effectiveSuit`/`power` drive both following suit and trick strength; stick-the-dealer is enforced (`passBid2` throws if the dealer tries to pass with no bid up). Signal-spotting (§2.5) isn't wired in yet. Seated at the Card Room table pending the Library.
 
 **Hearts:** passing rotates left, right, across, then hold. Shoot the moon.
+- *Implemented (`games.hearts`):* four-hand, no partnerships. Passing cycles Left/Right/Across/Hold by hand number; the held hand skips passing entirely. Must open the first trick with the two of clubs, must follow suit, and hearts can't be led until broken (or led because nothing else is held). Shooting the moon (all 26 points in one hand) swings 26 points onto everyone else instead of scoring the shooter. Seated at the Card Room table pending the Library.
+
+**Gin Rummy**
+- *Implemented (`games.rummy.GinRummy`):* heads-up against the Colonel. `evaluate()` finds the highest-value melding of a hand (3–4 of a rank, or a same-suit run of 3+, ace low with no wrap past king) by bounded backtracking over candidate sets and runs, then sums the rest as deadwood. Knocking needs 10 deadwood points or less; gin (0 deadwood) blocks the opponent from laying off and adds a 25-point bonus. An undercut (the opponent's deadwood is equal to or lower than the knocker's) flips the score to the opponent, +25. First to 100 wins.
+
+**Canasta**
+- *Implemented (`games.canasta.Canasta`):* the player partners the Colonel against a single NPC opponent (deliberately two-handed, not the traditional four). Deliberately simplified scope: no jokers (the card model has no joker card), so only the deuces are wild; no red-three bonus or black-three freeze mechanics, no frozen pile. A meld needs at least as many naturals as wild cards; a canasta is any 7+ card meld (500 points natural, 300 mixed) and going out requires having made at least one. Taking the discard pile needs two natural matches for its top card, or an existing meld of that rank to lay it on.
+- *UI note:* `CanastaTableUI` is menu-driven rather than a card-fan, given scope — melding only offers whole natural-rank groups, not partial or wild-assisted selection through the UI (the engine supports more than the UI currently exposes).
+
+**Bridge**
+- *Implemented (`games.bridge.Bridge`):* the player partners the Colonel against the Vasquez twins, deliberately simplified (real Bridge is post-launch scope per §6.3's T4 list; this is a playable core, not tournament rules). The auction bids a level (1–7) and a strain — clubs, diamonds, hearts, spades, no-trump, ascending — or passes; three passes after a bid closes the auction, four with no bid throws the hand in. No doubling, redoubling, conventions or vulnerability. Whoever named the final bid declares; their partner's hand is the dummy, and the declarer plays both hands (`controllerOf`). Scoring keeps the trick-point scale (20/30 a trick, +10 first trick at no-trump) plus a flat 50-point game bonus, or 50 a trick to the defense for a set contract — no slam or rubber bonuses. First to 700 wins.
+
+**Egyptian Rat Screw**
+- *Implemented (`games.parlour.EgyptianRatScrew`):* four players (the house rules noted below follow [Bicycle Cards](https://bicyclecards.com/how-to-play/egyptian-rat-screw)). Face cards challenge the next player to beat it within a number of chances (ace 4, king 3, queen 2, jack 1); running out of chances or cards hands the whole pile to the challenger. Any player may slap for doubles, a sandwich (top and third-from-top match), top-bottom (top matches the pile's very first card), or a marriage (king/queen on top); a wrong slap burns a card to the bottom either way, and a player out of cards can still slap back in. Playing cards is turn-based; slapping is real time, timed off the AI stream like Slapjack.
+
+**Durak**
+- *Implemented (`games.durak.Durak`):* heads-up against Sir Reggie, Podkidnoy rules. 36-card deck (6–A), 6 cards each, trump is the last card cut. The attacker plays, the defender beats it (same suit and higher, or any trump) or takes the whole table; while undefeated, the attacker may pile on more cards matching any rank already on the table, up to six or the defender's starting hand size. Once the stock runs out, hands stop refilling and the first to empty their hand is safe; both emptying at once is a draw.
+- *UI note:* `DurakTableUI` allows one open attack pair at a time rather than real Durak's simultaneous multi-card throws — a deliberate simplification of the UI, not the engine.
 
 **Spades:** partnerships, bidding, nil and blind nil, sandbags.
 - *Implemented (`games.spades`):* the player (South) partners Prof. Oyelaran (North) against the Vasquez twins, Rosalind (West) and Rafe (East). Deal and bidding rotate left.

@@ -19,4 +19,4 @@ A map is versioned JSON (`world.MapData` in `src/world/MapData.hx` reads and che
 | `lights` | Point lights: `x`, `y`, `z`, `radius`, `power` |
 | `chandeliers` | Candle chandelier sprites: `x`, `y`, `z`, `width` |
 
-Textures: `marble`, `parquet`, `carpet`, `coffer`, `dome`, `damask`, `damaskUpper`, `deco`, `decoUpper`, `green`, `greenUpper`, `felt`, `tableWood`, `stone`, `ivory`, `brass`, `velvet`, `flame`.
+Textures: `marble`, `parquet`, `carpet`, `coffer`, `dome`, `damask`, `damaskUpper`, `deco`, `decoUpper`, `green`, `greenUpper`, `felt`, `tableWood`, `stone`, `ivory`, `pillarMarble`, `stairMarble`, `brass`, `velvet`, `flame`.

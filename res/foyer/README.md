@@ -4,11 +4,19 @@ SPDX-License-Identifier: CC-BY-NC-SA-4.0
 
 Generated with the built-in image_gen tool for Crown & Card. Sources are saved in this project; no live image service is used by the game.
 
-The foyer has a desk-facing spawn, a hooded Mr. Quill, explicit Guest Register saves, a three-tier **3D** fountain, and a 20-tread staircase with separate removable velvet rope barriers. The fountain uses `world/Fountain.hx` revolved geometry and moving water UVs. `foyer/fountain.png` is the original visual reference, no longer rendered as a billboard. Doors and desk are fixed planes on solid geometry. Save data currently records check-ins and explored rooms; campaign systems are not yet implemented.
+The foyer has a desk-facing spawn, a hooded Mr. Quill, explicit Guest Register saves, a three-tier **3D** fountain, and a 20-tread staircase with separate removable velvet rope barriers. The fountain uses `world/Fountain.hx` revolved geometry with dedicated marble/water PNG materials, translucent rippling pools, gravity-shaped streams and ballistic splash droplets. See `../materials/README.md` for the new fountain and pillar art. `foyer/fountain.png` is the original visual reference, no longer rendered as a billboard. Doors and desk are fixed planes on solid geometry. Save data currently records check-ins and explored rooms; campaign systems are not yet implemented.
 
 Controls: E / controller A or click the desk prompt to save. Approach the south doors for the translucent Stay/Leave menu. Escape / B cancels; arrows or d-pad select, Enter / A activates. Stay is the default. Web builds attempt to close their tab and otherwise stop at a departure screen. Loading restores the saved page and spawns at the desk.
 
 Launcher saves: `%LOCALAPPDATA%/CrownAndCard/saves/guest-register.json`, token-protected local API with atomic replacement and a `.bak` page. Standalone web preview uses localStorage. Native builds use the same data directory on Windows. No auto-save on departure.
+
+## Entrance windows and nighttime courtyard
+
+The front facade has four true wall openings with transparent glass, deep ivory marble reveals, mahogany borders, brass mullions and diamond transoms. `world/FoyerWindows.hx` places them around a south-boundary front-door fixture; unsuitable custom-map walls are left intact. The collision grid remains solid at the panes.
+
+`world/FoyerStorm.hx` builds a real 3D courtyard with wet slate paths, hedges, iron railings and layered evergreen trees. All surfaces use the game's indexed palette and nearest sampling. Rain falls in depth layers outside, with occasional lightning illuminating the courtyard and nearby foyer, followed by delayed thunder. Weather uses an independent cosmetic RNG, leaving game outcomes untouched. Rain and thunder follow Master/Effects volume, distance and background muting, and stop on departure. Original generated audio and its source are documented in `../audio/weather/README.md`.
+
+The development view `?foyerView=windows` faces the front windows for visual inspection.
 
 ## Source prompts (built-in imagegen)
 

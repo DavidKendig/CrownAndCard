@@ -42,10 +42,25 @@ class WorldBuilder {
 				addEdge(mb, s, map.sectorAt(cx + 1, cy), new Point(cx + 1, cy, 0), new Point(cx + 1, cy + 1, 0), cy, 1);
 				addEdge(mb, s, map.sectorAt(cx - 1, cy), new Point(cx, cy + 1, 0), new Point(cx, cy, 0), cy, 1);
 				addEdge(mb, s, map.sectorAt(cx, cy + 1), new Point(cx + 1, cy + 1, 0), new Point(cx, cy + 1, 0), cx, 0);
-				addEdge(mb, s, map.sectorAt(cx, cy - 1), new Point(cx, cy, 0), new Point(cx + 1, cy, 0), cx, 0);
+				var opening:Null<FoyerWindows.FoyerWindow> = null;
+				for (w in map.windows) if (cy == w.y && cx >= w.x0 && cx + 1 <= w.x1) opening = w;
+				addEdge(mb, s, map.sectorAt(cx, cy - 1), new Point(cx, cy, 0), new Point(cx + 1, cy, 0), cx, 0, opening);
 			}
 
 		for (p in map.props) {
+			if(p.kind=="galleryDeck") {
+				// Actual spaced metal bars: the room below remains visible through the grate.
+				var b=mb("grateMetal"),z=p.height;
+				for(i in 0...Std.int(Math.ceil((p.x1-p.x0)/.18))+1) {
+					var x=Math.min(p.x1-.025,p.x0+i*.18);
+					MeshBuilder.box(b,b,x,p.y0,z-.07,x+.025,p.y1,z,5);
+				}
+				for(i in 0...Std.int(Math.ceil((p.y1-p.y0)/.18))+1) {
+					var y=Math.min(p.y1-.025,p.y0+i*.18);
+					MeshBuilder.box(b,b,p.x0,y,z-.07,p.x1,y+.025,z,5);
+				}
+				continue;
+			}
 			if (p.hidden == true) continue;
 			var s = map.sectorAtWorld((p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2);
 			var shade = s == null ? 8.0 : s.shade;
@@ -59,6 +74,9 @@ class WorldBuilder {
 			mat.shadows = false;
 			mat.mainPass.culling = None;
 			var shader = new BuildShader(textures.get(key), shadeLut, false);
+			if(key=="glass") {mat.blendMode=Alpha; mat.mainPass.depthWrite=false; shader.opacity=.055;}
+			if(key=="ropeBraid") shader.uvScale.set(8,8);
+			if(key=="pillarMarble") shader.uvScale.set(1,.45);
 			mat.mainPass.addShader(shader);
 			new h3d.scene.Mesh(b.toPrimitive(), mat, parent);
 			shaders.push(shader);
@@ -75,6 +93,11 @@ class WorldBuilder {
 		// Ceilings sit a little darker than floors, like Build maps usually did.
 		mb(s.ceilTex).quad(new Point(x0, y0, s.ceilZ), new Point(x1, y0, s.ceilZ), new Point(x1, y1, s.ceilZ), new Point(x0, y1, s.ceilZ),
 			uv(x0, y0), uv(x1, y0), uv(x1, y1), uv(x0, y1), new Point(0, 0, -1), s.shade + 2);
+		if(s.ceilTex=="glass") {
+			var frame=mb("brass");
+			if(cx%2==0) MeshBuilder.box(frame,frame,cx-.035,cy,s.ceilZ-.1,cx+.035,cy+1,s.ceilZ,4);
+			if(cy%2==0) MeshBuilder.box(frame,frame,cx,cy-.035,s.ceilZ-.1,cx+1,cy+.035,s.ceilZ,4);
+		}
 	}
 
 	/**
@@ -82,12 +105,26 @@ class WorldBuilder {
 		`along` is the edge's starting coordinate, so textures line up across cells.
 		`shadeBias` darkens east/west faces slightly to give rooms some form.
 	**/
-	static function addEdge(mb:String->MeshBuilder, s:Sector, n:Null<Sector>, a:Point, b:Point, along:Int, shadeBias:Float):Void {
+	static function addEdge(mb:String->MeshBuilder, s:Sector, n:Null<Sector>, a:Point, b:Point, along:Int, shadeBias:Float, ?opening:FoyerWindows.FoyerWindow):Void {
 		var shade = s.shade + shadeBias;
 		// A generated damask panel spans three metres, avoiding compressed woodwork.
 		var repeat = s.wallTex == "damask" ? 3.0 : 1.0;
 		var u0 = along / repeat, u1 = (along + 1) / repeat;
 		if (n == null) {
+			if(s.wallTex=="glass") {
+				wall(mb("glass"),a,b,s.floorZ+.35,s.ceilZ,u0,u1,0,1,0);
+				wall(mb("ivory"),a,b,s.floorZ,s.floorZ+.35,u0,u1,0,.35,shade);
+				var frame=mb("brass");
+				if(along%2==0) MeshBuilder.box(frame,frame,a.x-.045,a.y-.045,s.floorZ,a.x+.045,a.y+.045,s.ceilZ,4);
+				for(z in [s.floorZ+.35,s.floorZ+3.3,s.ceilZ-.06])
+					MeshBuilder.box(frame,frame,Math.min(a.x,b.x)-.035,Math.min(a.y,b.y)-.035,z,Math.max(a.x,b.x)+.035,Math.max(a.y,b.y)+.035,z+.06,4);
+				return;
+			}
+			if (opening != null) {
+				wall(mb(s.wallTex), a, b, s.floorZ, opening.bottom, u0, u1, (s.floorZ + WALL_TEX_HEIGHT - opening.bottom) / WALL_TEX_HEIGHT, 1, shade);
+				wall(mb(s.upperTex), a, b, opening.top, s.ceilZ, u0, u1, 0, s.ceilZ - opening.top, shade);
+				return;
+			}
 			var lowerTop = Math.min(s.ceilZ, s.floorZ + WALL_TEX_HEIGHT);
 			wall(mb(s.wallTex), a, b, s.floorZ, lowerTop, u0, u1, (s.floorZ + WALL_TEX_HEIGHT - lowerTop) / WALL_TEX_HEIGHT, 1, shade);
 			if (s.ceilZ > lowerTop)

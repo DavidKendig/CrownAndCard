@@ -1407,11 +1407,15 @@ class Haxen {
 
 	static function texColor(tex:String, alpha:Float):String {
 		var rgb = switch tex {
-			case "stone", "ivory", "marble": "210,204,190";
+			case "stone", "ivory", "marble", "pillarMarble", "stairMarble": "210,204,190";
 			case "brass", "flame": "200,163,94";
-			case "carpet", "velvet": "140,40,50";
+			case "carpet", "velvet", "ropeBraid": "140,40,50";
 			case "felt": "40,110,60";
-			case "tableWood", "parquet": "120,74,40";
+			case "glass": "110,160,190";
+			case "grateMetal": "75,80,85";
+			case "planterCeramic": "30,85,80";
+			case "soil": "40,30,20";
+			case "tableWood", "parquet", "banisterWood": "120,74,40";
 			case "green", "greenUpper": "60,100,70";
 			default: "150,140,160";
 		}

@@ -11,6 +11,7 @@ class TestMain {
 			new cards.ShoeTest(),
 			new world.GridMapTest(),
 			new world.FoyerTest(),
+			new world.ConservatoryTest(),
 			new world.CardRoomTest(),
 			new world.MapDataTest(),
 			new core.GuestRegisterTest(),
@@ -21,7 +22,16 @@ class TestMain {
 			new games.MahjongTest(),
 			new games.CrapsTest(),
 			new games.RouletteTest(),
+			new games.WheelMotionTest(),
 			new games.SlotsTest(),
+			new games.LeverPhysicsTest(),
+			new games.EgyptianRatScrewTest(),
+			new games.DurakTest(),
+			new games.GinRummyTest(),
+			new games.HeartsTest(),
+			new games.EuchreTest(),
+			new games.CanastaTest(),
+			new games.BridgeTest(),
 		]);
 	}
 }

@@ -1,0 +1,29 @@
+{
+  "mode": "built-in image generation",
+  "assets": [
+    {
+      "file": "res/materials/banister-wood.png",
+      "prompt": "Use case: stylized-concept. Crown & Card Victorian gothic manor, detailed 1990s Build-engine / Ion Fury textured pixel art, deliberate crisp pixel clusters, antique brass, ivory, midnight navy, burgundy and desaturated green palette. Square seamless full-bleed PNG material for carved mahogany stair banisters and handrails. Rich dark reddish brown polished hardwood with elegant flowing fine grain and subtle narrow engraved scrollwork, muted warm worn highlights. Flat orthographic evenly lit surface, seamless both axes, no object or rail silhouette, no borders, no shadows, no text. Completely opaque across every pixel and corner."
+    },
+    {
+      "file": "res/materials/braided-rope.png",
+      "prompt": "Use case: stylized-concept. Crown & Card Victorian gothic manor, detailed 1990s Build-engine / Ion Fury textured pixel art, deliberate crisp pixel clusters, antique brass, ivory, midnight navy, burgundy and desaturated green palette. Square seamlessly tiling PNG material of close-up burgundy braided velvet rope surface, clearly interlocking diagonal twisted red wine and dark maroon silk strands, fine visible fiber clusters and restrained warm red highlights. Flat orthographic uniform lighting, no rope silhouette, no ends, no ground, no borders or shadows or text. Opaque edge-to-edge rectangular texture covering every pixel; seamless both axes."
+    },
+    {
+      "file": "res/materials/grate-steel.png",
+      "prompt": "Use case: stylized-concept. Crown & Card Victorian gothic manor, detailed 1990s Build-engine / Ion Fury textured pixel art, deliberate crisp pixel clusters, antique brass, ivory, midnight navy, burgundy and desaturated green palette. Square seamless PNG material of worn dark gunmetal and antique bronze, fine forged metal grain and tiny muted gold wear scratches suitable for the bars of a Victorian conservatory floor grate and railings. Flat orthographic continuous solid material, no holes, no grate pattern (geometry provides holes), no object outlines, no borders or text. Fully opaque in all pixels, even diffuse lighting, tile both axes."
+    },
+    {
+      "file": "res/materials/planter-ceramic.png",
+      "prompt": "Use case: stylized-concept. Crown & Card Victorian gothic manor, detailed 1990s Build-engine / Ion Fury textured pixel art, deliberate crisp pixel clusters, antique brass, ivory, midnight navy, burgundy and desaturated green palette. Square seamless PNG surface material for large conservatory planters: deep midnight teal glazed ceramic with subtle crackle glaze and antique brass acanthus motifs repeating vertically, subdued blue-green highlights and gently aged patina. Flat orthographic full-bleed material swatch, opaque every pixel, no flowerpot depiction, no plants, no text, no borders, no background or directional lighting gradient. Seamlessly repeat both axes."
+    },
+    {
+      "file": "res/sprites/conservatory-palm.png",
+      "prompt": "Use case: stylized-concept. Crown & Card Victorian gothic manor, detailed 1990s Build-engine / Ion Fury textured pixel art, deliberate crisp pixel clusters, antique brass, ivory, midnight navy, burgundy and desaturated green palette. A single lush tall kentia palm PLANT SPRITE, front orthographic elevation at human eye level. Arching feathered fronds in muted emerald and teal, natural asymmetry, warm slender clustered trunks, sophisticated indoor Victorian conservatory plant. Entire plant from frond tips to bare root base, centered portrait 2:3 image with clear gutters. No pot (3D planter supplied by game), no soil patch, no ground plane, no cast shadow, no text or scenery. Genuinely transparent background including gaps between every frond. Crisp detailed pixel silhouette readable at 192x288 game pixels. Neutral soft light for engine shading."
+    },
+    {
+      "file": "res/sprites/conservatory-fern.png",
+      "prompt": "Use case: stylized-concept. Crown & Card Victorian gothic manor, detailed 1990s Build-engine / Ion Fury textured pixel art, deliberate crisp pixel clusters, antique brass, ivory, midnight navy, burgundy and desaturated green palette. One lush Boston fern PLANT SPRITE viewed straight on in orthographic elevation, graceful cascading segmented fronds radiating from a central root crown, varied natural desaturated greens and teal with restrained pale yellow-green highlights, rich fine pixel clusters. Entire plant centered square canvas with generous transparent gutters all sides, root crown at bottom centre, no pot because game supplies a 3D planter. No soil patch, no ground, no cast shadow, no text or scenery. Genuinely transparent background and gaps between fronds. Readable at 256x256. Soft neutral lighting."
+    }
+  ]
+}

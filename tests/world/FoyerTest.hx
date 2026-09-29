@@ -53,4 +53,40 @@ class FoyerTest extends utest.Test {
 		Assert.isFalse(Fixtures.atDesk(33,9.7,13,4,Math.PI/2));
 		Assert.isTrue(Fixtures.atTable(40,10,40,9.2,Math.PI/2));
 	}
+	function testWindowOpeningsKeepCollisionAndRequireExteriorWall() {
+		var m=map();
+		var windows=FoyerWindows.layout(m,13,1);
+		Assert.equals(4,windows.length);
+		for(w in windows) {
+			Assert.equals(2.0,w.x1-w.x0);
+			Assert.isTrue(w.bottom>1 && w.top<8);
+			Assert.isTrue(m.blocked((w.x0+w.x1)/2,.95,.25));
+			Assert.isTrue(m.slide((w.x0+w.x1)/2,2,0,-3,.25).y>=1.25);
+		}
+		Assert.equals(0,FoyerWindows.layout(m,13,5).length);
+		Assert.equals(0,FoyerWindows.layout(m,100,1).length);
+	}
+	function testFountainStreamsAccelerateAndLandInsideBowls() {
+		for(tier in [{r0:1.,z0:1.84,r1:1.30,z1:.48,bowl:1.46},{r0:.56,z0:2.74,r1:.79,z1:1.84,bowl:.94}]) {
+			var duration=FountainFlow.flightTime(tier.z0,tier.z1);
+			var start=FountainFlow.position(tier.r0,tier.z0,tier.r1,tier.z1,0);
+			var mid=FountainFlow.position(tier.r0,tier.z0,tier.r1,tier.z1,duration/2);
+			var end=FountainFlow.position(tier.r0,tier.z0,tier.r1,tier.z1,duration);
+			Assert.floatEquals(tier.z0,start.z);
+			Assert.floatEquals(tier.z1,end.z);
+			Assert.floatEquals(tier.r1,end.r);
+			Assert.floatEquals((tier.z0-tier.z1)/4,tier.z0-mid.z);
+			Assert.isTrue(end.r<tier.bowl);
+			var speed=(tier.r1-tier.r0)/duration,w0=FountainFlow.width(speed,0),w1=FountainFlow.width(speed,duration);
+			Assert.isTrue(w1<w0);
+			Assert.floatEquals(w0*w0*speed,w1*w1*Math.sqrt(speed*speed+Math.pow(FountainFlow.GRAVITY*duration,2)),.000001);
+		}
+	}
+	function testFountainSplashReturnsToSurface() {
+		var up=1.19,life=2*up/FountainFlow.GRAVITY;
+		Assert.floatEquals(0,FountainFlow.splashHeight(up,0));
+		Assert.isTrue(FountainFlow.splashHeight(up,life/2)>.06);
+		Assert.floatEquals(0,FountainFlow.splashHeight(up,life),.000001);
+		Assert.floatEquals(0,FountainFlow.splashHeight(up,life+1));
+	}
 }
