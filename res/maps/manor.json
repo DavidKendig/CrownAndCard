@@ -12,18 +12,18 @@
 		"########cccccccccc############################",
 		"############hh################################",
 		"######rrrrrrrrrrrrrr##########################",
-		"######rrrrrrrrrrrrrr##########################",
-		"######rr#rrrrrrrr#rr##########################",
-		"######rrrrrrrrrrrrrr##########################",
-		"######rrrrrrrrrrrrrr##########################",
-		"######rrrrrrrrrrrrrr##########################",
-		"######rr#rrrrrrrr#rr##########################",
-		"######rrrrrrrrrrrrrr##########################",
-		"######rrrrrrrrrrrrrr##########################",
-		"######hhh########hhh##########################",
-		"######hhh########hhh##########################",
-		"###eeeeeeeeeeeeeeeeeeee#######################",
-		"###eeeeeeeeeeeeeeeeeeee#######################",
+		"######rrrrrrrrrrrrrr#########pppppppppppppp###",
+		"######rr#rrrrrrrr#rr#########pppppppppppppp###",
+		"######rrrrrrrrrrrrrr#########pppppppppppppp###",
+		"######rrrrrrrrrrrrrr#########pppppppppppppp###",
+		"######rrrrrrrrrrrrrr#########pppppppppppppp###",
+		"######rr#rrrrrrrr#rr#########pppppppppppppp###",
+		"######rrrrrrrrrrrrrr#########pppppppppppppp###",
+		"######rrrrrrrrrrrrrr#########pppppppppppppp###",
+		"######hhh########hhh######hhhpppppppppppppp###",
+		"######hhh########hhh######hhhpppppppppppppp###",
+		"###eeeeeeeeeeeeeeeeeeeehhhhhhpppppppppppppp###",
+		"###eeeeeeeeeeeeeeeeeeeehhhhhh#################",
 		"###eeeeeeeeeeeeeeeeeeee######vvvvvvvvvvvvvv###",
 		"###eeeeeeeeeeeeeeeeeeee######vvvvvvvvvvvvvv###",
 		"###eeeeeeeeeeeeeeeeeeee######vvvvvvvvvvvvvv###",
@@ -99,6 +99,17 @@
 			"wallTex": "glass",
 			"upperTex": "glass",
 			"shade": 4
+		},
+		{
+			"key": "p",
+			"name": "Private Party",
+			"floorZ": 0,
+			"ceilZ": 4.5,
+			"floorTex": "partyFloor",
+			"ceilTex": "partyCeiling",
+			"wallTex": "partyWall",
+			"upperTex": "partyWall",
+			"shade": 6
 		}
 	],
 	"props": [
@@ -410,9 +421,34 @@
 			"sideTex": "stone",
 			"walkable": true,
 			"kind": "walkway"
+		},
+		{
+			"x0": 28.15,
+			"y0": 19.25,
+			"x1": 28.65,
+			"y1": 19.75,
+			"height": 1.9,
+			"topTex": "tableWood",
+			"sideTex": "tableWood",
+			"hidden": true
+		},
+		{
+			"x0": 28.15,
+			"y0": 22.25,
+			"x1": 28.65,
+			"y1": 22.75,
+			"height": 1.9,
+			"topTex": "tableWood",
+			"sideTex": "tableWood",
+			"hidden": true
 		}
 	],
 	"fixtures": [
+		{
+			"type": "privateTable",
+			"x": 36,
+			"y": 25.7
+		},
 		{
 			"type": "frontDoors",
 			"x": 13,
@@ -436,6 +472,11 @@
 		{
 			"type": "cardTable",
 			"x": 13,
+			"y": 36
+		},
+		{
+			"type": "rouletteTable",
+			"x": 10,
 			"y": 36
 		}
 	],
@@ -530,6 +571,57 @@
 			"y": 30,
 			"facing": 0,
 			"art": "male_staff"
+		},
+		{
+			"name": "Private Party security - Black guard",
+			"x": 28.4,
+			"y": 19.5,
+			"facing": 180,
+			"art": "security_black",
+			"turns": true
+		},
+		{
+			"name": "Private Party security - white guard",
+			"x": 28.4,
+			"y": 22.5,
+			"facing": 180,
+			"art": "security_white",
+			"turns": true
+		},
+		{
+			"name": "Private Party lady",
+			"x": 34,
+			"y": 24,
+			"facing": 90,
+			"art": "female_guest_seated"
+		},
+		{
+			"name": "Private Party gentleman",
+			"x": 38,
+			"y": 24,
+			"facing": 90,
+			"art": "male_guest_seated"
+		},
+		{
+			"name": "Empty chair",
+			"x": 36,
+			"y": 24,
+			"facing": 90,
+			"art": "party_chair"
+		},
+		{
+			"name": "Private Party hostess",
+			"x": 38,
+			"y": 27.4,
+			"facing": -90,
+			"art": "female_guest_seated"
+		},
+		{
+			"name": "Private Party member",
+			"x": 34,
+			"y": 27.4,
+			"facing": -90,
+			"art": "male_guest_seated"
 		}
 	],
 	"lights": [
@@ -567,6 +659,13 @@
 			"z": 5,
 			"radius": 11,
 			"power": 9
+		},
+		{
+			"x": 36,
+			"y": 25.7,
+			"z": 3.7,
+			"radius": 10,
+			"power": 11
 		}
 	],
 	"chandeliers": [
@@ -587,6 +686,12 @@
 			"y": 15,
 			"z": 5.1,
 			"width": 3
+		},
+		{
+			"x": 36,
+			"y": 25.7,
+			"z": 3.5,
+			"width": 2
 		}
 	]
 }

@@ -447,6 +447,12 @@ class PokerTable {
 		drawer = -1;
 	}
 
+	/** Puts the dealer button on `seat` between hands (it moves on at the next deal); for replaying a recorded hand. **/
+	public function setButton(seat:Int):Void {
+		if (phase == Betting || phase == Drawing) throw 'Not during a hand';
+		button = seat;
+	}
+
 	/** Chips go into or out of a seat between hands (buy-ins, cashing out). **/
 	public function setStack(seat:Int, amount:Int):Void {
 		if (phase == Betting || phase == Drawing) throw 'Not during a hand';

@@ -113,6 +113,9 @@ sealed class LauncherForm : Form
 		Theme.StyleButton(mapButton);
 		haxen.Click += (_, _) => OpenHaxen();
 		mapButton.Click += (_, _) => ShowMapMenu();
+		// Multiplayer is started from the Private Party table in the game (§13.13); the launcher carries it.
+		server.StartHost = advertise => NetSession.Host(settings.PlayerName, Program.Version, NetSession.DefaultPort, advertise);
+		server.StartJoin = code => NetSession.Join(code, settings.PlayerName, Program.Version);
 		new ToolTip().SetToolTip(haxen, "Haxen, the map editor: open the manor or make your own maps");
 		UpdateMapButton();
 		server.PlaytestRequested = name => (string?)Invoke(new Func<string?>(() => StartPlaytest(name)));
@@ -422,8 +425,21 @@ sealed class LauncherForm : Form
 		UpdateMusic();
 		var mapName = mapOverride ?? (settings.Map.Length == 0 ? null : settings.Map);
 		sessionLabel.Text = (mapName == null ? "Starting the game…" : $"Starting the game on {mapName}…") + "  Recording to " + session.Recorder.Dir;
-		if (settings.MinimizeWhilePlaying)
-			WindowState = FormWindowState.Minimized;
+		// Minimize once the game reports in (TickSession). Minimizing now would hand
+		// the front to whatever window is next, and the game's window would open
+		// behind it.
+		minimizePending = settings.MinimizeWhilePlaying;
+	}
+
+	/** Set on PLAY; the launcher minimizes when the game first reports in, or after a few seconds. **/
+	bool minimizePending;
+
+	void MinimizeOnceStarted(SessionRecorder r)
+	{
+		if (!minimizePending || (r.Heartbeats == 0 && (DateTime.Now - r.StartedAt).TotalSeconds < 8))
+			return;
+		minimizePending = false;
+		WindowState = FormWindowState.Minimized;
 	}
 
 	void TickSession()
@@ -434,6 +450,7 @@ sealed class LauncherForm : Form
 		var r = session.Recorder;
 		if (r.Ended)
 			return;
+		MinimizeOnceStarted(r);
 		var room = r.LastRoom.Length > 0 ? r.LastRoom : "starting up";
 		var contact = r.Heartbeats == 0 ? "waiting for the game to report in" : $"last report {(int)(DateTime.Now - r.LastContact).TotalSeconds} s ago";
 		sessionLabel.Text = $"Playing  ·  {room}  ·  {contact}" + (r.Errors > 0 ? $"  ·  {r.Errors} error(s) recorded" : "");
@@ -442,6 +459,10 @@ sealed class LauncherForm : Form
 	void OnSessionEnded(string status)
 	{
 		session = null;
+		minimizePending = false;
+		// A multiplayer session belongs to the game that started it.
+		server.Net?.Dispose();
+		server.Net = null;
 		play.Text = "PLAY";
 		DetectGame();
 		UpdateMusic();
@@ -479,6 +500,7 @@ sealed class LauncherForm : Form
 	protected override void OnFormClosing(FormClosingEventArgs e)
 	{
 		session?.LauncherClosing();
+		server.Net?.Dispose();
 		ticker.Stop();
 		padTimer.Stop();
 		music?.Dispose();

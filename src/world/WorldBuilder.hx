@@ -86,13 +86,14 @@ class WorldBuilder {
 
 	static function addFloorAndCeiling(mb:String->MeshBuilder, s:Sector, cx:Int, cy:Int):Void {
 		var x0 = cx, y0 = cy, x1 = cx + 1, y1 = cy + 1;
-		inline function uv(x:Float, y:Float)
-			return new UV(x, -y);
+		inline function uv(x:Float, y:Float, span:Float=1)
+			return new UV(x/span, -y/span);
+		var floorSpan=s.floorTex=="partyFloor"?3.:1.,ceilingSpan=s.ceilTex=="partyCeiling"?6.:1.;
 		mb(s.floorTex).quad(new Point(x0, y0, s.floorZ), new Point(x1, y0, s.floorZ), new Point(x1, y1, s.floorZ), new Point(x0, y1, s.floorZ),
-			uv(x0, y0), uv(x1, y0), uv(x1, y1), uv(x0, y1), new Point(0, 0, 1), s.shade);
+			uv(x0, y0,floorSpan), uv(x1, y0,floorSpan), uv(x1, y1,floorSpan), uv(x0, y1,floorSpan), new Point(0, 0, 1), s.shade);
 		// Ceilings sit a little darker than floors, like Build maps usually did.
 		mb(s.ceilTex).quad(new Point(x0, y0, s.ceilZ), new Point(x1, y0, s.ceilZ), new Point(x1, y1, s.ceilZ), new Point(x0, y1, s.ceilZ),
-			uv(x0, y0), uv(x1, y0), uv(x1, y1), uv(x0, y1), new Point(0, 0, -1), s.shade + 2);
+			uv(x0, y0,ceilingSpan), uv(x1, y0,ceilingSpan), uv(x1, y1,ceilingSpan), uv(x0, y1,ceilingSpan), new Point(0, 0, -1), s.shade + 2);
 		if(s.ceilTex=="glass") {
 			var frame=mb("brass");
 			if(cx%2==0) MeshBuilder.box(frame,frame,cx-.035,cy,s.ceilZ-.1,cx+.035,cy+1,s.ceilZ,4);
@@ -107,6 +108,12 @@ class WorldBuilder {
 	**/
 	static function addEdge(mb:String->MeshBuilder, s:Sector, n:Null<Sector>, a:Point, b:Point, along:Int, shadeBias:Float, ?opening:FoyerWindows.FoyerWindow):Void {
 		var shade = s.shade + shadeBias;
+		// The party wall master contains six panels and one continuous wainscot.
+		if(s.wallTex=="partyWall" && opening==null) {
+			var base=n==null?s.floorZ:n.ceilZ;
+			if(base<s.ceilZ)wall(mb(s.wallTex),a,b,base,s.ceilZ,along/6,(along+1)/6,0,(s.ceilZ-base)/(s.ceilZ-s.floorZ),shade);
+			return;
+		}
 		// A generated damask panel spans three metres, avoiding compressed woodwork.
 		var repeat = s.wallTex == "damask" ? 3.0 : 1.0;
 		var u0 = along / repeat, u1 = (along + 1) / repeat;

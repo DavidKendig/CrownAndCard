@@ -21,7 +21,7 @@ class VerifySprites {
 					if (row > 0 && i != guest.get(frame * w + x, (row - 1) * h + y)) changed++;
 				}
 				if (opaque < 500) throw 'Unusable $name frame $frame row $row';
-				if (!StringTools.startsWith(name, "female_guest") && navy < 100) throw 'Blue outfit lost in $name frame $frame';
+				if (!StringTools.startsWith(name, "female_guest") && !StringTools.startsWith(name, "security_") && name != "party_chair" && navy < 100) throw 'Blue outfit lost in $name frame $frame';
 				if (row > 0 && changed < 50) throw 'Repeated animation in $name frame $frame row $row';
 			}
 		}

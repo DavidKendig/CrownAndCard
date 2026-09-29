@@ -25,6 +25,10 @@ class FixtureArt {
 				animations.push(built.animate);
 			case "cardTable":
 				shaders = shaders.concat(BlackjackTable.build(palette, lut, parent, f.x, f.y));
+			case "rouletteTable":
+				shaders = shaders.concat(RouletteTable.build(palette, lut, parent, f.x, f.y));
+			case "privateTable":
+				shaders = shaders.concat(PrivateTable.build(palette, lut, parent, f.x, f.y));
 			default:
 		}
 		return {shaders: shaders, water: water, animations:animations};

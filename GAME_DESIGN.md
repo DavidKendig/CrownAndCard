@@ -491,7 +491,7 @@ Every game sits on a common framework:
 - Inside bets: straight, split, street, corner, six-line, basket. Outside bets: dozens, columns, even-money.
 - French call bets (voisins, tiers, orphelins) with a racetrack UI.
 - Croupier "no more bets" timing, the dolly marker, and a number-history board that feeds NPC superstitions about hot and cold numbers.
-- *Implemented (`games.roulette`):* the full bet set above is in the rules engine and covered by `RouletteTest`, including La Partage. The seated table (still at the Card Room, pending the Grand Salon) offers straight-up numbers on a real 0-36 layout grid plus every outside bet; split/street/corner/six-line/basket wait on a mouse-driven racetrack UI. Bets sit on the felt and don't leave the purse until the wheel spins; the wheel itself is shown landed, not choreographed yet.
+- *Implemented (`games.roulette`):* the full bet set above is in the rules engine and covered by `RouletteTest`, including La Partage. The seated table offers a direct clickable 0–36 mat with straight, split, street, corner, six-line, basket and all outside bets. Click 1/5/10/25/50/100/250-Sovereign chips to build an amount, then click a space or boundary to place it. Undo removes the last chip in hand or placement; Clear returns all unspun reservations. Spin is enabled only with placed bets and an empty hand. The layout locks while the existing wheel animation runs, then settles and highlights the winning number. Keyboard/controller users switch between chip tray, layout and actions with Space/X, navigate with arrows/D-pad, and confirm with E/A.
 
 **Craps**
 - Pass/Don't Pass, Come/Don't Come, Odds (3-4-5×), Place, Field, Big 6/8, Hardways, Props (Any 7, Any Craps, Yo, Horn, Hi-Lo).
@@ -1258,7 +1258,7 @@ The README explains the split for visitors.
 - **File headers:** code files start with `// SPDX-License-Identifier: AGPL-3.0-or-later`. Asset sidecar and data files use `CC-BY-NC-SA-4.0`.
 - **The author can still sell the game** (Steam and so on). Licenses bind other people, not the copyright holder.
 - **In-game legal notice:** an About page in the pause menu shows the copyright, the no-warranty notice, both licenses and a link to the source code. The AGPL expects interactive programs to show these notices.
-- **Online features:** the AGPL's network clause only matters if online features ever ship (the multiplayer idea in Phase 6). If they do, players must be offered the server's source code.
+- **Online features:** multiplayer tables (§13.13) are hosted by a player's own launcher, and every player runs the same AGPL build, so everyone already has the source. If a hosted relay or lobby server ever ships, its users must be offered that server's source code.
 - **Contributions:** set up a **contributor license agreement (CLA) before accepting outside code or assets.** Without one, the author loses the ability to sell builds containing contributors' work, or to link it with proprietary platform SDKs such as Steamworks and console SDKs.
 - **Dependencies:** Heaps, HashLink, the Haxe standard library and CastleDB are MIT-licensed, which is compatible with AGPL. The launcher's music decoder, stb_vorbis, is MIT or public domain. Any new code dependency must be AGPL-compatible (MIT, BSD, Apache-2.0, LGPL or GPLv3 all qualify). Third-party assets such as fonts and sound effects must allow redistribution, and they keep their own licenses.
 
@@ -1271,7 +1271,7 @@ A small Windows launcher, `CrownAndCardLauncher.exe` (`launcher/`), sits in fron
 | **News** | Reads posts from davidkendig.info through its WordPress REST API, with the RSS feed as a fallback. Shows all posts by default; a launcher setting can narrow it to one category. The last good copy is cached for offline use. Links only open if they point at the site. |
 | **Settings pass-through** | Graphics (display mode, window size, pixel scaling, FOV, head bob, look style, FPS counter) and audio (master, music, effects, voices, mute in background). Passed as `--key=value` arguments to native builds and as URL parameters to the web build, using the same keys the game reads (`src/core/Settings.hx`). The game clamps every value. Audio values are stored until the game has sound. |
 | **Error tracking** | The launcher runs a tiny HTTP server on 127.0.0.1 only, behind a random per-launch token. The game (`src/core/Telemetry.hx`) posts a state heartbeat every 5 seconds (room, position, heading, FPS, view size) and start, error and quit events. The launcher writes one folder per session under `%LOCALAPPDATA%\CrownAndCard\sessions\` and keeps the last 30. Each session ends as OK, errors reported, crashed, lost contact or unknown. The Reports tab shows them and can copy a text report. **Nothing is uploaded.** The game refuses telemetry URLs that aren't local. |
-| **Launch** | Prefers a native build (`CrownAndCard.exe`, or `hl.exe` + `game.hl`) next to the launcher. Otherwise it serves the web build and opens it as an Edge or Chrome app window in guest mode, with its own data folder. Guest mode keeps the window from signing in to the player's browser account or syncing data. |
+| **Launch** | Prefers a native build (`CrownAndCard.exe`, or `hl.exe` + `game.hl`) next to the launcher. Otherwise it serves the web build and opens it as an app window in guest mode, with its own data folder: **Chrome if installed, otherwise Edge**. Edge's "browsing controls" turn the controller into a pointer and keep it from the game until the player chooses "Use game controls". The launcher waits for the game to report in before minimizing, so the game window opens in front. Guest mode keeps the window from signing in to the player's browser account or syncing data. |
 | **Menu music** | Loops the menu theme (`music\menu-loop-dark.ogg`, shipped next to the exe) seamlessly. It follows the Master × Music sliders, fades out while the game runs (and in the background when "Mute in background" is on), and has an on/off switch in the header. Decoded by stb_vorbis in `cc_vorbis.dll` (also shipped next to the exe) and played through the Windows waveOut API. |
 | **Installer** | Inno Setup (`installer/CrownAndCard.iss`) builds `CrownAndCard-Setup-0.YY.BBB.exe`. It installs per user into `%LOCALAPPDATA%\Programs\CrownAndCard` with no admin prompt, adds a Start menu entry, an optional desktop icon and a standard uninstaller, and closes a running launcher through Windows Restart Manager. |
 | **Updates** | Checks https://github.com/DavidKendig/CrownAndCard for the latest release (tag `v0.YY.BBB`) at startup (a setting turns this off) and offers anything newer. Installing always needs the player's click: the launcher downloads that release's Setup exe, verifies the SHA-256 digest GitHub publishes, runs it and exits. A development copy inside a git checkout only reports the new version. Releases are published with `tools/release.ps1`. |
@@ -1281,6 +1281,32 @@ A small Windows launcher, `CrownAndCardLauncher.exe` (`launcher/`), sits in fron
 | **Controller** | The launcher reads XInput: A or Start plays, LB/RB switch tabs, Y toggles the music. In the game, the left stick (or d-pad) moves, the right stick looks, LB or L3 runs, and R3 or Y re-centers the view. |
 
 The web-build route is a stopgap until the HashLink desktop build exists; the launcher switches to the native build automatically once it's present.
+
+### 13.13 Multiplayer Tables (DRAFT, started 2026-09-29)
+
+Friends with the same build sit at one card table together. **Multiplayer lives at the Private Party table** (the guarded salon north of the Conservatory): taking its empty chair (E / A) opens a menu to **host a table**, **host over the internet** or **join a table** with a code. While seated, the manor waits behind a dimmed backdrop; leaving the table ends the session and stands the player up in the room. There is no shared manor: other players are only ever seen at the table. The first game is **Texas Hold'em**; empty seats can be filled with house players (PokerAi).
+
+**Connecting (host + join code).** No server to run or pay for.
+- **Host a table:** the player's launcher listens on TCP port **47724**, and the table's lobby shows a **join code**: the host's address, the port and a random session key, in 16 characters (`XXXX-XXXX-XXXX-XXXX`, Crockford base32).
+- **Join a table:** friends type or paste the code at their own Private Party table (keyboard; Ctrl+V pastes). Their launcher connects, sends the key, its build number and the player's name; the host refuses a wrong key, a different build, or a full table (6 seats).
+- On the same home network the code just works. **Host over the internet:** the host forwards port 47724 on their router and types their public address, so the code carries it instead of the home-network address. Windows Firewall asks the host once to allow the launcher.
+- The name at the table is set in the launcher's Settings ("Name at multiplayer tables"; the Windows account name to start with).
+- **Star topology:** guests only ever talk to the host. The host's launcher relays messages and stamps each one with the sender's id, so no one can speak for another player.
+- **The game asks, the launcher connects** (§13.12). Through the local server the game starts and ends sessions (`api/net/host`, `api/net/join`, `api/net/leave`, `api/net/state`), then `api/net/events` streams session events (server-sent events) and `api/net/send` posts messages. Games never open network connections themselves. The launcher has no multiplayer controls of its own; it ends any session when the game window closes.
+
+**Who runs the table.** The host's game is the dealer: it runs the rules engine (`games.poker.PokerTable`), accepts each guest's actions for their own seat only, and sends every player a view with only the cards that player may see. House players are run by the host.
+
+**Fair dealing (shared seed, §1.2 Honest Games, §7.11).** No one, the host included, can choose the deck:
+1. Before each hand the host picks a secret 32-byte seed and sends only its SHA-256 hash (the **commitment**).
+2. Every guest answers with a fresh random 32-byte seed of their own.
+3. The deck is shuffled by ChaCha20 seeded with SHA-256(host seed ‖ each guest seed in seat order). The host can't steer it, because it committed before seeing the guests' seeds; a guest can't steer it, because they never see the host's seed.
+4. When the hand ends, the host reveals its seed. Every guest's game checks it against the commitment, **replays the whole hand** from the seeds and the action log, and confirms its own cards, the board and the payouts. A mismatch is shown to everyone at the table.
+
+Limit: during a hand the host's computer holds the deck (it has to deal it), so a host who inspects their own game's memory could see hidden cards. Commit-reveal proves the deal wasn't chosen, not that no one peeked. Full "mental poker" cryptography, where no single machine ever holds the deck, is a possible later step.
+
+**Chips.** Multiplayer chips are separate from the single-player purse: everyone sits down with the same session stack (1,000). Nothing won or lost at a multiplayer table touches the Guest Register.
+
+**Not yet:** internet play without port forwarding (a relay), finding hosts on the network automatically, more games, and rejoining after a dropped connection.
 
 ---
 
@@ -1366,7 +1392,7 @@ flowchart LR
 - [ ] T4 games, starting with the ones players ask for most
 - [ ] New rooms or visiting-guest events (themed, inside Dodriec Manor)
 - [ ] **Mod support:** custom maps from Haxen *(maps done: made, saved, shared as .json files and played from the launcher)*, plus CastleDB data packs (Build's mapping community is the spirit here)
-- [ ] Explore online multiplayer tables (hxbit networking)
+- [ ] Online multiplayer tables *(started early, 2026-09-29: host + join code, Texas Hold'em, §13.13)*
 
 ---
 
@@ -1403,7 +1429,7 @@ flowchart LR
 | Baccarat squeeze interaction | 6.4 | **Could** |
 | CRT and other post filters | 5.11 | **Could** |
 | Player cheating mechanic (mark cards, palm chips; risk expulsion) | n/a | **Could** (Q5) |
-| Online multiplayer | 14 (P6) | **Won't (v1)** |
+| Online multiplayer tables | 13.13 | **Could** (in progress) |
 | Mod support | 14 (P6) | **Won't (v1)** |
 | Real money, purchasable chips, loot boxes | 1.5 | **Never** |
 
@@ -1439,7 +1465,7 @@ flowchart LR
 | Q5 | Can the player cheat? | Post-launch "Could." Catching cheaters is in scope for v1. |
 | Q6 | Platforms? | PC (Steam) first, with a web build for playtests. Consoles later. |
 | Q7 | Team size and timeline? | Needed to put dates on the roadmap |
-| Q8 | Multiplayer ever? | Not for v1. Keep hxbit so the door stays open. |
+| Q8 | Multiplayer ever? | **Resolved 2026-09-29: yes, multiplayer tables** (host + join code, shared-seed dealing, §13.13). No shared manor for now. |
 | Q9 | Voices: VO barks, gibberish or text only? | Short VO barks + subtitles |
 | Q10 | Level format: LDtk grid or a custom sector editor? | **Resolved 2026-09-28: a custom editor, Haxen,** with versioned JSON grid maps (§13.6). |
 | Q11 | Signature game *Crown & Card*: pitch (a) or (b)? | Paper-prototype both in Phase 3 |
@@ -1471,6 +1497,10 @@ flowchart LR
 | 2026-09-28 | **Texas Hold'em, Five-card draw, Go Fish, Slapjack, War and Solitaire** join the table menu. The last four are new to the catalog as parlour games. The camera's look range grows to **±75°**, with y-shearing kept for the first ~31° (§5.5). The README lists each game with a link to its rules source. | David |
 | 2026-09-28 | **Haxen**, a browser map editor opened from the launcher, replaces LDtk (resolves Q10). The manor moves into `res/maps/manor.json`, and its set pieces become placeable fixtures. The game plays any map chosen in the launcher, and Haxen play-tests through it (§13.6, §13.12). | David |
 | 2026-09-28 | **Classic (Hong Kong-style) and Riichi Mahjong** join the card table on the tile art kit (`games.mahjong`). Riichi follows the WRC rules without abortive draws, chankan or nagashi mangan. The launcher now **streams the controller** (XInput) to the game, since Steam's desktop layout and browser gamepad rules could hide it. Windowed play shows a **16:9 frame**, and fullscreen fills the screen (§5.2). | David |
+| 2026-09-28 | A placed guest **always faces the way it's placed** unless the map says otherwise: character sheets drawn turned toward screen-right are mirrored on import to the face-sprite convention (§5.3). Haxen guests gain **Turns** (turns to face the player) before **Turns slowly** (spins in place); the two are exclusive (§13.6). | David |
+| 2026-09-29 | **Multiplayer tables** start (resolves Q8): one player's launcher hosts and friends join with a code; tables only, no shared manor; Texas Hold'em first; the host's game deals, and every hand is shuffled from a **shared seed** (host commitment plus guest seeds) that guests verify by replaying the hand (§13.13). | David |
+| 2026-09-29 | Multiplayer **moves from the launcher to the Private Party table**: its empty chair opens host / host over the internet / join. The launcher keeps the network session but loses its MULTIPLAYER button; the player's name moves to its Settings (§13.13). | David |
+| 2026-09-29 | The launcher opens the web build in **Chrome, falling back to Edge**, because Edge's browsing controls take the controller from the game (§13.12). | David |
 
 ---
 

@@ -17,12 +17,16 @@ static class Paths
 
 	/**
 		Data folder for the game's guest-mode browser window, so it runs as its own
-		process, separate from the player's normal browser.
+		process, separate from the player's normal browser. Chrome and Edge each
+		get their own: they can't share one.
 	**/
-	public static string BrowserProfileDir => Path.Combine(DataDir, "game-window");
+	public static string BrowserProfileDir(string browser) => Path.Combine(DataDir, "game-window" + ProfileSuffix(browser));
 
 	/** Haxen's own app-window data folder, so it can run beside the game window. **/
-	public static string HaxenProfileDir => Path.Combine(DataDir, "haxen-window");
+	public static string HaxenProfileDir(string browser) => Path.Combine(DataDir, "haxen-window" + ProfileSuffix(browser));
+
+	static string ProfileSuffix(string browser) =>
+		Path.GetFileName(browser).Equals("chrome.exe", StringComparison.OrdinalIgnoreCase) ? "-chrome" : "";
 
 	/** Custom maps made in Haxen (GAME_DESIGN.md §13.6). **/
 	public static string MapsDir => Path.Combine(DataDir, "maps");

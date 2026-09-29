@@ -37,6 +37,7 @@ sealed class SettingsView : UserControl
 	readonly CheckBox autoUpdate = Check("Check GitHub for updates when the launcher starts");
 	readonly TextBox gamePath = new() { Width = 240, BackColor = Theme.Card, ForeColor = Theme.Cream, BorderStyle = BorderStyle.FixedSingle, Font = Theme.Body };
 	readonly Button browse = new() { Text = "Browse…", AutoSize = true };
+	readonly TextBox playerName = new() { Width = 240, MaxLength = 20, BackColor = Theme.Card, ForeColor = Theme.Cream, BorderStyle = BorderStyle.FixedSingle, Font = Theme.Body, Margin = new Padding(0, 4, 0, 0) };
 
 	public SettingsView(LauncherSettings settings)
 	{
@@ -71,7 +72,8 @@ sealed class SettingsView : UserControl
 			("News category", newsCategory),
 			("", minimize),
 			("", autoUpdate),
-			("Game folder", pathRow));
+			("Game folder", pathRow),
+			("Name at multiplayer tables", playerName));
 		var pathHint = Theme.Label("Leave empty to find the game next to the launcher.", Theme.Small, Theme.Muted);
 
 		var right = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, BackColor = Color.Transparent };
@@ -109,6 +111,12 @@ sealed class SettingsView : UserControl
 				Apply("gamePath");
 		};
 		browse.Click += (_, _) => Browse();
+		playerName.Leave += (_, _) => Apply("playerName");
+		playerName.KeyDown += (_, e) =>
+		{
+			if (e.KeyCode == Keys.Enter)
+				Apply("playerName");
+		};
 	}
 
 	void LoadValues()
@@ -130,6 +138,7 @@ sealed class SettingsView : UserControl
 		minimize.Checked = s.MinimizeWhilePlaying;
 		autoUpdate.Checked = s.AutoUpdate;
 		gamePath.Text = s.GamePath;
+		playerName.Text = s.PlayerName;
 		loading = false;
 	}
 
@@ -158,7 +167,10 @@ sealed class SettingsView : UserControl
 		s.MinimizeWhilePlaying = minimize.Checked;
 		s.AutoUpdate = autoUpdate.Checked;
 		s.GamePath = gamePath.Text.Trim();
+		s.PlayerName = playerName.Text.Trim();
 		s.Save();
+		if (what == "playerName")
+			playerName.Text = s.PlayerName; // Save() fills in a default for an empty name
 		Changed?.Invoke(what);
 	}
 

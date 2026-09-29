@@ -7,7 +7,7 @@ namespace CrownAndCard.Launcher;
 
 /**
 	Opens Haxen, the map editor, the same way as the web game: served by the
-	launcher's LocalServer and shown as an Edge/Chrome app window with its own
+	launcher's LocalServer and shown as a Chrome/Edge app window with its own
 	data folder, so it can sit beside the game window. Haxen saves maps and asks
 	for play tests through the launcher's local API.
 **/
@@ -23,10 +23,11 @@ static class HaxenWindow
 			Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 			return;
 		}
-		Directory.CreateDirectory(Paths.HaxenProfileDir);
+		var profile = Paths.HaxenProfileDir(browser);
+		Directory.CreateDirectory(profile);
 		var args = string.Join(" ",
 			$"--app=\"{url}\"",
-			$"--user-data-dir=\"{Paths.HaxenProfileDir}\"",
+			$"--user-data-dir=\"{profile}\"",
 			"--guest",
 			"--window-size=1440,900",
 			"--no-first-run",

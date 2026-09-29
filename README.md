@@ -111,7 +111,8 @@ The launcher follows the manor's navy, burgundy, brass and ivory palette. Its ne
 - **News:** the latest posts from [davidkendig.info](https://davidkendig.info), from every category, cached for offline use.
 - **Settings:** graphics and audio options, passed to the game as `--key=value` arguments (native builds) or URL parameters (web build).
 - **Error tracking:** the game reports its state every 5 seconds, plus any errors, to the launcher, which records each session under `%LOCALAPPDATA%\CrownAndCard\sessions\`. Reports stay on the computer; nothing is uploaded.
-- **Play:** starts the native build if there is one, otherwise the web build, served locally and opened as an Edge or Chrome app window in guest mode.
+- **Play:** starts the native build if there is one, otherwise the web build, served locally and opened as an app window in guest mode: in Chrome if it's installed, otherwise in Edge. In Edge, a controller starts out moving a pointer; right-click the game and choose **Use game controls** to play with it.
+- **Multiplayer:** in the game, take the empty chair at the Private Party table to host or join a Texas Hold'em table with friends on the same version (up to six players; the host can fill seats with house players). The host's lobby shows a 16-character join code, and friends type or paste it at their own Private Party table. On the same network it just works; over the internet the host forwards TCP port 47724 to their PC and chooses **Host over the internet** with their public address, so the code points there. The launcher carries the connection (it has no multiplayer controls of its own), and your name at the table is in its Settings. Everyone sits down with 1,000 chips that never touch your purse or save. Each hand is shuffled from a seed every player adds to, and every guest's game replays the hand afterwards to check the host dealt it fairly ([GAME_DESIGN.md §13.13](GAME_DESIGN.md)).
 - **Install:** `CrownAndCard-Setup-<version>.exe` (Inno Setup) installs for the current user into `%LOCALAPPDATA%\Programs\CrownAndCard` with no admin prompt. It adds a Start menu entry (and an optional desktop icon) and a normal uninstaller in Windows' installed apps. The zip is a portable alternative.
 - **Updates:** on start it checks the latest [GitHub release](https://github.com/DavidKendig/CrownAndCard/releases) and offers anything newer. When you click Install, it downloads that release's Setup exe, checks its SHA-256 against GitHub's digest, runs it and closes; the installer replaces the files. A copy inside a git checkout only reports the new version.
 - **Controller:** A or Start plays, LB/RB switch tabs, Y toggles the music.
@@ -119,6 +120,7 @@ The launcher follows the manor's navy, burgundy, brass and ivory palette. Its ne
 
 | Task | Command |
 |---|---|
+| After a `git pull`, rebuild the game, Haxen and the exe (the built files aren't in git) | `rebuild.bat` |
 | Build the exe (needs Visual Studio Build Tools with the C# and C++ build tools) | `powershell -File launcher\build.ps1` |
 | Build the exe and check the Guest Register save store and the local save API | `powershell -File launcher\build.ps1 -Verify` |
 | Build the release: `dist\CrownAndCard\`, the portable zip and the Setup exe (run `haxe build-js.hxml` first; also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php): `winget install JRSoftware.InnoSetup`) | `powershell -File launcher\build.ps1 -Package` |

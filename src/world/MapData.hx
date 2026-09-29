@@ -38,7 +38,12 @@ typedef GuestDef = {
 	/** A character sheet from art.SpriteArt. **/
 	var art:String;
 
+	/** Turns to face the player. Without this or `spins`, holds `facing`. **/
+	@:optional var turns:Bool;
+
+	/** Turns slowly in place. **/
 	@:optional var spins:Bool;
+
 	@:optional var walkTo:{x:Float, y:Float};
 }
 
@@ -94,12 +99,14 @@ class MapData {
 
 	/** Wall and surface textures the renderer provides. **/
 	public static final TEXTURES = [
+		"partyFloor", "partyWall", "partyCeiling",
 		"marble", "parquet", "carpet", "coffer", "dome", "damask", "damaskUpper", "deco", "decoUpper", "green", "greenUpper", "felt",
 		"tableWood", "stone", "ivory", "pillarMarble", "stairMarble", "brass", "velvet", "flame", "glass", "banisterWood", "ropeBraid", "grateMetal", "planterCeramic", "soil"
 	];
 
 	/** Character sheets a guest can use (art.SpriteArt.CHARACTERS). **/
 	public static final ARTS = [
+		"security_black", "security_white", "party_chair",
 		"masked_guest", "female_guest", "male_staff", "female_staff", "male_guest_seated", "female_guest_seated", "male_guest_walk",
 		"female_guest_walk", "hooded_keeper", "player"
 	];
@@ -285,7 +292,8 @@ class MapData {
 			facing: num(g, "facing", 0),
 			art: str(g, "art", "masked_guest"),
 		};
-		if (Reflect.field(g, "spins") == true) out.spins = true;
+		if (Reflect.field(g, "turns") == true) out.turns = true;
+		else if (Reflect.field(g, "spins") == true) out.spins = true;
 		var w:Dynamic = Reflect.field(g, "walkTo");
 		if (w != null) out.walkTo = {x: num(w, "x", out.x), y: num(w, "y", out.y)};
 		return out;

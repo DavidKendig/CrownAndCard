@@ -27,6 +27,13 @@ Generated with the built-in image_gen tool. Exact prompts and the stair revision
 
 Materials are sampled at 256×256 through the existing palette renderer. Surface imports intentionally ignore source alpha; the tree sprites preserve it. Courtyard materials remain on solid 3D geometry and respond to lightning. The two tall tree sprites are documented in `../sprites/README.md`. Development inspection views: `?foyerView=stairs`, `?foyerView=ceiling`, and `?foyerView=courtyard`.
 
+## Private Party table
+
+Supplied by the project owner (2026-09-29) and used by `world.PrivateTable` on the Private Party's long table.
+
+- `private-table-top.png`: the tabletop, a teal velvet cloth inside a gold crown frame with a spread of chess, cards and chips, backgammon, mahjong and dominoes. It's authored about 3:1 and the table is about 4:1, so it's sampled at 744 × 248 at its own proportions in the middle of a 1024 × 248 texture, and the ends are filled with velvet pixels from just outside its frame.
+- `private-table-drape.png`: the skirt, teal damask velvet with a gold shell band and tassels, sampled at 384 × 128 and repeated once per 2 m along each side.
+
 ## Original material prompts
 
 ### manor-wall.png

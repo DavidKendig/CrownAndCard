@@ -30,7 +30,10 @@ class Main extends hxd.App {
 	var player:PlayerController;
 	final sprites:Array<BuildSprite> = [];
 	final spinners:Array<BuildSprite> = [];
+	/** Guests that turn to face the player (a map guest's "turns"). **/
+	final turners:Array<BuildSprite> = [];
 	final walkers:Array<{sprite:BuildSprite, path:world.GuestWalkPath}> = [];
+	final securityGuards:Array<BuildSprite> = [];
 	var hands:h2d.Bitmap;
 	var crosshair:h2d.Bitmap;
 	var info:h2d.Text;
@@ -46,6 +49,8 @@ class Main extends hxd.App {
 
 	/** The Card Room table's game menu and seated games (§4.3). **/
 	var table:ui.CardTableUI;
+	/** The Private Party table, where multiplayer starts (§13.13). **/
+	var privateTable:ui.PrivateTableUI;
 
 	/** The controller as the launcher reads it (XInput), and the browser's own when it has one. **/
 	var bridge:core.PadBridge;
@@ -99,6 +104,9 @@ class Main extends hxd.App {
 
 		map = level.map;
 		var textures = [
+			"partyFloor" => FoyerArt.surface("materials/party-floor.png",palette,256,256).toIndexTexture(false,true),
+			"partyWall" => FoyerArt.surface("materials/party-wall.png",palette,128,192).toIndexTexture(false,true),
+			"partyCeiling" => FoyerArt.surface("materials/party-ceiling.png",palette,256,256).toIndexTexture(false,true),
 			"marble" => FoyerArt.surface("materials/manor-floor.png",palette,128,128).toIndexTexture(false,true),
 			"parquet" => ProcArt.parquet().toIndexTexture(false, true),
 			"carpet" => ProcArt.carpet().toIndexTexture(false, true),
@@ -153,6 +161,9 @@ class Main extends hxd.App {
 			s.facing = g.facing * Math.PI / 180;
 			s.shader.shadeOffset = sectorShade(map, g.x, g.y);
 			sprites.push(s);
+			if (StringTools.startsWith(g.art, "security_")) securityGuards.push(s);
+			if (g.turns == true && g.walkTo == null)
+				turners.push(s);
 			if (g.spins == true)
 				spinners.push(s);
 			if (g.walkTo != null)
@@ -204,6 +215,10 @@ class Main extends hxd.App {
 			case "aisle": player.x=7.5; player.y=11.5; player.yaw=.35;
 			case "rotunda": player.x=13; player.y=24; player.yaw=Math.PI/2;
 			case "blackjack": player.x=13; player.y=34.8; player.yaw=Math.PI/2; player.pitch=-.38;
+			case "roulette": player.x=10; player.y=34.65; player.yaw=Math.PI/2; player.pitch=-.38;
+			case "party": player.x=26; player.y=20.5; player.yaw=0; player.pitch=-.05;
+			case "partyinside": player.x=36; player.y=21.5; player.yaw=Math.PI/2; player.pitch=.06;
+			case "partytable": player.x=32; player.y=23; player.yaw=.65; player.pitch=-.25;
 			default:
 		}
 		player.feetZ=map.floorAt(player.x,player.y);
@@ -233,6 +248,8 @@ class Main extends hxd.App {
 		register = new core.GuestRegister(options.get("telemetry"));
 		// Outcome streams fork from one master key per visit (§7.3). Saving it in the register comes later.
 		table = new ui.CardTableUI(view.hud, palette, wallet, rng.ChaChaRng.fromEntropy());
+		// Multiplayer starts at the Private Party table (§13.13).
+		privateTable = new ui.PrivateTableUI(view.hud, palette, options.get("telemetry"));
 		register.load(error -> {
 			if(error!=null) entrance.notify(error,8);
 			else {
@@ -294,13 +311,20 @@ class Main extends hxd.App {
 	}
 
 	/**
-		The launcher's XInput stream or the browser's gamepad, whichever was used
-		last (they're usually the same controller); a dummy when there's neither.
+		The launcher's XInput stream whenever it's there; the browser's gamepad
+		without the launcher, or while it's the only one being touched (a pad
+		XInput can't see). They're usually the same controller. A browser pad
+		that always looks touched (a stuck axis on Steam's virtual device) mustn't
+		outvote the launcher's, so the stream only yields while it sits idle.
+		A dummy when there's neither.
 	**/
 	function choosePad():Void {
 		bridge.update();
-		if (core.PadBridge.active(browserPad)) browserPadActivity = haxe.Timer.stamp();
-		var useBridge = bridge.pad.connected && (!browserPad.connected || bridge.lastActivity >= browserPadActivity);
+		var now = haxe.Timer.stamp();
+		if (core.PadBridge.active(browserPad)) browserPadActivity = now;
+		var bridgeIdle = bridge.lastActivity < 0 || now - bridge.lastActivity > 1;
+		var browserBusy = browserPadActivity >= 0 && now - browserPadActivity < .25;
+		var useBridge = bridge.pad.connected && !(browserPad.connected && browserBusy && bridgeIdle);
 		var pad = useBridge ? bridge.pad : browserPad;
 		if (pad != player.pad) player.pad = pad;
 	}
@@ -343,11 +367,14 @@ class Main extends hxd.App {
 
 	/** E / A (or a click on the prompt): whatever the player is standing at. **/
 	function interact():Void {
-		if (entrance.open || table.open) return;
+		if (entrance.open || table.open || privateTable.open) return;
 		if (level.atDesk(player.x,player.y,player.yaw)) checkIn();
 		else if (level.atTable(player.x,player.y,player.yaw)) {
 			hxd.Window.getInstance().mouseMode=Absolute;
 			table.show();
+		} else if (level.atPrivateTable(player.x,player.y,player.yaw)) {
+			hxd.Window.getInstance().mouseMode=Absolute;
+			privateTable.show();
 		}
 	}
 
@@ -377,9 +404,22 @@ class Main extends hxd.App {
 			pitchDeg: Math.round(player.pitch * 180 / Math.PI),
 			fps: Math.round(hxd.Timer.fps()),
 			view: '${view.width}x${LowResView.HEIGHT} at ${Math.round(view.scale * 100) / 100}x',
-			table: table == null ? "" : table.status,
+			table: privateTable != null && privateTable.open ? privateTable.status : table == null ? "" : table.status,
 			sovereigns: wallet.sovereigns,
+			controller: controllerState(),
 		};
+	}
+
+	/** Which controller drives the player and what its left stick reads, for the launcher's session records. **/
+	function controllerState():String {
+		if (bridge == null) return "starting";
+		var p = player.pad;
+		var source = !p.connected ? "none" : p == bridge.pad ? "launcher" : 'browser (${browserPad.name})';
+		var others = [];
+		if (bridge.pad.connected && p != bridge.pad) others.push("launcher");
+		if (browserPad.connected && p != browserPad) others.push('browser (${browserPad.name})');
+		var stick = p.connected ? ' stick ${Math.round(p.xAxis * 100) / 100},${Math.round(p.yAxis * 100) / 100}' : "";
+		return source + stick + (others.length > 0 ? '; also ${others.join(", ")}' : "");
 	}
 
 	static function sectorShade(map:world.GridMap, x:Float, y:Float):Float {
@@ -401,8 +441,9 @@ class Main extends hxd.App {
 		telemetry.update(dt);
 		choosePad();
 		InputMode.update(player.pad);
-		var seated = table.open;
-		if (seated) table.update(view.width,dt,player.pad);
+		var seated = table.open || privateTable.open;
+		if (table.open) table.update(view.width,dt,player.pad);
+		if (privateTable.open) privateTable.update(view.width,dt,player.pad);
 		if (!entrance.open && !seated) {
 			updateMouseLook();
 			player.update(dt);
@@ -428,12 +469,23 @@ class Main extends hxd.App {
 		}
 		if(!entrance.open) for (s in spinners)
 			s.facing = time * 0.7;
+		if(!entrance.open) for (s in turners) {
+			// Swing round toward the player at up to 3 rad/s, the short way.
+			var d = Math.atan2(player.y - s.mesh.y, player.x - s.mesh.x) - s.facing;
+			d -= Math.PI * 2 * Math.round(d / (Math.PI * 2));
+			var step = dt * 3;
+			s.facing += d > step ? step : d < -step ? -step : d;
+		}
 		if(!entrance.open) for (walker in walkers) {
 			walker.path.update(dt, map);
 			walker.sprite.setPosition(walker.path.x, walker.path.y, 0);
 			walker.sprite.facing = walker.path.facing;
 			walker.sprite.animationFrame = walker.path.phase;
 			walker.sprite.shader.shadeOffset = sectorShade(map, walker.path.x, walker.path.y);
+		}
+		if(!entrance.open) for (i in 0...securityGuards.length) {
+			// Offset the radio checks so the sentries do not move in unison.
+			securityGuards[i].animationFrame = (time + i * 5) % 13 >= 10.5 ? 1 : 0;
 		}
 		for (s in sprites)
 			s.update(player.x, player.y);
@@ -463,15 +515,17 @@ class Main extends hxd.App {
 			var here=map.sectorAtWorld(player.x,player.y);
 			info.text=level.data.name.toUpperCase()+"\n"+(here==null?"":here.name);
 		}
-		spritePreview.hideToggle(table.open);
-		if(!entrance.open && !table.open) spritePreview.update(view.width, dt);
-		crosshair.visible=hands.visible=info.visible=!entrance.open && !table.open;
+		spritePreview.hideToggle(seated);
+		if(!entrance.open && !seated) spritePreview.update(view.width, dt);
+		crosshair.visible=hands.visible=info.visible=!entrance.open && !seated;
 		var atDesk=level.atDesk(player.x,player.y,player.yaw), atTable=level.atTable(player.x,player.y,player.yaw);
-		var prompt=table.open ? ""
+		var atPrivate=level.atPrivateTable(player.x,player.y,player.yaw);
+		var prompt=seated ? ""
 			: atDesk ? (register.busy?"Signing the Guest Register...":"Check in with Mr. Quill - save your visit")
 			: atTable ? "Sit down at the card table"
+			: atPrivate ? "Take the empty chair - play with friends"
 			: level.belowStairs(player.x,player.y) ? "The upper floor is closed. Please use the side aisles." : "";
-		entrance.update(view.width,dt,player.pad,prompt,!table.open && ((atDesk && !register.busy) || atTable));
+		entrance.update(view.width,dt,player.pad,prompt,!seated && ((atDesk && !register.busy) || atTable || atPrivate));
 	}
 
 	override function render(e:h3d.Engine) {

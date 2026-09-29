@@ -145,6 +145,17 @@ class FoyerStorm {
 			for(j in 0...3+fx.below(5)) drops.set((x+Std.int(j/3))%128,(y+j)%128,Palette.index(Palette.NAVY,10+j%3));
 		}
 		var rainTex=drops.toIndexTexture(true,true);
+		// Clip sheets against every room, so later manor extensions remain indoors.
+		function shelteredSheet(b:MeshBuilder,ax:Float,ay:Float,bx:Float,by:Float):Void {
+			var length=Math.sqrt((bx-ax)*(bx-ax)+(by-ay)*(by-ay)),steps=Std.int(Math.ceil(length));
+			for(j in 0...steps) {
+				var t0=j/steps,t1=(j+1)/steps;
+				var xa=ax+(bx-ax)*t0,ya=ay+(by-ay)*t0,xb=ax+(bx-ax)*t1,yb=ay+(by-ay)*t1;
+				var base=RainShelter.base(map,(xa+xb)/2,(ya+yb)/2);
+				b.quad(new Point(xa,ya,22),new Point(xb,yb,22),new Point(xb,yb,base),new Point(xa,ya,base),
+					new UV(t0*7,0),new UV(t1*7,0),new UV(t1*7,(22-base)*5/22),new UV(t0*7,(22-base)*5/22),new Point(0,1,0),2);
+			}
+		}
 		for(i in 0...10) {
 			var b=new MeshBuilder(); panel(b,center-55,center+55,-.5-i*3,-2,24,2,22,5);
 			var m=mesh(b,rainTex,1,true),sh=m.material.mainPass.getShader(BuildShader);
@@ -164,10 +175,9 @@ class FoyerStorm {
 			conservatory=new Point((x0+x1)/2,(y0+y1)/2,room.ceilZ);
 			for(i in 0...6) {
 				var b=new MeshBuilder(),gap=1+i*2;
-				panel(b,x0-6,x1+6,y0-gap,0,22,2,7,5);
-				panel(b,x0-6,x1+6,y1+gap,0,22,2,7,5);
-				b.quad(new Point(x1+gap,y0-6,22),new Point(x1+gap,y1+6,22),new Point(x1+gap,y1+6,0),new Point(x1+gap,y0-6,0),
-					new UV(0,0),new UV(7,0),new UV(7,5),new UV(0,5),new Point(-1,0,0),2);
+				shelteredSheet(b,x0-6,y0-gap,x1+6,y0-gap);
+				shelteredSheet(b,x0-6,y1+gap,x1+6,y1+gap);
+				shelteredSheet(b,x1+gap,y0-6,x1+gap,y1+6);
 				panel(b,x0,x1,y0+(y1-y0)*i/6,room.ceilZ+.2,24,2,4,4);
 				var sh=mesh(b,rainTex,1,true).material.mainPass.getShader(BuildShader);
 				sh.visibility=.1;rain.push(sh);

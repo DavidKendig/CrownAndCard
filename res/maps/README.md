@@ -15,7 +15,7 @@ A map is versioned JSON (`world.MapData` in `src/world/MapData.hx` reads and che
 | `props` | Boxes: `x0 y0 x1 y1` (meters, +x east, +y north), `baseZ`, `height` (top), `topTex`, `sideTex`, and optional `solid`, `walkable` (stand on top), `hidden` (collision only) |
 | `fixtures` | Set pieces by `type` and anchor `x y`: `frontDoors`, `frontDesk`, `fountain`, `grandStairs`, `cardTable` (see `src/world/Fixtures.hx` for footprints) |
 | `start` | The player start: `x`, `y`, `facing` (degrees: 0 east, 90 north) |
-| `guests` | Characters: `name`, `x`, `y`, `facing`, `art` (a sprite sheet name), and optional `spins` and `walkTo {x, y}` |
+| `guests` | Characters: `name`, `x`, `y`, `facing`, `art` (a sprite sheet name), and optional `turns` (turns to face the player), `spins` (turns slowly in place) and `walkTo {x, y}`. With neither `turns` nor `spins`, a guest always faces `facing` |
 | `lights` | Point lights: `x`, `y`, `z`, `radius`, `power` |
 | `chandeliers` | Candle chandelier sprites: `x`, `y`, `z`, `width` |
 

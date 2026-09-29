@@ -35,6 +35,7 @@ sealed class LauncherSettings
 	public bool AutoUpdate = true; // check GitHub for a newer release at startup (installing always asks)
 	public string GamePath = ""; // optional override; empty = auto-detect
 	public string Map = ""; // a custom Haxen map to play; empty = Dodriec Manor
+	public string PlayerName = DefaultName(); // shown at multiplayer tables
 
 	public static readonly (int W, int H)[] WindowSizes = [(1280, 720), (1600, 900), (1920, 1080), (2560, 1440)];
 
@@ -97,6 +98,7 @@ sealed class LauncherSettings
 			s.AutoUpdate = ReadBool(d, "autoUpdate", s.AutoUpdate);
 			s.GamePath = Json.Str(d, "gamePath") ?? s.GamePath;
 			s.Map = Json.Str(d, "map") ?? s.Map;
+			s.PlayerName = Json.Str(d, "playerName") ?? s.PlayerName;
 		}
 		catch (Exception e)
 		{
@@ -116,6 +118,7 @@ sealed class LauncherSettings
 		d["autoUpdate"] = Bool(AutoUpdate);
 		d["gamePath"] = GamePath;
 		d["map"] = Map;
+		d["playerName"] = PlayerName;
 		try
 		{
 			File.WriteAllText(Paths.SettingsFile, Json.Write(d));
@@ -143,6 +146,18 @@ sealed class LauncherSettings
 			NewsCategory = "all";
 		if (!MapStore.ValidName(Map))
 			Map = "";
+		PlayerName = (PlayerName ?? "").Trim();
+		if (PlayerName.Length > 20)
+			PlayerName = PlayerName.Substring(0, 20).Trim();
+		if (PlayerName.Length == 0)
+			PlayerName = DefaultName();
+	}
+
+	/** The Windows account's name to start with; the player can change it in the Multiplayer window. **/
+	static string DefaultName()
+	{
+		var n = (Environment.UserName ?? "").Trim();
+		return n.Length == 0 ? "Player" : n.Length > 20 ? n.Substring(0, 20) : n;
 	}
 
 	static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);

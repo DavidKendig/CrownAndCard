@@ -14,23 +14,30 @@ class SpriteArt {
 	}
 
 	public static final CHARACTERS = ["player", "masked_guest", "female_guest", "male_staff", "female_staff",
-		"male_guest_seated", "female_guest_seated", "male_guest_walk", "female_guest_walk", "hooded_keeper"];
+		"male_guest_seated", "female_guest_seated", "male_guest_walk", "female_guest_walk", "hooded_keeper",
+		"security_black", "security_white", "party_chair"];
 
 	public static function frameWidth(name:String):Int {
+		if (name == "party_chair") return 96;
+		if (StringTools.startsWith(name, "security_")) return 64;
 		if (name == "hooded_keeper") return 64;
 		return StringTools.endsWith(name, "_seated") ? 128 : StringTools.endsWith(name, "_walk") ? 64 : GUEST_W;
 	}
 
 	public static function frameHeight(name:String):Int {
+		if (name == "party_chair") return 144;
+		if (StringTools.startsWith(name, "security_")) return 128;
 		if (name == "hooded_keeper") return 128;
 		return StringTools.endsWith(name, "_seated") ? 168 : GUEST_H;
 	}
 
 	public static function density(name:String):Int {
+		if (name == "party_chair") return 128;
 		return StringTools.endsWith(name, "_seated") ? 128 : 64;
 	}
 
 	public static function animationRows(name:String):Int {
+		if (StringTools.startsWith(name, "security_")) return 2;
 		return StringTools.endsWith(name, "_walk") ? 4 : 1;
 	}
 
@@ -45,11 +52,20 @@ class SpriteArt {
 		var sourceName = cuts == null ? name : name + "_v2";
 		var sheet = importSheet(hxd.Res.load('sprites/$sourceName.png').toImage().getPixels(), palette, 5,
 			frameWidth(name), frameHeight(name), animationRows(name), cuts);
-		// The female source's rear three-quarter is drawn from the opposite side.
-		if (name == "female_guest_seated" || name == "female_guest_walk" || name == "hooded_keeper") {
+		// These sources' rear three-quarter is drawn from the opposite side.
+		if (name == "female_guest_seated" || name == "female_guest_walk" || name == "hooded_keeper" || name == "party_chair") {
 			var original = sheet.copy(), w = frameWidth(name);
 			for (y in 0...sheet.height) for (x in 0...w)
 				sheet.set(3 * w + x, y, original.get(4 * w - 1 - x, y));
+		}
+		// These PNGs turn the ¾ and side views toward screen-right, but face
+		// sprites expect screen-left (ProcArt, render.BuildSprite), so mirror
+		// frames 1–3 in place. Otherwise a still guest seems to turn as you
+		// walk around them, and walkers walk backwards.
+		if (name != "hooded_keeper") {
+			var original = sheet.copy(), w = frameWidth(name);
+			for (y in 0...sheet.height) for (f in 1...4) for (x in 0...w)
+				sheet.set(f * w + x, y, original.get((f + 1) * w - 1 - x, y));
 		}
 		return sheet;
 	}

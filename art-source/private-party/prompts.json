@@ -1,0 +1,41 @@
+{
+  "mode": "built-in image_gen",
+  "assets": [
+    {
+      "name": "security_black",
+      "path": "res/sprites/security_black.png",
+      "prompt": "Create a production sprite sheet for Crown and Card, a sinister grand aristocratic casino manor, retro Ion Fury / 1990s Build engine detailed pixel art. Transparent background. ONE Black male security guard, dark brown skin clearly visible, black tailored suit, white shirt, dark burgundy tie, black sunglasses, discreet earpiece, polished shoes. Exactly 5 equal columns and 2 equal rows, ten full body figures with clear transparent gutters and same scale. Columns FRONT, FRONT THREE QUARTER facing screen RIGHT, RIGHT PROFILE, REAR THREE QUARTER, BACK. Top row hands clasped professionally in front of waist. Bottom row same directions with right hand touching earpiece. Neutral professional expression, powerful build, no weapons, no words, no labels, no cast floor shadow. Entire shoes and heads within each cell. Consistent character across all ten frames. Crisp pixel clusters, muted charcoal brass burgundy palette, readable silhouette.",
+      "source": "C:\\Users\\trip1\\.codex\\generated_images\\01a0e4ae-0b25-7112-b529-5bafccec98ff\\exec-85811840-f0d9-4c50-8dd6-477b527a9ee4.png"
+    },
+    {
+      "name": "security_white",
+      "path": "res/sprites/security_white.png",
+      "prompt": "Production sprite sheet Crown and Card sinister aristocratic casino manor, Ion Fury / Blood inspired detailed 1990s Build engine pixel art. Transparent background. One white male security guard with fair skin, dark short hair, black tailored suit, white shirt, burgundy tie, black sunglasses, discreet earpiece, polished shoes. Exactly FIVE equal columns and TWO equal rows, ten whole body figures separated by transparent gutters. Columns: FRONT, front three-quarter facing screen RIGHT, RIGHT PROFILE, rear three-quarter, BACK. Top row hands clasped in front of waist. Bottom row same five directions with one hand checking his earpiece. Consistent scale, character and feet baseline per row. No cropped heads or shoes, no weapons, no text, no ground shadows. Crisp pixel clusters, muted charcoal, brass, burgundy, warm skin palette.",
+      "source": "C:\\Users\\trip1\\.codex\\generated_images\\01a0e4ae-0b25-7112-b529-5bafccec98ff\\exec-1a8dcf40-271c-44d0-b445-745ce311b69a.png"
+    },
+    {
+      "name": "party-floor",
+      "path": "res/materials/party-floor.png",
+      "prompt": "Seamlessly tileable square floor material texture for a secret Private Party salon in a grand Victorian casino manor. Top-down orthographic flat material only, edge-to-edge repeating black and warm ivory marble geometric octagonal mosaic with narrow antique brass inlay and deep oxblood accents. Understated rich luxury and ominous conspiracy, Blood / Ion Fury high-detail pixel-art game texture, crisp pixel clusters, aged stone, restrained warm highlights, no perspective, no objects, no text, no outer border, evenly lit for game lighting.",
+      "source": "C:\\Users\\trip1\\.codex\\generated_images\\01a0e4ae-0b25-7112-b529-5bafccec98ff\\exec-bda8f30b-a95b-44f9-874b-7433a3872e89.png"
+    },
+    {
+      "name": "party-wall",
+      "path": "res/materials/party-wall.png",
+      "prompt": "Production seamlessly horizontally repeating wall texture, front orthographic elevation only, for a secret Private Party room in a grand Victorian casino manor. Full rectangle edge to edge; upper two thirds deep aubergine burgundy damask silk with subtle antique gold heraldic repeating motifs, lower third dark polished mahogany wainscot with restrained brass trim, no windows or doors. Blood / Ion Fury inspired high-detail pixel-art texture, crisp pixel clusters, opulent sinister conspiracy atmosphere. Even flat lighting for game shading, no cast shadows, no text, no perspective, no surrounding frame. Seamless left and right edges.",
+      "source": "C:\\Users\\trip1\\.codex\\generated_images\\01a0e4ae-0b25-7112-b529-5bafccec98ff\\exec-f3037c6d-55f3-4391-b6bd-30b5399c39c0.png"
+    },
+    {
+      "name": "party-ceiling",
+      "path": "res/materials/party-ceiling.png",
+      "prompt": "Production square seamless ceiling texture for a secret Private Party salon in a grand aristocratic casino manor. Orthographic straight-up flat surface only. Repeating ornate dark mahogany square coffer, antique brass geometric trim, central modest gold rosette inset into deep plum panel, ivory plaster fine detail. Blood and Ion Fury inspired high-detail pixel-art game material, crisp pixel clusters and restrained palette, sinister opulent atmosphere. Even lighting, seamless edges, no perspective, no chandelier, no text, no exterior frame.",
+      "source": "C:\\Users\\trip1\\.codex\\generated_images\\01a0e4ae-0b25-7112-b529-5bafccec98ff\\exec-fbc00118-c2a8-486f-85d1-426a7d605a70.png"
+    },
+    {
+      "name": "party_chair",
+      "path": "res/sprites/party_chair.png",
+      "prompt": "Production furniture sprite sheet for Crown and Card, a grand sinister Victorian casino manor in Blood / Ion Fury detailed pixel-art style. One EMPTY ornate mahogany dining chair, burgundy velvet upholstery, brass carved crest and subtle gilded legs. Transparent background. EXACTLY FIVE equal width columns in ONE row, same chair shown FRONT, FRONT THREE QUARTER facing screen RIGHT, RIGHT SIDE, REAR THREE QUARTER, BACK. Upright high-backed dining chair for guests at a table. All five complete chair silhouettes centered with wide transparent gutters, consistent scale and bottom baseline, no people, no objects on seat, no shadows on floor, no text, no labels. Crisp pixel clusters, no blur, aged brass highlights.",
+      "source": "C:\\Users\\trip1\\.codex\\generated_images\\01a0e4ae-0b25-7112-b529-5bafccec98ff\\exec-c12eb7b1-b0a4-49b9-9a32-9549ee7192ee.png"
+    }
+  ]
+}
