@@ -1,4 +1,4 @@
-# CrownAndCard
+# Crown & Card
 
 A first-person, HD pixel-art game night inside a secret society's manor, written in Haxe with Heaps. See [GAME_DESIGN.md](GAME_DESIGN.md) for the full design.
 
