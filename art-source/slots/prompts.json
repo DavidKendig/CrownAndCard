@@ -1,0 +1,17 @@
+{
+  "mode": "built-in image generation",
+  "assets": [
+    {
+      "file": "res/slots/cabinet.png",
+      "prompt": "Use case: stylized-concept. PNG game artwork for Crown & Card, Victorian gothic manor casino, detailed 1990s Build-engine / Ion Fury pixel art with crisp pixel clusters, polished dark mahogany, ornate antique brass, midnight navy and burgundy. Front orthographic elevation of one elegant antique mechanical slot-machine cabinet. Square canvas, entire cabinet centered with transparent exterior background and generous 5% gutters. Broad rectangular cabinet body, arched brass crown ornament at top, engraved scrollwork, burgundy enamel trim, polished mahogany sides, coin slot and payout tray near bottom. One large empty flat dark rectangular recess across middle from 18% to 82% canvas width and 35% to 61% canvas height, for three animated reels to be drawn by game. Leave this recess blank, no reel symbols. No lever or handle (separate moving mechanism supplied by game). Small empty brass plaque below recess, no lettering or numbers anywhere. Soft warm highlights, deeply shaded recesses, clean silhouette, transparent outside the cabinet only."
+    },
+    {
+      "file": "res/slots/symbols.png",
+      "prompt": "Use case: stylized-concept. PNG game artwork for Crown & Card, Victorian gothic manor casino, detailed 1990s Build-engine / Ion Fury pixel art with crisp pixel clusters, polished dark mahogany, ornate antique brass, midnight navy and burgundy. A square transparent sprite atlas with exactly NINE isolated slot machine symbols arranged in a precise equal 3 by 3 grid. Each symbol centered in its own square cell, equal generous gutters, no overlap or cell borders. Row 1: ornate gold crown, red numeral 7, golden bell. Row 2: black enamel brass-edged plaque with exact text BAR, black club card suit, ruby red diamond card suit. Row 3: ruby red heart card suit, black spade card suit, pair of bright red cherries with green leaves. Polished enamel and antique gold edging, readable bold silhouettes at 32 pixels. All empty space genuinely transparent. No extra symbols, background scenery, labels, shadows outside silhouettes, or decorative grid."
+    },
+    {
+      "file": "res/slots/lever-grip.png",
+      "prompt": "Use case: stylized-concept. PNG game artwork for Crown & Card, Victorian gothic manor casino, detailed 1990s Build-engine / Ion Fury pixel art with crisp pixel clusters, polished dark mahogany, ornate antique brass, midnight navy and burgundy. A single round burgundy enamel ball grip for an antique slot machine lever. Perfect spherical knob, centered square canvas, occupies 80 percent with clear transparent gutters. Rich ruby burgundy polished enamel, warm small ivory specular shine at upper left, dark maroon lower right, subtle antique brass collar visible at the bottom of sphere. No rod or shaft, no ground, no cast shadow, no other objects, no text. Entire background genuinely transparent. Readable as a small 24 pixel game sprite."
+    }
+  ]
+}

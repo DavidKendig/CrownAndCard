@@ -7,8 +7,9 @@ import render.Palette;
 
 /** The 3D art that goes with each fixture (see Fixtures for their collision), placed at its anchor. */
 class FixtureArt {
-	public static function build(level:Level, palette:Palette, lut:h3d.mat.Texture, parent:h3d.scene.Object):{shaders:Array<BuildShader>, water:Array<BuildShader>} {
+	public static function build(level:Level, palette:Palette, lut:h3d.mat.Texture, parent:h3d.scene.Object):{shaders:Array<BuildShader>, water:Array<BuildShader>, animations:Array<Float->Void>} {
 		var shaders:Array<BuildShader> = [], water:Array<BuildShader> = [];
+		var animations:Array<Float->Void>=[];
 		for (f in level.data.fixtures) switch f.type {
 			case "frontDoors":
 				shaders.push(FoyerArt.panel("foyer/grand-doors.png", 256, 384, f.x - 2.6, f.x + 2.6, f.y + .025, 0, 6.8, true, palette, lut, parent));
@@ -21,10 +22,11 @@ class FixtureArt {
 				var built = Fountain.build(palette, lut, parent, f.x, f.y);
 				shaders = shaders.concat(built.shaders);
 				water = water.concat(built.water);
+				animations.push(built.animate);
 			case "cardTable":
 				shaders = shaders.concat(BlackjackTable.build(palette, lut, parent, f.x, f.y));
 			default:
 		}
-		return {shaders: shaders, water: water};
+		return {shaders: shaders, water: water, animations:animations};
 	}
 }

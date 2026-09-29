@@ -2,9 +2,32 @@
 
 SPDX-License-Identifier: CC-BY-NC-SA-4.0
 
-Generated with the built-in image_gen tool. `FoyerArt.surface` samples PNGs into the game's indexed palette using nearest-neighbor filtering. Walls use a 3 m horizontal repeat, floor tiles a 1 m repeat. Upper wallpaper samples the fabric portion of the wall master. Ivory marble is used on stairs, columns, counter and the fountain's actual 3D bowls. Blackjack art is mapped once across the tabletop, with dealer at the north edge. The world table displays example cards; seated blackjack is playable, and the other seated games use the surfaces in `res/tabletops/`.
+Generated with the built-in image_gen tool. `FoyerArt.surface` samples PNGs into the game's indexed palette using nearest-neighbor filtering. Walls use a 3 m horizontal repeat, floor tiles a 1 m repeat. Upper wallpaper samples the fabric portion of the wall master. The original ivory marble remains on stairs and counters; the fountain and pillar shafts use their dedicated materials below. Blackjack art is mapped once across the tabletop, with dealer at the north edge. The world table displays example cards; seated blackjack is playable, and the other seated games use the surfaces in `res/tabletops/`.
 
-## Exact prompts
+## Fountain and pillar materials
+
+New original PNGs generated with the built-in image_gen tool; exact prompts are saved in [`art-source/foyer-materials/prompts.json`](../../art-source/foyer-materials/prompts.json).
+
+- `fountain-marble.png`: warm ivory marble with branching smoky veins, mapped over the 3D bowls, pedestal and submerged basin beds.
+- `pillar-marble.png`: long grey and gold mineral veins, used by `pillarMarble` on all eight entrance-hall pillar shafts. A stretched vertical texture repeat preserves the long vein structure; other ivory details retain their original material.
+- `fountain-water.png`: blue-teal ripple and caustic artwork for translucent pool surfaces and falling water.
+
+All three are sampled at 256×256 into the master palette at runtime. Pool UVs are planar; bowl UVs follow profile distance to avoid the old pinching. Water includes small surface displacement, local impact ripples and foam, view-dependent opacity, accelerating six-sided streams that narrow with speed, and batched ballistic splash droplets. Motion uses analytic gravity (9.81 m/s²), not a full fluid solver; it does not affect gameplay collision or random outcomes. Development views: `?foyerView=fountain` and `?foyerView=pillars`.
+
+## Stair, ceiling and courtyard materials
+
+Generated with the built-in image_gen tool. Exact prompts and the stair revision are in [`art-source/estate-materials/prompts.json`](../../art-source/estate-materials/prompts.json).
+
+- `stair-marble.png`: pale ivory marble with restrained grey veins, applied to the grand staircase's treads, risers and landing as `stairMarble`.
+- `ceiling-coffer.png`: carved mahogany coffer with brass inlay and an ivory rosette, replacing the procedural `coffer` ceiling.
+- `courtyard-slate.png`: wet blue-grey flagstones for the exterior paths.
+- `courtyard-gravel.png`: rain-dark gravel for the courtyard ground.
+- `courtyard-hedge.png`: dense clipped foliage for the hedge surfaces.
+- `courtyard-iron.png`: weathered blackened iron for fence bars, rails and posts.
+
+Materials are sampled at 256×256 through the existing palette renderer. Surface imports intentionally ignore source alpha; the tree sprites preserve it. Courtyard materials remain on solid 3D geometry and respond to lightning. The two tall tree sprites are documented in `../sprites/README.md`. Development inspection views: `?foyerView=stairs`, `?foyerView=ceiling`, and `?foyerView=courtyard`.
+
+## Original material prompts
 
 ### manor-wall.png
 

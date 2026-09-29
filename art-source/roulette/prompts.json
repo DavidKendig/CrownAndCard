@@ -1,0 +1,17 @@
+{
+  "mode": "built-in image generation",
+  "assets": [
+    {
+      "file": "res/roulette/roulette-bowl.png",
+      "prompt": "Use case: stylized-concept. PNG game sprite for Crown & Card, Victorian gothic manor casino in detailed 1990s Build-engine / Ion Fury pixel art. Crisp deliberate pixel clusters, mahogany, antique brass, burgundy, ivory, dark navy, restrained highlights. Perfectly circular roulette wheel stationary outer bowl viewed EXACTLY top-down orthographic, centered square canvas. Outer circle diameter 94% of canvas. Rich polished mahogany concentric carved rim with thin ornate brass inlay. Smooth dark recessed circular ball track at radius 79% of outer radius. Interior continuous dark polished mahogany bowl to center, no pockets no numbers no ball no spindle, as these will be separately rendered. True circular symmetry, no perspective ellipse. Entire circle fully visible, transparent background only outside the outer circular silhouette, no text."
+    },
+    {
+      "file": "res/roulette/roulette-rotor.png",
+      "prompt": "Use case: stylized-concept. PNG game sprite for Crown & Card, Victorian gothic manor casino in detailed 1990s Build-engine / Ion Fury pixel art. Crisp deliberate pixel clusters, mahogany, antique brass, burgundy, ivory, dark navy, restrained highlights. One perfectly circular roulette rotor CENTER HUB sprite only, EXACTLY top-down orthographic, centered square canvas. Polished mahogany disc with four slender antique brass spokes in a cross and elegant central brass spindle seen from directly above, intricate carved concentric rings. Disc occupies 94% of canvas. No numbered ring, no pockets, no ball, no outer wheel bowl, no letters. Transparent outside circular silhouette. Flat soft neutral lighting, readable at 120 pixels."
+    },
+    {
+      "file": "res/roulette/roulette-ball.png",
+      "prompt": "Use case: stylized-concept. PNG game sprite for Crown & Card, Victorian gothic manor casino in detailed 1990s Build-engine / Ion Fury pixel art. Crisp deliberate pixel clusters, mahogany, antique brass, burgundy, ivory, dark navy, restrained highlights. A SINGLE tiny polished ivory roulette ball sprite, perfectly round sphere shown top-down, centered in square canvas with generous transparent gutter, circle occupies 75% of canvas. Cream ivory with bright warm pinpoint specular highlight at upper left, soft gray shaded lower-right edge, subtle reflected brass tint. No ground, no cast shadow, no other objects, no text. Genuine transparent background. Clearly readable at 8 to 12 game pixels."
+    }
+  ]
+}

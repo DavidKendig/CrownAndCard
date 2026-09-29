@@ -31,6 +31,9 @@ class Level {
 		map = new GridMap(data.rows, sectors);
 		for (p in data.props) map.props.push(Reflect.copy(p));
 		for (f in data.fixtures) Fixtures.furnish(map, f.type, f.x, f.y);
+		Conservatory.furnish(map);
+		for (f in data.fixtures) if (f.type == "frontDoors")
+			for (w in FoyerWindows.layout(map, f.x, f.y)) map.windows.push(w);
 	}
 
 	public function has(type:String):Bool {

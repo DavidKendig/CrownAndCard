@@ -10,6 +10,7 @@ private enum Mode {
 	PickSide;
 	NumberPick;
 	PickAmount;
+	Spinning;
 }
 
 /**
@@ -37,6 +38,10 @@ class RouletteTableUI extends h2d.Object {
 	public var status(get, never):String;
 
 	final game:Roulette;
+	final wheel:RouletteWheel;
+	var resultMessage="";
+	var spinStake=0;
+	var shownPurse=0;
 	final wallet:core.Wallet;
 	final felt:h2d.Graphics;
 	final gridLayer:h2d.Object;
@@ -66,11 +71,12 @@ class RouletteTableUI extends h2d.Object {
 	var message = "Place your bets, then spin.";
 	var spinsPlayed = 0;
 
-	public function new(parent:h2d.Object, wallet:core.Wallet, rng:rng.IRng) {
+	public function new(parent:h2d.Object, wallet:core.Wallet, rng:rng.IRng, palette:render.Palette) {
 		super(parent);
 		this.wallet = wallet;
 		game = new Roulette(rng, wallet.sovereigns);
 		felt = new h2d.Graphics(this);
+		wheel = new RouletteWheel(this,palette);
 		gridLayer = new h2d.Object(this);
 		gridGraphics = new h2d.Graphics(gridLayer);
 		gridLabels = [for (n in 0...37) TableKit.text(gridLayer, 0xFFFFFF)];
@@ -111,31 +117,39 @@ class RouletteTableUI extends h2d.Object {
 	public function update(w:Int, dt:Float, input:MenuInput):Void {
 		var cx = w / 2;
 		drawFelt(w);
+		wheel.visible=mode==Menu || mode==Spinning || mode==PickAmount;
+		wheel.x=mode==Spinning?cx:cx+128;wheel.y=mode==Spinning?178:184;
+		wheel.update(dt);
+		if(mode==Spinning && !wheel.motion.active) {mode=Menu;message=resultMessage;}
 		gridLayer.visible = mode == NumberPick;
 		drawResult(w);
 
-		purseText.text = 'Purse ${available()} Sov' + (wallet.marker > 0 ? '   Marker ${wallet.marker}' : '');
+		purseText.text = 'Purse ${mode==Spinning?shownPurse:available()} Sov' + (wallet.marker > 0 ? '   Marker ${wallet.marker}' : '');
 		purseText.x = 6;
 		purseText.y = 3;
 
+		messageText.visible = mode != PickSide;
 		messageText.text = mode == PickAmount ? amountLine() : message;
 		messageText.maxWidth = Math.min(w - 90, 380);
 		messageText.textAlign = Center;
 		messageText.x = Math.round(cx - messageText.maxWidth / 2);
 		messageText.y = 20;
 
-		betsText.visible = mode == Menu || mode == PickAmount;
-		betsText.text = betsSummary();
+		betsText.visible = mode == Menu || mode == PickAmount || mode==Spinning;
+		betsText.text = mode==Spinning?'${spinStake} Sov on the layout. No more bets.':betsSummary();
 		betsText.maxWidth = Math.min(w - 24, 460);
 		betsText.textAlign = Center;
 		betsText.x = Math.round(cx - betsText.maxWidth / 2);
 		betsText.y = 316;
 
 		switch mode {
-			case Menu: updateMenu(cx, input);
+			case Menu: updateMenu(cx-130, input);
 			case PickSide: updatePickSide(cx, input);
 			case NumberPick: updateNumberPick(cx, input);
-			case PickAmount: updatePickAmount(cx, input);
+			case PickAmount: updatePickAmount(cx-130, input);
+			case Spinning:
+				choices.visible=false;amountChoices.visible=false;
+				hints.show([{glyph:null,label:"Ball in motion"}],cx,340);
 		}
 		wallet.sovereigns = game.purse;
 	}
@@ -155,7 +169,7 @@ class RouletteTableUI extends h2d.Object {
 		amountChoices.visible = false;
 		menuOptions = ["Straight number", "Outside bet", "Spin the wheel", "Clear bets", "Leave table"];
 		choices.set(menuOptions);
-		choices.layout(cx, 44, 170);
+		choices.layout(cx, 88, 170);
 		choices.handle(input);
 		hints.show([{glyph: Confirm, label: "Choose"}, {glyph: Back, label: "Leave table"}], cx, 340);
 		if (input.back) leave();
@@ -211,7 +225,7 @@ class RouletteTableUI extends h2d.Object {
 		switch mode {
 			case Menu: chooseMenu(menuOptions[i]);
 			case PickSide: chooseOutside(OUTSIDE[i]);
-			case NumberPick, PickAmount:
+			case NumberPick, PickAmount, Spinning:
 		}
 	}
 
@@ -287,17 +301,22 @@ class RouletteTableUI extends h2d.Object {
 	}
 
 	function doSpin():Void {
+		if(mode==Spinning) return;
 		if (pendingBets.length == 0) {
 			message = "Place a bet before you spin.";
 			return;
 		}
 		var staked = totalPending();
+		spinStake=staked;shownPurse=game.purse-staked;
 		lastResult = game.spin(pendingBets);
 		pendingBets = [];
 		spinsPlayed++;
 		var net = lastResult.payout - staked;
 		var color = lastResult.pocket == 0 ? "" : Roulette.isRed(lastResult.pocket) ? " red" : " black";
-		message = 'The ball falls in ${lastResult.pocket}$color. ' + (net > 0 ? 'You win $net.' : net < 0 ? 'You lose ${-net}.' : "Push.");
+		resultMessage = 'The ball falls in ${lastResult.pocket}$color. ' + (net > 0 ? 'You win $net.' : net < 0 ? 'You lose ${-net}.' : "Push.");
+		wheel.motion.start(lastResult.pocket);
+		mode=Spinning;message="No more bets. The ball is running.";
+		choices.visible=false;amountChoices.visible=false;
 	}
 
 	function leave():Void {
@@ -349,7 +368,7 @@ class RouletteTableUI extends h2d.Object {
 	function drawResult(w:Int):Void {
 		resultGfx.clear();
 		resultLabel.visible = false;
-		if (lastResult == null) return;
+		if (lastResult == null || mode==Spinning) return;
 		var n = lastResult.pocket;
 		var color = n == 0 ? 0x0B5D2E : Roulette.isRed(n) ? 0x8C2A2A : 0x1A1A1A;
 		var size = 30.0, x = w - size - 10, y = 4.0;

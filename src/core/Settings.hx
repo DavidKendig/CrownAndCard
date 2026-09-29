@@ -38,8 +38,7 @@ class Settings {
 	public var lookStyle:LookStyle = Shear;
 	public var showFps = true;
 
-	// Audio: there is no audio system yet. Values are kept and reported so the
-	// pass-through can be checked end to end, and will drive the mixer later.
+	// Weather ambience uses Master and Effects; other categories are reserved.
 	public var masterVolume = 80;
 	public var musicVolume = 70;
 	public var effectsVolume = 80;

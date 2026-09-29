@@ -38,6 +38,7 @@ class PlayerController {
 
 	public var x:Float;
 	public var y:Float;
+	public var feetZ:Float=0;
 
 	/** Radians, 0 = +X (east), counter-clockwise. **/
 	public var yaw:Float;
@@ -63,6 +64,7 @@ class PlayerController {
 		this.x = x;
 		this.y = y;
 		this.yaw = yaw;
+		feetZ=map.floorAt(x,y);
 	}
 
 	public function look(dx:Float, dy:Float):Void {
@@ -117,14 +119,15 @@ class PlayerController {
 		var mx = (Math.cos(yaw) * fwd + Math.sin(yaw) * side) * step;
 		var my = (Math.sin(yaw) * fwd - Math.cos(yaw) * side) * step;
 		// Slides along walls, and can always step out of a wall it started inside.
-		var moved = map.slide(x, y, mx, my, RADIUS);
+		var moved = map.slide(x, y, mx, my, RADIUS,feetZ);
 		x = moved.x;
 		y = moved.y;
+		feetZ=moved.z;
 		bobPhase += speed * dt * 3.0;
 	}
 
 	public function applyTo(camera:h3d.Camera):Void {
-		var z = map.floorAt(x, y) + EYE_HEIGHT + Math.abs(Math.sin(bobPhase)) * 0.035 * bobAmount;
+		var z = feetZ + EYE_HEIGHT + Math.abs(Math.sin(bobPhase)) * 0.035 * bobAmount;
 		camera.pos.set(x, y, z);
 		camera.up.set(0, 0, 1);
 		if (perspectiveLook) {

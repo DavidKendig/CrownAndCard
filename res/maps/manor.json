@@ -95,9 +95,9 @@
 			"floorZ": 0,
 			"ceilZ": 7,
 			"floorTex": "marble",
-			"ceilTex": "dome",
-			"wallTex": "ivory",
-			"upperTex": "decoUpper",
+			"ceilTex": "glass",
+			"wallTex": "glass",
+			"upperTex": "glass",
 			"shade": 4
 		}
 	],

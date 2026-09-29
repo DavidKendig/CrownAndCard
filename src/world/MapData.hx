@@ -95,7 +95,7 @@ class MapData {
 	/** Wall and surface textures the renderer provides. **/
 	public static final TEXTURES = [
 		"marble", "parquet", "carpet", "coffer", "dome", "damask", "damaskUpper", "deco", "decoUpper", "green", "greenUpper", "felt",
-		"tableWood", "stone", "ivory", "brass", "velvet", "flame"
+		"tableWood", "stone", "ivory", "pillarMarble", "stairMarble", "brass", "velvet", "flame", "glass", "banisterWood", "ropeBraid", "grateMetal", "planterCeramic", "soil"
 	];
 
 	/** Character sheets a guest can use (art.SpriteArt.CHARACTERS). **/

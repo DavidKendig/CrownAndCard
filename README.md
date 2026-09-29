@@ -52,6 +52,13 @@ Walk into the Card Room, step up to the card table and face it. The prompt shows
 | Solitaire (Klondike) | Solo | None | [Bicycle Cards: Solitaire](https://bicyclecards.com/how-to-play/solitaire) |
 | Classic Mahjong | You and 3 NPCs | Points (one East round) | [Pagat: Mah Jong](https://www.pagat.com/rummy/mahjong.html). Hong Kong-style play with flowers; the faan table is a house table (GAME_DESIGN.md §6.4) |
 | Riichi Mahjong | You and 3 NPCs | Points (25,000 start, one East round) | [World Riichi Championship rules](https://www.worldriichi.org/wrc-rules), the rules authority for Riichi |
+| Euchre | You and a partner vs 2 NPCs | Points (game to 10) | [Pagat: Euchre](https://www.pagat.com/euchre/euchre.html) |
+| Hearts | You and 3 NPCs | Points (game ends at 100, low score wins) | [Pagat: Hearts](https://www.pagat.com/reverse/hearts.html) |
+| Gin Rummy | You vs 1 NPC | Points (game to 100) | [Pagat: Gin Rummy](https://www.pagat.com/rummy/ginrummy.html) |
+| Canasta | You and a partner vs 1 NPC | Points | [Pagat: Canasta](https://www.pagat.com/rummy/canasta.html). Simplified: no jokers (the card model can't represent them), no red/black threes or freeze pile; house rules are in [GAME_DESIGN.md §6.4](GAME_DESIGN.md) |
+| Bridge | You and a partner vs 2 NPCs | Points (game to 700) | [Pagat: Bridge](https://www.pagat.com/auctionwhist/bridge.html). Simplified: no doubling, redoubling, conventions or vulnerability; house rules are in [GAME_DESIGN.md §6.4](GAME_DESIGN.md) |
+| Egyptian Rat Screw | You and 3 NPCs | Every card | [Bicycle Cards: Egyptian Rat Screw](https://bicyclecards.com/how-to-play/egyptian-rat-screw) |
+| Durak | You vs 1 NPC | Last one holding cards loses | [Pagat: Durak](https://www.pagat.com/beating/durak.html) |
 
 Poker (the Poker Tournament Directors Association, for tournaments) and Riichi Mahjong (the World Riichi Championship) have recognized rules authorities. For the other games, the links point to the standard published rules from the US Playing Card Company (Bicycle) or to [Pagat](https://www.pagat.com/), the reference card-game rules site. Where those rules leave something open, the game's house rule is written in the rules engine (`src/games/`) and in GAME_DESIGN.md §6.4.
 
@@ -67,6 +74,13 @@ Poker (the Poker Tournament Directors Association, for tournaments) and Riichi M
 - **Spades:** left/right picks a card (only legal cards light up) or sets your bid.
 - **Go Fish:** left/right picks the rank to ask for, up/down picks the player.
 - **Solitaire:** move the cursor with left/right, and up/down to switch rows or reach deeper into a pile. E picks cards up and puts them down.
+- **Euchre:** order it up, pass, or name trump from the menu; discard and play a card with left/right and E.
+- **Hearts:** select three cards to pass (E toggles a card, Space commits your three), then play with left/right and E.
+- **Gin Rummy:** draw from the stock or the discard, then play (or knock) a card with left/right and E.
+- **Canasta:** menu-driven: draw, meld a rank, lay off, or discard, all chosen from the menu.
+- **Bridge:** bid a level then a strain from the menu, or pass; play your hand (and the dummy's, once it's revealed) with left/right and E.
+- **Egyptian Rat Screw:** E turns over your top card; Space slaps the pile for doubles, sandwiches, top-bottom or a marriage.
+- **Durak:** attack or defend with left/right and E; take the table with the second action when you can't beat it.
 - **Saving:** the purse is saved when you check in with Mr. Quill.
 
 ## Haxen: the map editor

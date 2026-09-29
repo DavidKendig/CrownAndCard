@@ -57,6 +57,9 @@ class Main extends hxd.App {
 	var visited:Array<String> = [];
 	var doorArmed = true;
 	var fountainWater:Array<BuildShader> = [];
+	var fountainAnimations:Array<Float->Void> = [];
+	var waterTime=0.0;
+	var storm:world.FoyerStorm;
 	#if devtools
 	var showDebug = false;
 	#end
@@ -99,7 +102,7 @@ class Main extends hxd.App {
 			"marble" => FoyerArt.surface("materials/manor-floor.png",palette,128,128).toIndexTexture(false,true),
 			"parquet" => ProcArt.parquet().toIndexTexture(false, true),
 			"carpet" => ProcArt.carpet().toIndexTexture(false, true),
-			"coffer" => ProcArt.ceilingCoffer().toIndexTexture(false, true),
+			"coffer" => FoyerArt.surface("materials/ceiling-coffer.png",palette,256,256).toIndexTexture(false,true),
 			"dome" => ProcArt.ceilingDome().toIndexTexture(false, true),
 			"damask" => FoyerArt.surface("materials/manor-wall.png",palette,128,192).toIndexTexture(false,true),
 			"damaskUpper" => FoyerArt.surface("materials/manor-wall.png",palette,128,128,.06,.59).toIndexTexture(false,true),
@@ -111,6 +114,14 @@ class Main extends hxd.App {
 			"tableWood" => ProcArt.tableWood().toIndexTexture(false, true),
 			"stone" => FoyerArt.surface("materials/ivory-marble.png",palette,128,128).toIndexTexture(false,true),
 			"ivory" => FoyerArt.surface("materials/ivory-marble.png",palette,128,128).toIndexTexture(false,true),
+			"pillarMarble" => FoyerArt.surface("materials/pillar-marble.png",palette,256,256).toIndexTexture(false,true),
+			"stairMarble" => FoyerArt.surface("materials/stair-marble.png",palette,256,256).toIndexTexture(false,true),
+			"banisterWood" => FoyerArt.surface("materials/banister-wood.png",palette,256,256).toIndexTexture(false,true),
+			"ropeBraid" => FoyerArt.surface("materials/braided-rope.png",palette,256,256).toIndexTexture(false,true),
+			"grateMetal" => FoyerArt.surface("materials/grate-steel.png",palette,256,256).toIndexTexture(false,true),
+			"planterCeramic" => FoyerArt.surface("materials/planter-ceramic.png",palette,256,256).toIndexTexture(false,true),
+			"glass" => FoyerArt.material(Palette.NAVY,9).toIndexTexture(false,true),
+			"soil" => FoyerArt.material(Palette.NIGHT,3).toIndexTexture(false,true),
 			"brass" => FoyerArt.material(Palette.GOLD,10).toIndexTexture(false,true),
 			"velvet" => FoyerArt.material(Palette.RED,6).toIndexTexture(false,true),
 			"flame" => FoyerArt.material(Palette.IVORY,15).toIndexTexture(false,true),
@@ -119,6 +130,14 @@ class Main extends hxd.App {
 		var fixtureArt = world.FixtureArt.build(level, palette, shadeLut, s3d);
 		shaders = shaders.concat(fixtureArt.shaders);
 		fountainWater = fixtureArt.water;
+		fountainAnimations = fixtureArt.animations;
+
+		var plantTextures=[for(name in ["palm","fern"])
+			FoyerArt.surface("sprites/conservatory-"+name+".png",palette,192,name=="palm"?288:192,0,1,true).toIndexTexture(true,false)];
+		for(p in map.plants) {
+			var plant=new BuildSprite(plantTextures[p.palm?0:1],shadeLut,1,p.palm?2.4:1.65,p.palm?3.6:1.65,s3d);
+			plant.setPosition(p.x,p.y,p.z); sprites.push(plant);
+		}
 
 		// Cache by character identity; keep authored colors (no implicit brown swap).
 		var characterSheets = [for (name in SpriteArt.CHARACTERS) name => SpriteArt.characterSheet(name, palette)];
@@ -150,6 +169,10 @@ class Main extends hxd.App {
 
 		for (s in sprites)
 			shaders.push(s.shader);
+		if(map.windows.length>0) {
+			storm=new world.FoyerStorm(map,textures,shadeLut,s3d,shaders,settings,palette);
+			for(sh in storm.frames) shaders.push(sh);
+		}
 		for (sh in shaders) {
 			sh.visibility = VISIBILITY;
 			sh.setLights(data.lights);
@@ -168,13 +191,22 @@ class Main extends hxd.App {
 		#if devtools
 		// Named inspection views for repeatable visual checks; absent in release builds.
 		switch(options.get("foyerView")) {
+			case "conservatory": player.x=34; player.y=8; player.yaw=.8; player.pitch=.15;
+			case "gallery": player.x=34; player.y=17; player.yaw=-Math.PI/2; player.pitch=-.3;
+			case "glassroof": player.x=36; player.y=10; player.yaw=.3; player.pitch=1.1;
 			case "doors": player.x=13; player.y=2.1; player.yaw=-Math.PI/2;
+			case "windows": player.x=13; player.y=9; player.yaw=-Math.PI/2; player.pitch=.2;
+			case "fountain": player.x=10; player.y=7.9; player.yaw=.80; player.pitch=-.10;
+			case "pillars": player.x=7; player.y=6; player.yaw=2.5; player.pitch=.35;
+			case "ceiling": player.x=9; player.y=10; player.yaw=.4; player.pitch=.95;
+			case "courtyard": player.x=9; player.y=2.6; player.yaw=-Math.PI/2; player.pitch=.1;
 			case "stairs": player.x=13; player.y=13.25; player.yaw=Math.PI/2;
 			case "aisle": player.x=7.5; player.y=11.5; player.yaw=.35;
 			case "rotunda": player.x=13; player.y=24; player.yaw=Math.PI/2;
 			case "blackjack": player.x=13; player.y=34.8; player.yaw=Math.PI/2; player.pitch=-.38;
 			default:
 		}
+		player.feetZ=map.floorAt(player.x,player.y);
 		#end
 
 		#if hl
@@ -231,6 +263,7 @@ class Main extends hxd.App {
 			teleport: (x:Float, y:Float, yawDeg:Float, pitchDeg:Float) -> {
 				player.x = x;
 				player.y = y;
+				player.feetZ = map.floorAt(x,y);
 				player.yaw = yawDeg * Math.PI / 180;
 				player.pitch = pitchDeg * Math.PI / 180;
 			},
@@ -319,6 +352,7 @@ class Main extends hxd.App {
 	}
 
 	function quitGame():Void {
+		if(storm!=null) storm.stop();
 		hxd.Window.getInstance().mouseMode=Absolute;
 		telemetry.event("quit","Left through the manor's front doors");
 		hands.visible=crosshair.visible=info.visible=false;
@@ -383,7 +417,15 @@ class Main extends hxd.App {
 				interact();
 		}
 		player.applyTo(s3d.camera);
-		if(!entrance.open) for(i in 0...fountainWater.length) fountainWater[i].uvOffset.set(i == 0 ? time * .035 : 0, -time * (i == 0 ? .04 : .65));
+		if(storm!=null) storm.update(dt,player.x,player.y);
+		if(!entrance.open) {
+			waterTime+=dt;
+			for(sh in fountainWater) {
+				sh.waterTime=waterTime;
+				if(sh.waterSurface) sh.uvOffset.set(waterTime*.012,-waterTime*.008);
+			}
+			for(animate in fountainAnimations) animate(waterTime);
+		}
 		if(!entrance.open) for (s in spinners)
 			s.facing = time * 0.7;
 		if(!entrance.open) for (walker in walkers) {

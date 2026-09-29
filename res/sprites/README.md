@@ -9,6 +9,15 @@ Crown & Card by David Kendig. Created with the built-in image_gen tool on 2026-0
 - `masked_guest.png`: five horizontal views (front, front three-quarter, right profile, back three-quarter, back). Used for male guests in its original navy colors. This is one shared crowd body, not individual final character designs or a walk animation.
 - `brass_chandelier.png`: transparent brass candle chandelier, used in the Rotunda.
 
+## Tall courtyard trees
+
+- [`tall-cedar.png`](tall-cedar.png): mature layered cedar, transparent around its silhouette and between branches.
+- [`tall-cypress.png`](tall-cypress.png): narrow irregular cypress with a visible trunk and root flare, transparent background.
+
+Generated with the built-in image_gen tool on 2026-09-28. Exact prompts are in [`art-source/estate-materials/prompts.json`](../../art-source/estate-materials/prompts.json). Source PNG alpha is preserved; `FoyerArt.surface` samples them at 256×512 with alpha testing, then uses the normal indexed palette and nearest filtering. `FoyerStorm` places 36 upright face sprites in three staggered rows, at 12–19 metres tall, replacing the old cone trees. They remain grounded, turn around the vertical axis toward the camera, have parallax between rows, and brighten during lightning. They are scenery outside the playable boundary.
+
+## Character sprites
+
 See [CAST.md](CAST.md) for the new player, female guest, male/female staff, first-person hands and their exact generation prompts. Press F2 in-game to inspect the cast; C cycles characters and R rotates them.
 
 `art.SpriteArt` trims each equal-width source cell, uses a common scale, centers and grounds each silhouette, samples with nearest-neighbor to 48x112 per guest / 96x72 per prop, and maps RGB to the master palette while reserving zero for transparency. Alpha below 128 is discarded. The original PNG alpha is preserved on disk. Textures use the existing eight-angle billboard, shade LUT and nearest filtering. PNGs are embedded by the web build; no separate resource server is required.

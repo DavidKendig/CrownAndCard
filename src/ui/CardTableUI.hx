@@ -61,6 +61,13 @@ class CardTableUI {
 		{name: "Solitaire", detail: "Klondike, turning one card at a time.\nBuild every suit from ace to king."},
 		{name: "Classic Mahjong", detail: "Hong Kong style with flowers and seasons.\nFaan scoring, one East round."},
 		{name: "Riichi Mahjong", detail: "Japanese riichi: yaku, dora, han and fu.\nWRC rules, one East round, 25,000 start."},
+		{name: "Euchre", detail: "You and the Colonel against the Vasquez\ntwins. Bowers are trump. First to 10."},
+		{name: "Hearts", detail: "Four hands. Avoid hearts and the queen\nof spades — or shoot the moon."},
+		{name: "Gin Rummy", detail: "Heads-up with the Colonel. Knock at 10\ndeadwood or less; gin scores a bonus."},
+		{name: "Canasta", detail: "Partners with the Colonel. Meld sevens\nof a kind; seven of one rank is a canasta."},
+		{name: "Bridge", detail: "You and the Colonel against the Vasquez\ntwins. Bid a contract, then make it."},
+		{name: "Egyptian Rat Screw", detail: "Four players. Slap doubles, sandwiches\nand marriages to take the pile."},
+		{name: "Durak", detail: "Heads-up with Sir Reggie. Attack and\ndefend; last one holding cards loses."},
 		{name: "Stand up", detail: "Step away from the table."},
 	];
 
@@ -114,7 +121,7 @@ class CardTableUI {
 				b.onLeave = show;
 				{view: b, sit: b.sit, update: b.update, status: () -> b.status};
 			case "Roulette":
-				var r = new RouletteTableUI(gameLayer, wallet, stream("outcome"));
+				var r = new RouletteTableUI(gameLayer, wallet, stream("outcome"), palette);
 				r.onLeave = show;
 				{view: r, sit: r.sit, update: r.update, status: () -> r.status};
 			case "Craps":
@@ -122,7 +129,7 @@ class CardTableUI {
 				c.onLeave = show;
 				{view: c, sit: c.sit, update: c.update, status: () -> c.status};
 			case "Slots":
-				var s = new SlotsTableUI(gameLayer, wallet, stream("outcome"));
+				var s = new SlotsTableUI(gameLayer, wallet, stream("outcome"), palette);
 				s.onLeave = show;
 				{view: s, sit: s.sit, update: s.update, status: () -> s.status};
 			case "Spades":
@@ -137,6 +144,28 @@ class CardTableUI {
 			case "Solitaire": screen(new SolitaireUI(gameLayer, faces, stream("shuffle")));
 			case "Classic Mahjong": screen(new MahjongUI(gameLayer, faces, tileFaces(), MahjongVariant.Classic, stream("shuffle")));
 			case "Riichi Mahjong": screen(new MahjongUI(gameLayer, faces, tileFaces(), MahjongVariant.Riichi, stream("shuffle")));
+			case "Euchre":
+				var e = new EuchreTableUI(gameLayer, faces, stream("shuffle"));
+				e.onLeave = show;
+				{view: e, sit: e.sit, update: e.update, status: () -> e.status};
+			case "Hearts":
+				var h = new HeartsTableUI(gameLayer, faces, stream("shuffle"));
+				h.onLeave = show;
+				{view: h, sit: h.sit, update: h.update, status: () -> h.status};
+			case "Gin Rummy": screen(new GinRummyUI(gameLayer, faces, stream("shuffle")));
+			case "Canasta":
+				var c = new CanastaTableUI(gameLayer, faces, stream("shuffle"));
+				c.onLeave = show;
+				{view: c, sit: c.sit, update: c.update, status: () -> c.status};
+			case "Bridge":
+				var b = new BridgeTableUI(gameLayer, faces, stream("shuffle"));
+				b.onLeave = show;
+				{view: b, sit: b.sit, update: b.update, status: () -> b.status};
+			case "Egyptian Rat Screw": screen(new EgyptianRatScrewUI(gameLayer, faces, stream("shuffle"), stream("ai")));
+			case "Durak":
+				var d = new DurakTableUI(gameLayer, faces, stream("shuffle"));
+				d.onLeave = show;
+				{view: d, sit: d.sit, update: d.update, status: () -> d.status};
 			default: null;
 		}
 		if (seat != null) seats.set(name, seat);
