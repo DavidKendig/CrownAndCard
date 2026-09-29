@@ -22,10 +22,13 @@ class SlotMachineArt extends h2d.Object {
 
 	public function new(parent:h2d.Object,palette:render.Palette) {
 		super(parent);
-		var tile=FoyerArt.surface("slots/cabinet.png",palette,250,250,0,1,true).toColorTile(palette);
+		var tile=FoyerArt.surfaceTile("slots/cabinet.png",palette,250,250,0,1,true);
 		var cabinet=new h2d.Bitmap(tile,this);cabinet.x=-125;
-		var sheet=FoyerArt.surface("slots/symbols.png",palette,168,168,0,1,true).toColorTile(palette);
-		tiles=[for(i in 0...9) sheet.sub(i%3*56,Std.int(i/3)*56,56,56)];
+		var sheet=FoyerArt.surfaceTile("slots/symbols.png",palette,168,168,0,1,true);
+		// The sheet is drawn at the render resolution: cut it in its own pixels, then size each symbol back to grid units.
+		// Cuts are fractions of the texture, so they stay right when the resolution changes.
+		var d=sheet.getTexture().width/168;
+		tiles=[for(i in 0...9) {var t=sheet.sub(i%3*56*d,Std.int(i/3)*56*d,56*d,56*d);t.scaleToSize(56,56);t;}];
 		for(i in 0...3) {
 			var mask=new h2d.Mask(44,48,this);mask.x=-70+i*48;mask.y=96;
 			var bg=new h2d.Graphics(mask);bg.beginFill(0xDDD4B8);bg.drawRect(0,0,44,48);bg.endFill();
@@ -34,7 +37,7 @@ class SlotMachineArt extends h2d.Object {
 			for(j in 0...7) {shade.beginFill(0x17131A,(7-j)*.045);shade.drawRect(0,j,44,1);shade.drawRect(0,47-j,44,1);shade.endFill();}
 		}
 		shaft=new h2d.Graphics(this);
-		var knob=FoyerArt.surface("slots/lever-grip.png",palette,28,28,0,1,true).toColorTile(palette);knob.dx=-14;knob.dy=-14;
+		var knob=FoyerArt.surfaceTile("slots/lever-grip.png",palette,28,28,0,1,true);knob.dx=-14;knob.dy=-14;
 		grip=new h2d.Bitmap(knob,this);
 		hit=new h2d.Interactive(115,185,this);hit.x=108;hit.y=40;hit.cursor=Button;
 		hit.onPush=e->{

@@ -1,0 +1,7 @@
+{
+  "tool": "Built-in image_gen",
+  "date": "2026-09-29",
+  "reference": "res/sprites/tall-cedar.png",
+  "output": "res/sprites/tall-cedar-alien.png",
+  "prompt": "Use case: precise-object-edit. Asset type: transparent PNG easter-egg tree sprite for a gothic pixel-art manor game. Edit the supplied cedar tree image. Preserve exactly the full tree, its shape, branches, dark teal foliage, bark, roots, scale, canvas framing and transparent background. Add just ONE classic grey alien HEAD cautiously peeking from behind the lower exposed trunk, on the viewer's right side, near the lower quarter of the image. A smooth pale grey oversized oval cranium, two glossy black almond-shaped eyes, tiny nose and small closed mouth, slightly tilted inquisitively toward the viewer. The trunk must occlude part of the head so it clearly peeks from BEHIND the tree. Head height roughly 7 percent of total tree height: noticeable on close inspection but an eerie hidden detail, not a giant face. No visible body, limbs, clothing, spaceship, glow, text or other additions. Match the source's detailed crisp pixel-art shading and subdued nighttime palette. Keep true transparent alpha everywhere outside the tree and alien silhouette. Do not crop or move the tree."
+}

@@ -4,6 +4,33 @@ import utest.Assert;
 
 /** The Entrance Hall's fixtures, placed where the manor has them. */
 class FoyerTest extends utest.Test {
+	function testOneSpecialTreeAndStableRandomFlips() {
+		var launch = [for (i in 0...CourtyardTrees.TOTAL) {texture:CourtyardTrees.textureName(i),flipped:CourtyardTrees.flipped(i)}];
+		var variants = new Map<String,Bool>(), locations = new Map<Int,Bool>();
+		var orientations = new Map<Int,Bool>();
+		for (seed in 1...101) {
+			var key = haxe.io.Bytes.alloc(32);
+			key.setInt32(0,seed);
+			var chosen = CourtyardTrees.choose(rng.ChaChaRng.fromSeed(key));
+			Assert.equals(72, chosen.length);
+			Assert.same(chosen, CourtyardTrees.choose(rng.ChaChaRng.fromSeed(key)));
+			var count = 0;
+			for (i in 0...chosen.length) {
+				var tree = chosen[i];
+				if (tree.texture == "tall-cedar-fbi") Assert.isFalse(tree.flipped);
+				orientations.set(tree.flipped ? 1 : 0,true);
+				if (CourtyardTrees.SPECIALS.indexOf(tree.texture) >= 0) {
+					count++; variants.set(tree.texture,true); locations.set(i,true);
+				} else Assert.equals(i % 2 == 0 ? "tall-cedar" : "tall-cypress", tree.texture);
+			}
+			Assert.equals(1, count);
+		}
+		Assert.equals(5,[for (_ in variants.keys()) 1].length);
+		Assert.isTrue([for (_ in locations.keys()) 1].length > 1);
+		Assert.equals(2,[for (_ in orientations.keys()) 1].length);
+		Assert.same(launch, [for (i in 0...CourtyardTrees.TOTAL) {texture:CourtyardTrees.textureName(i),flipped:CourtyardTrees.flipped(i)}]);
+		Assert.equals(1,[for (tree in launch) if (CourtyardTrees.SPECIALS.indexOf(tree.texture) >= 0) tree].length);
+	}
 	static final START = {x: 13.0, y: 4.0, yaw: Math.PI / 2};
 	function map():GridMap {
 		var s={name:"Foyer",floorZ:0.,ceilZ:8.,floorTex:"",ceilTex:"",wallTex:"",upperTex:"",shade:0.};

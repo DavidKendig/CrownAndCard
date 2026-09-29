@@ -33,9 +33,9 @@ class Fountain {
 				splash(spray,a,.79,1.85,i);
 			}
 		}
-		var stoneTex=art.FoyerArt.surface("materials/fountain-marble.png",palette,256,256).toIndexTexture(false,true);
+		var stoneTex=art.FoyerArt.texture(false,true,"materials/fountain-marble.png",palette,256,256);
 		var brassTex=art.FoyerArt.material(Palette.GOLD,9).toIndexTexture(false,true);
-		var waterTex=art.FoyerArt.surface("materials/fountain-water.png",palette,256,256).toIndexTexture(false,true);
+		var waterTex=art.FoyerArt.texture(false,true,"materials/fountain-water.png",palette,256,256);
 		var shaders:Array<BuildShader>=[], moving:Array<BuildShader>=[];
 		function mesh(b:MeshBuilder,tex:h3d.mat.Texture,opacity:Float=1):h3d.scene.Mesh {
 			var mat=h3d.mat.Material.create(); mat.mainPass.enableLights=false; mat.shadows=false; mat.mainPass.culling=None;

@@ -1,18 +1,22 @@
 @echo off
-rem Rebuilds everything the launcher runs after a git pull: the web game,
-rem Haxen and CrownAndCardLauncher.exe (close the launcher first).
+rem Rebuilds everything the launcher runs after a git pull: the native game,
+rem the web game, Haxen and CrownAndCardLauncher.exe (close the launcher first).
 rem   rebuild.bat          build, then wait for a key
 rem   rebuild.bat /nopause build and exit (for scripts)
 setlocal
 cd /d "%~dp0"
 
-echo [1/3] Game (web\game.js)
+echo [1/4] Game, native window (native\game.hl)
+call haxe build-hl.hxml || goto :failed
+if not exist native\hl.exe echo   HashLink isn't in native\ yet; run: powershell -File tools\fetch_hashlink.ps1
+
+echo [2/4] Game, web build (web\game.js)
 call haxe build-js.hxml || goto :failed
 
-echo [2/3] Haxen (web\haxen.js)
+echo [3/4] Haxen (web\haxen.js)
 call haxe haxen.hxml || goto :failed
 
-echo [3/3] Launcher (CrownAndCardLauncher.exe)
+echo [4/4] Launcher (CrownAndCardLauncher.exe)
 powershell -NoProfile -ExecutionPolicy Bypass -File launcher\build.ps1 || goto :failed
 
 echo.

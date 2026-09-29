@@ -17,6 +17,7 @@ namespace CrownAndCard.Launcher;
 	- Serves the web build of the game (and Haxen, the map editor) from `WebRoot`.
 	- Receives the game's state heartbeats and events at `api/state` and `api/event`.
 	- Keeps the Guest Register at `api/save`, and custom maps at `api/maps`.
+	- Takes the settings the player changes in the game menu at `api/settings`.
 	- Lets Haxen ask for a play test at `api/playtest?map=<name>`.
 	- Streams the controller to the game at `api/pad` (XInput works where the browser's gamepad support doesn't).
 	- Starts and ends multiplayer sessions for the game (`api/net/state`, `host`, `join`, `leave`) and
@@ -52,6 +53,9 @@ sealed class LocalServer : IDisposable
 		the game is starting, "busy" if a game is already running, or another reason.
 	**/
 	public Func<string, string?>? PlaytestRequested;
+
+	/** The game menu changed settings (`api/settings`): the JSON object, in the game's key names. Called on a worker thread. **/
+	public Action<Dictionary<string, object>>? SettingsPosted;
 
 	/** The multiplayer session the game may use (`api/net/events`, `api/net/send`), or null. **/
 	public volatile NetSession? Net;
@@ -245,6 +249,20 @@ sealed class LocalServer : IDisposable
 			try { refusal = PlaytestRequested == null ? "unavailable" : PlaytestRequested(map!); }
 			catch (Exception e) { Log.Write("Play test: " + e.Message); refusal = "failed"; }
 			Respond(stream, refusal == null ? 204 : refusal == "busy" ? 409 : 503);
+			return;
+		}
+
+		if (sub == "api/settings")
+		{
+			// Settings the player changed in the game menu, in the game's key names (§11.4).
+			if (method != "POST") { Respond(stream, 405); return; }
+			Dictionary<string, object>? changed;
+			try { changed = Json.Obj(Json.Parse(Encoding.UTF8.GetString(ReadBody(stream, leftover, contentLength)))); }
+			catch (ArgumentException) { changed = null; }
+			if (changed == null) { Respond(stream, 400); return; }
+			try { SettingsPosted?.Invoke(changed); }
+			catch (Exception e) { Log.Write("Game settings: " + e.Message); Respond(stream, 500); return; }
+			Respond(stream, 204);
 			return;
 		}
 

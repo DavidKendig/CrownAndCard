@@ -33,6 +33,7 @@ class TestMain {
 			new games.EuchreTest(),
 			new games.CanastaTest(),
 			new games.BridgeTest(),
+			new games.PlayLogTest(),
 			new net.NetPokerTest(),
 		]);
 	}

@@ -49,7 +49,7 @@ class RouletteTableUI extends h2d.Object {
   board=new h2d.Graphics(content);
   marks=new h2d.Graphics(content);
   for(value in BettingTray.DENOMINATIONS)
-   chipTiles.push(art.FoyerArt.surface('chips/$value.png',palette,32,32,0,1,true).toColorTile(palette));
+   chipTiles.push(art.FoyerArt.surfaceTile('chips/$value.png',palette,32,32,0,1,true));
   boardHit=new h2d.Interactive(390,194,content);boardHit.x=174;boardHit.y=80;boardHit.cursor=Button;
   boardHit.onMove=e->{hovered=layout.hit(e.relX+boardHit.x,e.relY+boardHit.y);};
   boardHit.onOut=_->hovered=-1;

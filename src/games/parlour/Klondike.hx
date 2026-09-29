@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.parlour;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 
@@ -50,10 +51,13 @@ class Klondike {
 
 	/** Turns the next stock card onto the waste, or turns the waste back over when the stock is empty. **/
 	public function turnStock():Void {
-		if (stock.length > 0) waste.push(stock.pop());
-		else if (waste.length > 0) {
+		if (stock.length > 0) {
+			waste.push(stock.pop());
+			PlayLog.play(0, "turns up " + waste[waste.length - 1].toString());
+		} else if (waste.length > 0) {
 			while (waste.length > 0) stock.push(waste.pop());
 			passes++;
+			PlayLog.play(0, "turns the waste back over");
 		} else return;
 		moves++;
 	}
@@ -109,6 +113,7 @@ class Klondike {
 	public function move(from:Pile, count:Int, to:Pile):Void {
 		if (!canMove(from, count, to)) throw 'Illegal move';
 		var cards = cardsAt(from, count);
+		PlayLog.play(0, 'moves ${PlayLog.cards(cards)} from ${pileName(from)} to ${pileName(to)}');
 		switch from {
 			case Waste: waste.pop();
 			case Foundation(i): foundations[i].pop();
@@ -125,6 +130,14 @@ class Klondike {
 		}
 		moves++;
 	}
+
+	static function pileName(p:Pile):String
+		return switch p {
+			case Stock: "the stock";
+			case Waste: "the waste";
+			case Foundation(i): 'foundation ${i + 1}';
+			case Tableau(i): 'column ${i + 1}';
+		}
 
 	/** The foundation a single card could go to, or -1. **/
 	public function foundationFor(from:Pile):Int {

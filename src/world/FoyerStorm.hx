@@ -82,7 +82,7 @@ class FoyerStorm {
 		glassMesh.material.mainPass.getShader(BuildShader).visibility=0;
 
 		function texture(name:String):h3d.mat.Texture
-			return FoyerArt.surface("materials/courtyard-"+name+".png",palette,256,256).toIndexTexture(false,true);
+			return FoyerArt.texture(false,true,"materials/courtyard-"+name+".png",palette,256,256);
 		var ground=new MeshBuilder(), fence=new MeshBuilder();
 		box(ground,center-65,-70,-.3,center+65,map.height+40,-.08,9);
 		finish(ground,texture("gravel"),true);
@@ -106,22 +106,24 @@ class FoyerStorm {
 		for(z in [.65,2.2]) box(fence,center-42,-15,z,center+42,-14.9,z+.07,3);
 		finish(fence,texture("iron"),true);
 		// Transparent trees share the game's palette and upright face-sprite rendering.
-		var treeTextures=[for(name in ["cedar","cypress"])
-			FoyerArt.surface("sprites/tall-"+name+".png",palette,256,512,0,1,true).toIndexTexture(true,false)];
-		for(i in 0...36) {
+		var treeTextures=[for(name in ["tall-cedar","tall-cypress"].concat(CourtyardTrees.SPECIALS))
+			name => FoyerArt.texture(true,false,"sprites/"+name+".png",palette,256,512,0,1,true)];
+		for(i in 0...CourtyardTrees.ROW_COUNT) {
 			// Staggered rows give the silhouettes real depth beyond each window.
 			var x=center-48+(i%12)*8+fx.nextFloat()*3, y=-18-Std.int(i/12)*12-fx.nextFloat()*5;
 			var height=12+fx.nextFloat()*7;
-			var tree=new render.BuildSprite(treeTextures[i%2],lut,1,height*.5,height,parent);
+			var tree=new render.BuildSprite(treeTextures.get(CourtyardTrees.textureName(i)),lut,1,height*.5,height,parent);
+			tree.mesh.scaleX = CourtyardTrees.flipped(i) ? -1 : 1;
 			tree.setPosition(x,y,-.25); tree.shader.visibility=.16;
 			exterior.push(tree.shader); trees.push(tree);
 		}
-		for(i in 0...36) {
+		for(i in 0...CourtyardTrees.ROW_COUNT) {
 			var east=i<24;
 			var x=east?map.width+4+Std.int(i/12)*10+fx.nextFloat()*3:center-30+(i-24)*7;
 			var y=east?-5+(i%12)*5:map.height+7+fx.nextFloat()*8;
 			var height=12+fx.nextFloat()*7;
-			var tree=new render.BuildSprite(treeTextures[i%2],lut,1,height*.5,height,parent);
+			var tree=new render.BuildSprite(treeTextures.get(CourtyardTrees.textureName(i+CourtyardTrees.ROW_COUNT)),lut,1,height*.5,height,parent);
+			tree.mesh.scaleX = CourtyardTrees.flipped(i+CourtyardTrees.ROW_COUNT) ? -1 : 1;
 			tree.setPosition(x,y,-.25); tree.shader.visibility=.12;
 			exterior.push(tree.shader); trees.push(tree);
 		}

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.roulette;
 
+import games.PlayLog;
+
 enum abstract BetKind(String) to String {
 	/** One number. **/
 	var Straight = "straight";
@@ -163,6 +165,8 @@ class Roulette {
 			} else results.push({bet: b, won: false, partaged: false, payout: 0});
 		}
 		purse += payout;
+		PlayLog.play(0, "bets " + [for (b in bets) '${b.amount} on ${b.kind}' + (b.numbers.length > 0 ? " " + b.numbers.join("/") : (b.kind == Dozen || b.kind == Column) ? ' ${b.group}' : "")].join(", "));
+		PlayLog.note('The ball lands on $pocket' + (payout > 0 ? '; pays $payout' : "; no win"));
 		return {pocket: pocket, payout: payout, results: results};
 	}
 

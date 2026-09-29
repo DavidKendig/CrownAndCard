@@ -11,6 +11,10 @@ Crown & Card by David Kendig. Created with the built-in image_gen tool on 2026-0
 
 ## Tall courtyard trees
 
+Additional transparent variants generated with the built-in image_gen tool on 2026-09-29 from the original cedar: [`tall-cedar-fbi.png`](tall-cedar-fbi.png), [`tall-cedar-sniper.png`](tall-cedar-sniper.png), [`tall-cedar-alex-jones.png`](tall-cedar-alex-jones.png), and [`tall-cedar-ghost.png`](tall-cedar-ghost.png). [Exact edit prompts](../../art-source/estate-materials/special-tree-prompts.json). Each figure is a decorative hidden detail near the lower trunk.
+
+- [`tall-cedar-alien.png`](tall-cedar-alien.png): cedar variant with a classic grey alien head peeking around the lower trunk. Edited from `tall-cedar.png` with the built-in image_gen tool on 2026-09-29, preserving transparent alpha. [Exact edit prompt](../../art-source/estate-materials/alien-tree-prompt.json). The runtime chooses exactly ONE slot among all 72 exterior trees and ONE variant (alien, FBI agent, sniper, Alex Jones caricature or ghost), uniformly at random using fresh OS entropy once per launch. Every tree independently gets a random horizontal flip, except the FBI variant, which always stays unflipped so its lettering remains readable. Locations, variant and flips stay fixed for the process and do not affect weather or game outcomes; successive launches may happen to repeat choices. The special sprite receives the same scale, shading, lightning and billboard behavior as the tree it replaces.
+
 - [`tall-cedar.png`](tall-cedar.png): mature layered cedar, transparent around its silhouette and between branches.
 - [`tall-cypress.png`](tall-cypress.png): narrow irregular cypress with a visible trunk and root flare, transparent background.
 

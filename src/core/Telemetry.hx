@@ -93,19 +93,16 @@ class Telemetry {
 			js.Syntax.code("fetch({0}, {method: 'POST', body: {1}, keepalive: true, headers: {'Content-Type': 'application/json'}}).catch(function() {})", url, body);
 		}
 		#elseif sys
-		// Native builds post on a worker thread so a slow launcher never stalls a frame.
-		sys.thread.Thread.create(() -> {
-			try {
-				var http = new haxe.Http(url);
-				http.setHeader("Content-Type", "application/json");
-				http.setPostData(body);
-				http.request(true);
-			} catch (_:Dynamic) {}
-		});
+		// Native builds post from a worker thread so a slow launcher never stalls a frame;
+		// the last word waits, so it lands before the process exits.
+		if (finalMessage) LocalHttp.requestNow("POST", url, body);
+		else LocalHttp.request("POST", url, body);
 		#end
 	}
 
 	function installErrorHooks():Void {
+		// Errors the game logs, and on native builds uncaught ones (GameLog traps them).
+		GameLog.onError = (message, stack) -> event("error", message, stack);
 		#if js
 		var window = js.Browser.window;
 		window.addEventListener("error", (e:Dynamic) -> {
@@ -137,7 +134,14 @@ class Telemetry {
 			})()"),
 		};
 		#elseif sys
-		return {target: Sys.systemName()};
+		var engine = h3d.Engine.getCurrent();
+		var window = hxd.Window.getInstance();
+		return {
+			target: #if hl "native (HashLink)" #else "native" #end,
+			system: Sys.systemName(),
+			gpu: engine == null ? "unknown" : engine.driver.getDriverName(true),
+			window: '${window.width}x${window.height}',
+		};
 		#else
 		return {target: "unknown"};
 		#end

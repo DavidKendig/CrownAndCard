@@ -17,7 +17,7 @@ class BlackjackTable {
 			var mat=h3d.mat.Material.create(); mat.mainPass.enableLights=false; mat.shadows=false; mat.mainPass.culling=None;
 			var shader=new BuildShader(texture,lut,alpha);mat.mainPass.addShader(shader);new h3d.scene.Mesh(mb.toPrimitive(),mat,parent);shaders.push(shader);
 		}
-		surface(art.FoyerArt.surface("materials/blackjack-table.png",palette,512,256).toIndexTexture(false,false),cx,cy,2.4,1.2,.907,0,false);
+		surface(art.FoyerArt.texture(false,false,"materials/blackjack-table.png",palette,512,256),cx,cy,2.4,1.2,.907,0,false);
 		// Illustrative deal: two standard-proportion player cards and a dealer hole card.
 		surface(art.CardArt.texture(cards.Card.parse("As"),palette),cx-.30,cy-.34,.22,.308,.915,-.06);
 		surface(art.CardArt.texture(cards.Card.parse("Kh"),palette),cx-.04,cy-.33,.22,.308,.919,.07);

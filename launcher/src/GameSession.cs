@@ -11,7 +11,8 @@ namespace CrownAndCard.Launcher;
 /**
 	Starts the game with the player's settings, then watches it until it ends.
 
-	- Native builds get `--key=value` arguments and are tracked by process.
+	- Native builds get `--key=value` arguments and are tracked by process; their
+	  output (the game's log, GameLog.hx) is recorded line by line.
 	- The web build is served by LocalServer and opened as a Chrome app window,
 	  or Edge's without Chrome, in guest mode with its own data folder: guest
 	  windows can't sign in to an account or sync browsing data, and the
@@ -158,15 +159,19 @@ sealed class GameSession
 		var psi = new ProcessStartInfo(plan.Path, string.Join(" ", options))
 		{
 			UseShellExecute = false,
-			WorkingDirectory = Path.GetDirectoryName(plan.Path) ?? Paths.ExeDir,
+			// Beside game.hl, not hl.exe: a developer's hl.exe may be anywhere on PATH.
+			WorkingDirectory = Path.GetDirectoryName(plan.Bytecode ?? plan.Path) ?? Paths.ExeDir,
+			// The game's log (GameLog.hx) is UTF-8; the console code page would garble anything past ASCII.
 			RedirectStandardOutput = true,
 			RedirectStandardError = true,
+			StandardOutputEncoding = System.Text.Encoding.UTF8,
+			StandardErrorEncoding = System.Text.Encoding.UTF8,
 			CreateNoWindow = true,
 		};
 		Recorder.SetLaunchCommand($"\"{psi.FileName}\" {psi.Arguments}");
 		var p = Process.Start(psi) ?? throw new InvalidOperationException("The game didn't start");
 		p.OutputDataReceived += (_, e) => Recorder.OnOutput(e.Data);
-		p.ErrorDataReceived += (_, e) => Recorder.OnOutput(e.Data == null ? null : "[stderr] " + e.Data);
+		p.ErrorDataReceived += (_, e) => Recorder.OnOutput(e.Data, stderr: true);
 		p.BeginOutputReadLine();
 		p.BeginErrorReadLine();
 		return p;
@@ -196,7 +201,7 @@ sealed class GameSession
 		if (!hangNoted && Recorder.Heartbeats > 0 && (now - Recorder.LastContact).TotalSeconds > HangSeconds)
 		{
 			hangNoted = true;
-			Recorder.Note($"No heartbeat for {HangSeconds} s while the game is still running (possible hang)");
+			Recorder.Note($"No heartbeat for {HangSeconds} s while the game is still running (possible hang)", LogLevel.Warn);
 		}
 	}
 

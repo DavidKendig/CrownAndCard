@@ -4,7 +4,13 @@ SPDX-License-Identifier: CC-BY-NC-SA-4.0
 
 `manor.json` is Dodriec Manor, the game's built-in map. Custom maps made in Haxen (see the main README) use the same format and live in `%LOCALAPPDATA%\CrownAndCard\maps\<name>.json`.
 
+The Entrance Hall's back-left corner contains the kitchen: a range with copper pots and hood, prep counters, a sink and a serving pass. Two cooks use the `chef` directional sheet (a generated PNG with a white uniform and toque), accompanied by a steward and server. The south entrance and the original west aisle remain open.
+
 A map is versioned JSON (`world.MapData` in `src/world/MapData.hx` reads and checks it):
+
+The **Library** opens from the north side of the Private Party room. Its ten solid bookcases use a PNG of books across their fronts, including both faces of the freestanding shelves. See [library artwork and layout](../../art-source/library/README.md).
+
+The kitchen's north exit leads to the **Midnight Salon**, with a bartender, round cocktail tables, velvet booths, colored accents, and a singer at a vintage microphone. The rear-foyer passage also leads north into the **Security Room**, with decorative CRT surveillance screens, a VHS deck, tape shelves, and an operator. Asset details and prompts: [salon](../../art-source/salon/README.md), [security room](../../art-source/security/README.md).
 
 | Field | What it holds |
 |---|---|

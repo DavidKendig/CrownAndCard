@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.slots;
 
+import games.PlayLog;
+
 /** A reel stop. Suits echo the Order's own cards; Blank pays nothing. **/
 enum abstract Symbol(String) to String {
 	var Crown = "Crown";
@@ -76,6 +78,7 @@ class Slots {
 		var mult = payoutMultiplier(symbols[0], symbols[1], symbols[2]);
 		var payout = bet * mult;
 		purse += payout;
+		PlayLog.play(0, 'pulls the lever for $bet: ${[for (s in symbols) Std.string(s)].join(" | ")}' + (payout > 0 ? '; pays $payout' : "; no win"));
 		return {symbols: symbols, multiplier: mult, payout: payout};
 	}
 

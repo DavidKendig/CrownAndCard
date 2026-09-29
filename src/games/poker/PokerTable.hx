@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.poker;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 
@@ -151,6 +152,7 @@ class PokerTable {
 		if (phase == Betting || phase == Drawing) throw 'A hand is in progress';
 		if (!canStart()) throw 'Need two players with chips';
 		handNumber++;
+		PlayLog.note('Hand $handNumber is dealt');
 		results = [];
 		showdown = false;
 		thrownIn = false;
@@ -245,6 +247,7 @@ class PokerTable {
 		if (phase != Betting || seat != toAct) throw 'Seat $seat cannot act now';
 		var s = seats[seat];
 		var l = legal(seat);
+		var betBefore = currentBet;
 		switch action {
 			case Fold:
 				s.folded = true;
@@ -270,6 +273,12 @@ class PokerTable {
 				currentBet = amount;
 				if (opener < 0) opener = seat;
 		}
+		PlayLog.by(s.name, (switch action {
+			case Fold: "folds";
+			case Check: "checks";
+			case Call: 'calls ${l.toCall}';
+			case RaiseTo(amount): (betBefore == 0 ? "bets " : "raises to ") + amount;
+		}) + (s.allIn ? " (all in)" : ""));
 		s.acted = true;
 		s.canRaise = false;
 		advance(seat);
@@ -330,6 +339,7 @@ class PokerTable {
 		street++;
 		draw(); // burn
 		for (_ in 0...(street == 1 ? 3 : 1)) board.push(draw());
+		PlayLog.note(["", "Flop", "Turn", "River"][street] + ": " + PlayLog.cards(board));
 		startRound(next(button, o -> o.canAct));
 	}
 
@@ -357,6 +367,7 @@ class PokerTable {
 		for (c in discards) if (!s.cards.remove(c)) throw 'Seat $seat does not hold ${c.code}';
 		for (_ in discards) s.cards.push(draw());
 		s.drew = discards.length;
+		PlayLog.by(s.name, discards.length == 0 ? "stands pat" : 'draws ${discards.length}');
 		afterDraw(seat);
 	}
 
@@ -376,6 +387,7 @@ class PokerTable {
 			act(seat, Fold);
 			return;
 		}
+		PlayLog.by(s.name, "leaves the table and folds");
 		s.folded = true;
 		if (liveCount() == 1) {
 			awardUncontested();
@@ -397,6 +409,7 @@ class PokerTable {
 		var winner = next(-1, o -> o.live);
 		var amount = pot;
 		seats[winner].stack += amount;
+		PlayLog.by(seats[winner].name, 'wins $amount (everyone else folded)');
 		results = [{seat: winner, amount: amount, hand: ""}];
 		closeHand();
 	}
@@ -431,10 +444,13 @@ class PokerTable {
 			for (k in 0...winners.length) won[winners[k]] += share + (k < odd ? 1 : 0);
 			prev = level;
 		}
+		if (variant == Holdem) PlayLog.note("Board: " + PlayLog.cards(board));
+		for (i in 0...seats.length) if (seats[i].live) PlayLog.by(seats[i].name, 'shows ${PlayLog.cards(seats[i].cards)}: ${HandEval.describe(scores[i])}');
 		results = [];
 		for (i in 0...seats.length) if (won[i] > 0) {
 			seats[i].stack += won[i];
 			results.push({seat: i, amount: won[i], hand: HandEval.describe(scores[i])});
+			PlayLog.by(seats[i].name, 'wins ${won[i]}');
 		}
 		closeHand();
 	}

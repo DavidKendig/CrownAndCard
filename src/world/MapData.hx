@@ -99,14 +99,14 @@ class MapData {
 
 	/** Wall and surface textures the renderer provides. **/
 	public static final TEXTURES = [
-		"partyFloor", "partyWall", "partyCeiling",
+		"partyFloor", "partyWall", "partyCeiling", "clubPurple", "clubTeal", "kitchenTile", "bathroomTile",
 		"marble", "parquet", "carpet", "coffer", "dome", "damask", "damaskUpper", "deco", "decoUpper", "green", "greenUpper", "felt",
 		"tableWood", "stone", "ivory", "pillarMarble", "stairMarble", "brass", "velvet", "flame", "glass", "banisterWood", "ropeBraid", "grateMetal", "planterCeramic", "soil"
 	];
 
 	/** Character sheets a guest can use (art.SpriteArt.CHARACTERS). **/
 	public static final ARTS = [
-		"security_black", "security_white", "party_chair",
+		"security_black", "security_white", "party_chair", "chef", "bartender", "salon-singer",
 		"masked_guest", "female_guest", "male_staff", "female_staff", "male_guest_seated", "female_guest_seated", "male_guest_walk",
 		"female_guest_walk", "hooded_keeper", "player"
 	];

@@ -91,6 +91,29 @@ class Palette {
 		return px;
 	}
 
+	/**
+		`nearest` from index 1 for an RGB color, memoized on 6 bits a channel in
+		one shared table: authored art has far too many distinct colors to
+		search the palette for each (render.Resolution redraws it all at once).
+	**/
+	public function nearestRgb(rgb:Int):Int {
+		if (lookup == null) {
+			lookup = new haxe.ds.Vector<Int>(64 * 64 * 64);
+			for (i in 0...lookup.length) lookup[i] = -1;
+		}
+		var r = (rgb >> 18) & 63, g = (rgb >> 10) & 63, b = (rgb >> 2) & 63;
+		var key = (r << 12) | (g << 6) | b;
+		var i = lookup[key];
+		if (i < 0) {
+			// The middle of the 4-level bucket, so every color in it snaps the same way.
+			i = nearest(r * 4 + 1.5, g * 4 + 1.5, b * 4 + 1.5, 1);
+			lookup[key] = i;
+		}
+		return i;
+	}
+
+	var lookup:Null<haxe.ds.Vector<Int>>;
+
 	/** The palette index closest to an RGB color (weighted for perceived brightness). **/
 	public function nearest(r:Float, g:Float, b:Float, firstIndex:Int = 0):Int {
 		var best = firstIndex;

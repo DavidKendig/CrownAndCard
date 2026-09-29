@@ -45,6 +45,11 @@ class LauncherLink implements NetLink {
 	final api:String;
 	#if js
 	var events:Null<js.html.EventSource>;
+	#elseif sys
+	var events:Null<core.LocalHttp.EventStream>;
+
+	/** The launcher said the session ended. **/
+	var closed = false;
 	#end
 
 	public function new(api:String) {
@@ -56,6 +61,17 @@ class LauncherLink implements NetLink {
 			var data:Dynamic = try haxe.Json.parse(e.data) catch (_:Dynamic) null;
 			if (data != null) dispatch(data);
 		};
+		#elseif sys
+		if (!isLocal(this.api)) throw 'Multiplayer needs the launcher (got "$api")';
+		events = core.LocalHttp.stream(this.api + "/net/events", text -> {
+			var data:Dynamic = try haxe.Json.parse(text) catch (_:Dynamic) null;
+			if (data != null) dispatch(data);
+		}, () -> {
+			// A session that ended properly has already said so (a "closed" event) before the stream stops.
+			if (closed) return;
+			core.GameLog.warn("net", "The launcher's multiplayer stream ended");
+			onEvent(Closed("Lost the connection to the launcher."));
+		});
 		#end
 	}
 
@@ -69,6 +85,9 @@ class LauncherLink implements NetLink {
 			case "msg":
 				onEvent(Message(Std.int(data.from), data.body));
 			case "closed":
+				#if sys
+				closed = true;
+				#end
 				onEvent(Closed(data.reason == null ? "The session ended." : Std.string(data.reason)));
 			default:
 		}
@@ -79,12 +98,18 @@ class LauncherLink implements NetLink {
 		#if js
 		// keepalive: a goodbye sent as the page closes still arrives.
 		js.Syntax.code("fetch({0}, {method: 'POST', body: {1}, keepalive: true, headers: {'Content-Type': 'application/json'}}).catch(function() {})", api + "/net/send", json);
+		#elseif sys
+		// One worker thread sends them all, so moves arrive in the order they were made.
+		core.LocalHttp.request("POST", api + "/net/send", json);
 		#end
 	}
 
 	public function close():Void {
 		onEvent = _ -> {};
 		#if js
+		if (events != null) events.close();
+		events = null;
+		#elseif sys
 		if (events != null) events.close();
 		events = null;
 		#end

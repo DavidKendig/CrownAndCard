@@ -52,3 +52,12 @@ Use case: stylized-concept. Asset: seamless square ivory marble surface texture 
 
 Use case: stylized-concept. Asset: full-bleed opaque top-down rectangular blackjack tabletop felt texture for Crown & Card, grand Victorian / Art Deco secret society card room. 2:1 wide horizontal composition, no perspective, no table legs or background. Deep bottle green teal felt, elegant antique gold and ivory screen-printed layout. Dealer area along TOP edge, five empty clearly outlined oval betting spots in a broad shallow arc across LOWER half. Center exact legible text 'BLACKJACK PAYS 3 TO 2', smaller line 'DEALER MUST STAND ON 17', curved line below 'INSURANCE PAYS 2 TO 1'. Small crown and four suit symbols above main title. Thin rectangular gold ornamental border safely inset from edges, dark burgundy padded rail framing entire rectangle. Crisp detailed 1990s Build-engine pixel art, no gradients obscuring text, no cards, no chips, no people, no watermark. Accurate readable lettering; whole tabletop visible.
 
+# Kitchen and bathroom tile floors
+
+Generated with the built-in image_gen tool on 2026-09-29; [exact prompts](../../art-source/estate-materials/room-tile-prompts.json).
+
+- [Kitchen tile](kitchen-floor-tile.png): four-by-four ivory and charcoal-navy checkerboard, used by the `kitchenTile` map texture.
+- [Bathroom tile](bathroom-floor-tile.png): ivory octagonal porcelain with navy diamond inserts, used by `bathroomTile`.
+
+Both are opaque repeating floor textures sampled at 128x128, converted to the master palette and rendered with nearest filtering. Each texture repeats once per square metre. The new keys are available to custom maps and the Haxen texture picker.
+

@@ -4,6 +4,7 @@ dump/
 bin/
 web/game.js
 web/game.js.map
+/native/
 launcher/bin/
 dist/
 web/haxen.js

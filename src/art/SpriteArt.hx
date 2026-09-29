@@ -15,9 +15,10 @@ class SpriteArt {
 
 	public static final CHARACTERS = ["player", "masked_guest", "female_guest", "male_staff", "female_staff",
 		"male_guest_seated", "female_guest_seated", "male_guest_walk", "female_guest_walk", "hooded_keeper",
-		"security_black", "security_white", "party_chair"];
+		"security_black", "security_white", "party_chair", "chef", "bartender", "salon-singer"];
 
 	public static function frameWidth(name:String):Int {
+		if (name == "salon-singer") return 64;
 		if (name == "party_chair") return 96;
 		if (StringTools.startsWith(name, "security_")) return 64;
 		if (name == "hooded_keeper") return 64;
@@ -25,6 +26,8 @@ class SpriteArt {
 	}
 
 	public static function frameHeight(name:String):Int {
+		if (name == "salon-singer") return 128;
+		if (name == "chef") return 122;
 		if (name == "party_chair") return 144;
 		if (StringTools.startsWith(name, "security_")) return 128;
 		if (name == "hooded_keeper") return 128;
@@ -41,7 +44,8 @@ class SpriteArt {
 		return StringTools.endsWith(name, "_walk") ? 4 : 1;
 	}
 
-	public static function characterSheet(name:String, palette:Palette):IndexCanvas {
+	/** A character's sheet; `scale` imports it at a multiple of its frame size, for a finer render resolution. **/
+	public static function characterSheet(name:String, palette:Palette, scale:Int = 1):IndexCanvas {
 		if (CHARACTERS.indexOf(name) < 0) throw 'Unknown character sheet: $name';
 		// Generated walk rows have explicit transparent separators, not equal heights.
 		var cuts = switch (name) {
@@ -51,10 +55,10 @@ class SpriteArt {
 		};
 		var sourceName = cuts == null ? name : name + "_v2";
 		var sheet = importSheet(hxd.Res.load('sprites/$sourceName.png').toImage().getPixels(), palette, 5,
-			frameWidth(name), frameHeight(name), animationRows(name), cuts);
+			frameWidth(name) * scale, frameHeight(name) * scale, animationRows(name), cuts);
 		// These sources' rear three-quarter is drawn from the opposite side.
-		if (name == "female_guest_seated" || name == "female_guest_walk" || name == "hooded_keeper" || name == "party_chair") {
-			var original = sheet.copy(), w = frameWidth(name);
+		if (name == "salon-singer" || name == "female_guest_seated" || name == "female_guest_walk" || name == "hooded_keeper" || name == "party_chair") {
+			var original = sheet.copy(), w = frameWidth(name) * scale;
 			for (y in 0...sheet.height) for (x in 0...w)
 				sheet.set(3 * w + x, y, original.get(4 * w - 1 - x, y));
 		}
@@ -63,19 +67,20 @@ class SpriteArt {
 		// frames 1–3 in place. Otherwise a still guest seems to turn as you
 		// walk around them, and walkers walk backwards.
 		if (name != "hooded_keeper") {
-			var original = sheet.copy(), w = frameWidth(name);
+			var original = sheet.copy(), w = frameWidth(name) * scale;
 			for (y in 0...sheet.height) for (f in 1...4) for (x in 0...w)
 				sheet.set(f * w + x, y, original.get((f + 1) * w - 1 - x, y));
 		}
 		return sheet;
 	}
 
-	public static function playerHands(palette:Palette):IndexCanvas {
-		return importSheet(hxd.Res.load("sprites/player_hands.png").toImage().getPixels(), palette, 1, 150, 112);
+	/** The first-person hands, 150 × 112 grid units; `w` × `h` pixels when drawn for a finer render resolution. **/
+	public static function playerHands(palette:Palette, w:Int = 150, h:Int = 112):IndexCanvas {
+		return importSheet(hxd.Res.load("sprites/player_hands.png").toImage().getPixels(), palette, 1, w, h);
 	}
 
-	public static function chandelier(palette:Palette):IndexCanvas {
-		return importSheet(hxd.Res.sprites.brass_chandelier.getPixels(), palette, 1, 96, 72);
+	public static function chandelier(palette:Palette, scale:Int = 1):IndexCanvas {
+		return importSheet(hxd.Res.sprites.brass_chandelier.getPixels(), palette, 1, 96 * scale, 72 * scale);
 	}
 
 	/**

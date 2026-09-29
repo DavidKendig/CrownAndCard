@@ -15,6 +15,8 @@ enum abstract GlyphAction(Int) {
 /**
 	Button prompts drawn on the pixel grid: a keycap while the player uses the
 	keyboard, the Xbox-style colored face button while they use a controller.
+	They're hand-drawn in grid pixels, so a finer render resolution draws each
+	one as a whole-number block (render.Resolution.pixelScale).
 **/
 class ButtonGlyph {
 	public static inline var HEIGHT = 13;
@@ -22,7 +24,8 @@ class ButtonGlyph {
 	static final cache = new Map<String, h2d.Tile>();
 
 	public static function tile(action:GlyphAction, pad:Bool):h2d.Tile {
-		var key = '${(cast action : Int)}/$pad';
+		var scale = render.Resolution.pixelScale();
+		var key = '${(cast action : Int)}/$pad/$scale';
 		var t = cache.get(key);
 		if (t == null) {
 			var px = switch [action, pad] {
@@ -34,12 +37,21 @@ class ButtonGlyph {
 				case [Alt, true]: faceButton("X", 0xFF2F6FD0, 0xFF12305E);
 				case _: keycap("?");
 			}
-			var tex = h3d.mat.Texture.fromPixels(px);
+			var tex = h3d.mat.Texture.fromPixels(blocks(px, scale));
 			tex.filter = Nearest;
 			t = h2d.Tile.fromTexture(tex);
+			t.scaleToSize(px.width, px.height);
 			cache.set(key, t);
 		}
 		return t;
+	}
+
+	/** `px` with every pixel a `scale` × `scale` block. **/
+	static function blocks(px:hxd.Pixels, scale:Int):hxd.Pixels {
+		if (scale == 1) return px;
+		var out = hxd.Pixels.alloc(px.width * scale, px.height * scale, hxd.PixelFormat.RGBA);
+		for (y in 0...out.height) for (x in 0...out.width) out.setPixel(x, y, px.getPixel(Std.int(x / scale), Std.int(y / scale)));
+		return out;
 	}
 
 	static function keycap(label:String):hxd.Pixels {

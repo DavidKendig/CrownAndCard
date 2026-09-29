@@ -172,6 +172,24 @@ class CardTableUI {
 		return seat;
 	}
 
+	/** Who sits where at each game, for the play log. Seat 0 is always the player; poker names its own seats. **/
+	static function seatNames(game:String):Array<String>
+		return switch game {
+			case "Spades": SpadesTableUI.NAMES;
+			case "Hearts": HeartsTableUI.NAMES;
+			case "Bridge": BridgeTableUI.NAMES;
+			case "Euchre": EuchreTableUI.NAMES;
+			case "Go Fish": GoFishUI.NAMES;
+			case "Slapjack": SlapjackUI.NAMES;
+			case "Egyptian Rat Screw": EgyptianRatScrewUI.NAMES;
+			case "Classic Mahjong": MahjongUI.namesFor(MahjongVariant.Classic);
+			case "Riichi Mahjong": MahjongUI.namesFor(MahjongVariant.Riichi);
+			case "Gin Rummy", "Canasta": ["You", "The Deacon"];
+			case "Durak": ["You", "The Colonel"];
+			case "War": ["You", "Sir Reggie"];
+			default: ["You"]; // the casino tables and Solitaire
+		}
+
 	var tiles:Null<TileFaces>;
 
 	function tileFaces():TileFaces {
@@ -186,6 +204,7 @@ class CardTableUI {
 			return;
 		}
 		for (s in seats) s.view.visible = s == seat;
+		games.PlayLog.sitAt(GAMES[i].name, seatNames(GAMES[i].name));
 		seat.sit();
 		current = seat;
 		menu.visible = false;

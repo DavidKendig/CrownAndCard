@@ -41,8 +41,10 @@ class SessionControl {
 			init.headers = {"Content-Type": "application/json"};
 		}
 		js.Syntax.code("fetch({0}, {1}).then(function(r) { return r.text().then(function(t) { {2}(r.status, t); }); }).catch(function() { {2}(0, ''); })", url, init, finish);
+		#elseif sys
+		core.LocalHttp.request(method, url, body == null ? null : haxe.Json.stringify(body), finish);
 		#else
-		done("Multiplayer needs the web build for now.", null);
+		done("Multiplayer isn't available on this platform.", null);
 		#end
 	}
 }

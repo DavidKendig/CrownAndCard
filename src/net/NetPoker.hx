@@ -56,7 +56,11 @@ class NetPoker {
 		play) and returns the table as it should have ended. Throws a readable
 		reason if anything doesn't hold.
 	**/
-	public static function replay(reveal:Dynamic, commitment:String):PokerTable {
+	public static function replay(reveal:Dynamic, commitment:String):PokerTable
+		// A check of a hand already played: it mustn't show up in the play log a second time.
+		return games.PlayLog.quietly(() -> replayHand(reveal, commitment));
+
+	static function replayHand(reveal:Dynamic, commitment:String):PokerTable {
 		var hostSeed:String = reveal.hostSeed;
 		if (!Fairness.validSeed(hostSeed) || Fairness.commit(hostSeed) != commitment)
 			throw "The host's seed doesn't match the commitment it made before the deal.";

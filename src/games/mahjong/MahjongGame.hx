@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.mahjong;
 
+import games.PlayLog;
+
 enum abstract Variant(String) to String {
 	/** Hong Kong-style Classic: 144 tiles with flowers, faan scoring. **/
 	var Classic = "Classic";
@@ -26,7 +28,12 @@ enum abstract MeldType(String) to String {
 }
 
 /** A melded set: `kind` is its lowest tile, `from` the seat whose discard made it (-1 for a closed kong). **/
-typedef Meld = {type:MeldType, kind:Int, from:Int};
+/**
+	A declared set. `from` is the seat whose discard was called (-1 for a closed
+	kong), `called` that tile (the table turns it sideways toward that seat),
+	and `added` marks a kong made by adding the fourth tile to a called pung.
+**/
+typedef Meld = {type:MeldType, kind:Int, from:Int, ?called:Int, ?added:Bool};
 
 enum Claim {
 	/** Win on the discard (Ron in Riichi, "Mahjong" in Classic). **/
@@ -247,10 +254,12 @@ class MahjongGame {
 			return;
 		}
 		var tile = afterKong ? replacement() : wall.shift();
+		PlayLog.play(turn, afterKong ? "draws a replacement tile" : "draws a tile");
 		replacementDraw = afterKong;
 		afterKong = false;
 		while (variant == Classic && Tiles.isBonus(tile)) {
 			p.flowers.push(tile);
+			PlayLog.play(turn, "sets aside " + Tiles.name(tile) + " and draws again");
 			if (wall.length == 0) {
 				exhaustiveDraw();
 				return;
@@ -327,18 +336,23 @@ class MahjongGame {
 
 	public function tsumo(seat:Int):Void {
 		if (!canTsumo(seat)) throw 'Seat $seat cannot win now';
+		PlayLog.play(seat, "wins on a self-drawn " + Tiles.name(players[seat].drawn) + " (tsumo)");
 		win(seat, players[seat].drawn, -1);
 	}
 
 	public function kong(seat:Int, kind:Int):Void {
 		if (kongOptions(seat).indexOf(kind) < 0) throw 'Seat $seat cannot kong $kind';
 		var p = players[seat];
+		PlayLog.play(seat, (p.count(kind) == 4 ? "declares a closed kong of " : "adds to a kong of ") + Tiles.name(kind));
 		if (p.count(kind) == 4) {
 			p.removeTiles(kind, 4);
-			p.melds.push({type: ClosedKong, kind: kind, from: -1});
+			p.melds.push({type: ClosedKong, kind: kind, from: -1, called: -1, added: false});
 		} else {
 			p.removeTiles(kind, 1);
-			for (m in p.melds) if (m.type == Pung && m.kind == kind) m.type = Kong;
+			for (m in p.melds) if (m.type == Pung && m.kind == kind) {
+				m.type = Kong;
+				m.added = true;
+			}
 		}
 		p.drawn = -1;
 		kongMade(seat);
@@ -367,6 +381,7 @@ class MahjongGame {
 		} else if (p.riichi) p.ippatsu = false;
 		p.hand.remove(tile);
 		p.discards.push(tile);
+		PlayLog.play(seat, "discards " + Tiles.name(tile) + (declareRiichi ? " and declares riichi" : ""));
 		p.claimed.push(false);
 		p.drawn = -1;
 		p.furitenTemp = false;
@@ -432,6 +447,11 @@ class MahjongGame {
 		}
 		decided[seat] = true;
 		decisions[seat] = claim;
+		if (claim != null) PlayLog.play(seat, "calls " + (switch (claim) {
+			case Chi(low): 'chi (a run from the ${Tiles.name(low)})';
+			case Ron: "ron";
+			case other: Std.string(other).toLowerCase();
+		}) + " on " + Tiles.name(lastDiscard.tile));
 		// Passing up a win: furiten until your next discard (for the hand, after riichi).
 		var couldWin = false;
 		for (o in pending[seat]) if (o == Ron) couldWin = true;
@@ -486,16 +506,16 @@ class MahjongGame {
 		switch claim {
 			case Pon:
 				p.removeTiles(d.tile, 2);
-				p.melds.push({type: Pung, kind: d.tile, from: d.seat});
+				p.melds.push({type: Pung, kind: d.tile, from: d.seat, called: d.tile, added: false});
 				turn = seat;
 				phase = Act;
 			case Kan:
 				p.removeTiles(d.tile, 3);
-				p.melds.push({type: Kong, kind: d.tile, from: d.seat});
+				p.melds.push({type: Kong, kind: d.tile, from: d.seat, called: d.tile, added: false});
 				kongMade(seat);
 			case Chi(low):
 				for (t in [low, low + 1, low + 2]) if (t != d.tile) p.hand.remove(t);
-				p.melds.push({type: Chow, kind: low, from: d.seat});
+				p.melds.push({type: Chow, kind: low, from: d.seat, called: d.tile, added: false});
 				turn = seat;
 				phase = Act;
 			default:
@@ -574,6 +594,7 @@ class MahjongGame {
 	}
 
 	function exhaustiveDraw():Void {
+		PlayLog.note("The wall is empty: the hand is a draw");
 		var tenpai = [for (q in players) Analysis.shanten(Tiles.counts(q.hand), q.melds.length) <= 0];
 		var deltas = [0, 0, 0, 0];
 		var ready = [for (i in 0...4) if (tenpai[i]) i];

@@ -12,7 +12,7 @@ import ui.TableKit;
 	real time, and anyone (even a player out of cards) can slap back in.
 **/
 class EgyptianRatScrewUI extends CardGameScreen {
-	static final NAMES = ["You", "Tuppence Fitch", "Sir Reggie", "Rafe Vasquez"];
+	public static final NAMES = ["You", "Tuppence Fitch", "Sir Reggie", "Rafe Vasquez"];
 
 	/** Reaction time: fastest possible, plus up to this much more (seconds). **/
 	static final REACTION = [[0.0, 0.0], [0.28, 0.30], [0.50, 0.55], [0.35, 0.38]];

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using CrownAndCard.Launcher;
@@ -91,6 +92,22 @@ static class VerifyLocalApi
 		if (Status(() => client.UploadString(api + "/playtest?map=Test%20Map", "POST", "")) != 409) throw new Exception("Busy launcher not reported");
 		if (Status(() => client.UploadString(api + "/playtest?map=Nope", "POST", "")) != 404) throw new Exception("Missing map not reported");
 		Console.WriteLine("Play test API: starts the named map, reports a running game and missing maps PASS");
+
+		// Settings changed in the game menu (§11.4) reach the launcher in the game's key names.
+		Dictionary<string, object>? posted = null;
+		server.SettingsPosted = d => posted = d;
+		client.Headers[HttpRequestHeader.ContentType] = "application/json";
+		if (Status(() => client.UploadString(api + "/settings", "POST", "{\"fov\":\"100\",\"fullscreen\":\"0\",\"mouseSensitivity\":\"900\"}")) != 200 || posted == null)
+			throw new Exception("Game settings not delivered");
+		var applied = new LauncherSettings();
+		applied.ReadGameOptions(posted);
+		applied.Clamp();
+		if (applied.Fov != 100 || applied.Fullscreen || applied.MouseSensitivity != 300 || applied.HeadBob != 100)
+			throw new Exception("Game settings not applied (or not clamped)");
+		client.Headers[HttpRequestHeader.ContentType] = "application/json";
+		if (Status(() => client.UploadString(api + "/settings", "POST", "not json")) != 400) throw new Exception("Bad settings body not refused");
+		if (Status(() => client.DownloadString(api + "/settings")) != 405) throw new Exception("GET of settings not refused");
+		Console.WriteLine("Game settings API: menu changes reach the launcher, clamped; bad bodies refused PASS");
 
 		// The controller stream: an event-stream that starts with the current pad state.
 		using (var tcp = new System.Net.Sockets.TcpClient("127.0.0.1", server.Port))

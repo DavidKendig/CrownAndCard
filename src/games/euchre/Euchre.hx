@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.euchre;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 import cards.Suit;
@@ -130,6 +131,7 @@ class Euchre {
 
 	public function orderUp(goAlone:Bool = false):Void {
 		if (phase != Bid1) throw "Not ordering up now";
+		PlayLog.play(bidder, "orders up " + turnUp.toString() + (goAlone ? ", going alone" : ""));
 		trump = turnUp.suit;
 		maker = bidder;
 		alone = goAlone;
@@ -138,6 +140,7 @@ class Euchre {
 
 	public function passBid1():Void {
 		if (phase != Bid1) throw "Not ordering up now";
+		PlayLog.play(bidder, "passes");
 		passesThisRound++;
 		if (passesThisRound == SEATS) {
 			turnedDownSuit = turnUp.suit;
@@ -154,6 +157,7 @@ class Euchre {
 		hands[dealer].push(turnUp);
 		if (hands[dealer].indexOf(card) < 0) throw 'The dealer does not hold ${card.code}';
 		hands[dealer].remove(card);
+		PlayLog.play(dealer, "picks up the turned card and discards one");
 		startPlay();
 	}
 
@@ -165,6 +169,7 @@ class Euchre {
 	public function callTrump(suit:Suit, goAlone:Bool = false):Void {
 		if (phase != Bid2) throw "Not naming trump now";
 		if (suit == turnedDownSuit) throw "Cannot name the turned-down suit";
+		PlayLog.play(bidder, "names " + suit.symbol + " trump" + (goAlone ? ", going alone" : ""));
 		trump = suit;
 		maker = bidder;
 		alone = goAlone;
@@ -174,6 +179,7 @@ class Euchre {
 	public function passBid2():Void {
 		if (phase != Bid2) throw "Not naming trump now";
 		if (mustCallTrump) throw "The dealer must name a trump";
+		PlayLog.play(bidder, "passes");
 		bidder = (bidder + 1) % SEATS;
 	}
 
@@ -206,6 +212,7 @@ class Euchre {
 		if (legalPlays(seat).indexOf(card) < 0) throw 'Seat $seat cannot play ${card.code}';
 		hands[seat].remove(card);
 		trick.push({seat: seat, card: card});
+		PlayLog.play(seat, "plays " + card.toString());
 		var activeCount = alone ? SEATS - 1 : SEATS;
 		if (trick.length < activeCount) {
 			turn = nextActive(seat);
@@ -215,6 +222,7 @@ class Euchre {
 		var win = trick[0];
 		for (p in trick) if (power(p.card, trump, led) > power(win.card, trump, led)) win = p;
 		tricks[win.seat]++;
+		PlayLog.play(win.seat, "wins the trick");
 		lastTrick.resize(0);
 		for (p in trick) lastTrick.push(p);
 		trick.resize(0);

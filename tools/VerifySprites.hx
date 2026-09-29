@@ -7,6 +7,24 @@ class VerifySprites {
 	static function main() {
 		hxd.Res.initEmbed();
 		var palette = new Palette();
+		for(name in world.BathroomArt.ASSETS) {
+			var sheet=world.BathroomArt.sheet(name,palette);
+			for(f in 0...5) {
+				var opaque=0;
+				for(y in 0...128) for(x in 0...96) {
+					if(sheet.get(f*96+x,y)!=0) opaque++;
+					if((x==0 || x==95 || y==0 || y==127) && sheet.get(f*96+x,y)!=0) throw 'Missing fixture gutter: $name';
+				}
+				if(opaque<100) throw 'Empty fixture angle: $name';
+			}
+		}
+		for (name in world.CourtyardTrees.SPECIALS) {
+			var tree = art.FoyerArt.surface('sprites/$name.png',palette,256,512,0,1,true);
+			var opaque = 0, transparent = 0;
+			for (y in 0...tree.height) for (x in 0...tree.width)
+				if (tree.get(x,y) == 0) transparent++; else opaque++;
+			if (opaque < 1000 || transparent < 1000 || tree.get(0,0) != 0) throw 'Invalid tree cutout: $name';
+		}
 		for (name in SpriteArt.CHARACTERS) {
 			var guest = SpriteArt.characterSheet(name, palette);
 			var w = SpriteArt.frameWidth(name), h = SpriteArt.frameHeight(name), rows = SpriteArt.animationRows(name);
@@ -21,7 +39,7 @@ class VerifySprites {
 					if (row > 0 && i != guest.get(frame * w + x, (row - 1) * h + y)) changed++;
 				}
 				if (opaque < 500) throw 'Unusable $name frame $frame row $row';
-				if (!StringTools.startsWith(name, "female_guest") && !StringTools.startsWith(name, "security_") && name != "party_chair" && navy < 100) throw 'Blue outfit lost in $name frame $frame';
+				if (!StringTools.startsWith(name, "female_guest") && !StringTools.startsWith(name, "security_") && name != "party_chair" && name != "salon-singer" && navy < 100) throw 'Blue outfit lost in $name frame $frame';
 				if (row > 0 && changed < 50) throw 'Repeated animation in $name frame $frame row $row';
 			}
 		}

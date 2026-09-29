@@ -4,9 +4,9 @@ package world;
 import hxd.Key;
 
 /**
-	First-person movement (§4.6). W/S or Up/Down move, A/D strafe, Shift runs.
-	Left/Right turn, PageUp/PageDown look up and down, End re-centers the view,
-	and the mouse looks around too.
+	First-person movement (§4.6). W/S move, A/D strafe, Shift runs. The mouse
+	looks around (Main captures it), Left/Right turn, Up/Down (or PageUp/
+	PageDown) look up and down, and End re-centers the view.
 
 	Controller (§11.4): left stick or d-pad moves, right stick looks, LB or
 	clicking the left stick runs, and clicking the right stick (or Y) re-centers
@@ -67,16 +67,20 @@ class PlayerController {
 		feetZ=map.floorAt(x,y);
 	}
 
+	/** The player's mouse sensitivity setting, as a multiplier (1 = 100 %). **/
+	public var mouseScale = 1.0;
+
 	public function look(dx:Float, dy:Float):Void {
-		yaw -= dx * MOUSE_SENSITIVITY;
-		pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch - dy * MOUSE_SENSITIVITY));
+		var s = MOUSE_SENSITIVITY * mouseScale;
+		yaw -= dx * s;
+		pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, pitch - dy * s));
 	}
 
 	public function update(dt:Float):Void {
 		if (Key.isDown(Key.LEFT)) yaw += TURN_SPEED * dt;
 		if (Key.isDown(Key.RIGHT)) yaw -= TURN_SPEED * dt;
-		if (Key.isDown(Key.PGUP)) pitch = Math.min(MAX_PITCH, pitch + PITCH_SPEED * dt);
-		if (Key.isDown(Key.PGDOWN)) pitch = Math.max(-MAX_PITCH, pitch - PITCH_SPEED * dt);
+		if (Key.isDown(Key.UP) || Key.isDown(Key.PGUP)) pitch = Math.min(MAX_PITCH, pitch + PITCH_SPEED * dt);
+		if (Key.isDown(Key.DOWN) || Key.isDown(Key.PGDOWN)) pitch = Math.max(-MAX_PITCH, pitch - PITCH_SPEED * dt);
 		if (Key.isPressed(Key.END)) pitch = 0;
 
 		var p = pad;
@@ -90,8 +94,8 @@ class PlayerController {
 		}
 
 		var fwd = 0.0, side = 0.0;
-		if (Key.isDown(Key.W) || Key.isDown(Key.UP)) fwd += 1;
-		if (Key.isDown(Key.S) || Key.isDown(Key.DOWN)) fwd -= 1;
+		if (Key.isDown(Key.W)) fwd += 1;
+		if (Key.isDown(Key.S)) fwd -= 1;
 		if (Key.isDown(Key.D)) side += 1;
 		if (Key.isDown(Key.A)) side -= 1;
 		var running = Key.isDown(Key.SHIFT);

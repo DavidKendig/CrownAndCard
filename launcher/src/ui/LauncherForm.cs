@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace CrownAndCard.Launcher.UI;
@@ -18,6 +19,7 @@ sealed class LauncherForm : Form
 	readonly ManorPanel manor = new() { Dock = DockStyle.Left, Width = 338 };
 	readonly Button play = new() { Text = "PLAY", Size = new Size(210, 56), Font = Theme.Play };
 	readonly Button haxen = new() { Text = "HAXEN", Size = new Size(110, 40), Font = Theme.Tab };
+	readonly Button logButton = new() { Text = "LOG", Size = new Size(80, 40), Font = Theme.Tab };
 	readonly Button mapButton = new() { Text = "MAP", Size = new Size(230, 40), Font = Theme.Tab, TextAlign = ContentAlignment.MiddleLeft };
 	readonly MapStore maps = new(Paths.MapsDir);
 	readonly Label gameLabel = Theme.Label("", Theme.Body, Theme.Cream);
@@ -111,11 +113,22 @@ sealed class LauncherForm : Form
 		play.Click += (_, _) => Play();
 		Theme.StyleButton(haxen);
 		Theme.StyleButton(mapButton);
+		Theme.StyleButton(logButton);
 		haxen.Click += (_, _) => OpenHaxen();
+		logButton.Click += (_, _) => OpenGameLog();
+		new ToolTip().SetToolTip(logButton, "The game log: what the game window is doing, live, or the last session's");
 		mapButton.Click += (_, _) => ShowMapMenu();
 		// Multiplayer is started from the Private Party table in the game (§13.13); the launcher carries it.
 		server.StartHost = advertise => NetSession.Host(settings.PlayerName, Program.Version, NetSession.DefaultPort, advertise);
 		server.StartJoin = code => NetSession.Join(code, settings.PlayerName, Program.Version);
+		// Settings changed in the game menu are kept for the next visit, and shown in Settings.
+		server.SettingsPosted = changed => BeginInvoke(new Action(() =>
+		{
+			settings.ReadGameOptions(changed);
+			settings.Save();
+			settingsView.Reload();
+			session?.Recorder.Note("Saved the settings changed in the game menu");
+		}));
 		new ToolTip().SetToolTip(haxen, "Haxen, the map editor: open the manor or make your own maps");
 		UpdateMapButton();
 		server.PlaytestRequested = name => (string?)Invoke(new Func<string?>(() => StartPlaytest(name)));
@@ -125,13 +138,16 @@ sealed class LauncherForm : Form
 		versionLabel.SizeChanged += (_, _) => updateLink.Left = versionLabel.Right + 10;
 		updateLink.Location = new Point(versionLabel.Right + 10, 68);
 		updateLink.LinkClicked += (_, _) => updateAction?.Invoke();
-		footer.Controls.AddRange([gameLabel, sessionLabel, versionLabel, updateLink, play, haxen, mapButton]);
+		footer.Controls.AddRange([gameLabel, sessionLabel, versionLabel, updateLink, play, haxen, mapButton, logButton]);
 		footer.Resize += (_, _) =>
 		{
 			play.Location = new Point(footer.Width - play.Width - 28, (footer.Height - play.Height) / 2 + 2);
 			haxen.Location = new Point(play.Left - haxen.Width - 12, (footer.Height - haxen.Height) / 2 + 2);
 			mapButton.Location = new Point(haxen.Left - mapButton.Width - 8, haxen.Top);
-			gameLabel.MaximumSize = sessionLabel.MaximumSize = new Size(Math.Max(200, mapButton.Left - 40), 0);
+			// Sized from the measured label: WinForms may not have scaled the design width to the text's real DPI.
+			logButton.Width = Math.Max(80, TextRenderer.MeasureText(logButton.Text, logButton.Font).Width + 28);
+			logButton.Location = new Point(mapButton.Left - logButton.Width - 8, haxen.Top);
+			gameLabel.MaximumSize = sessionLabel.MaximumSize = new Size(Math.Max(200, logButton.Left - 40), 0);
 		};
 
 		var body = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Background };
@@ -316,11 +332,11 @@ sealed class LauncherForm : Form
 
 	void DetectGame()
 	{
-		plan = GameLocator.Find(settings.GamePath);
+		plan = GameLocator.Find(settings.GamePath, settings.PreferNative);
 		gameLabel.Text = plan == null
 			? "Game not found. Set the game folder in Settings."
 			: "Ready  ·  " + plan.Describe();
-		gameLabel.ForeColor = plan == null ? Theme.Amber : Theme.Cream;
+		gameLabel.ForeColor = plan == null ? Theme.Amber : plan.Fallback != null ? Theme.Amber : Theme.Cream;
 		play.Enabled = plan != null && session == null && !updating;
 	}
 
@@ -391,6 +407,25 @@ sealed class LauncherForm : Form
 		}
 	}
 
+	/** The running session's log, live; otherwise the open log window, or the latest session's. **/
+	void OpenGameLog()
+	{
+		if (session != null)
+		{
+			GameLogWindow.ShowLive(session.Recorder);
+			return;
+		}
+		if (GameLogWindow.Raise())
+			return;
+		var last = SessionRecorder.ListAll().FirstOrDefault();
+		if (last == null)
+		{
+			MessageBox.Show(this, "No sessions yet. Press Play and the game log will appear here.", "Crown & Card", MessageBoxButtons.OK, MessageBoxIcon.Information);
+			return;
+		}
+		GameLogWindow.ShowSaved(last.Dir);
+	}
+
 	/** Haxen's "Play test": start the game on that map (on the UI thread). **/
 	string? StartPlaytest(string name)
 	{
@@ -420,6 +455,9 @@ sealed class LauncherForm : Form
 			return;
 		}
 		session.Ended += status => BeginInvoke(new Action(() => OnSessionEnded(status)));
+		// The native window has no browser console; its log opens beside it (§13.12).
+		if (plan.Kind == GameKind.Native && settings.ShowGameLog)
+			GameLogWindow.ShowLive(session.Recorder, activate: false);
 		play.Text = "PLAYING…";
 		play.Enabled = false;
 		UpdateMusic();

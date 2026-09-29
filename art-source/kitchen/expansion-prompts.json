@@ -1,0 +1,22 @@
+{
+  "tool": "Built-in image_gen",
+  "date": "2026-09-29",
+  "assets": [
+    {
+      "file": "kitchen-counter-food.png",
+      "prompt": "Use case: stylized-concept. Asset type: horizontal 3:1 game countertop texture. A perfectly TOP-DOWN overhead view of an ivory marble preparation counter filling the canvas edge to edge. On it, a wooden cutting board with sliced crusty bread and cheese, ripe tomatoes, carrots and leafy herbs, a ceramic bowl of apples, and a neat plate of small pastries. Food arranged into separated readable clusters along the length, some clear marble between them, all objects completely inside the image. No vertical counter front, no cabinetry, no people. Original crisp detailed pixel art for a first-person gothic Victorian manor kitchen game. Restrained ivory, navy, brass, copper and natural food colors, hard pixel clusters, subtle dithering, even soft lighting. Orthographic view, no perspective, no labels, no text, no watermark, no surrounding room. Opaque PNG."
+    },
+    {
+      "file": "kitchen-sink.png",
+      "prompt": "Use case: stylized-concept. Asset type: horizontal 3:1 game sink countertop texture. Perfectly TOP-DOWN overhead view of an ivory marble sink worktop filling the canvas. One large inset rectangular white porcelain farmhouse sink occupying the left-center, deep shaded empty basin, small brass drain, brass bridge faucet at the TOP edge of the basin, right-hand grooved draining board with two white plates and a folded navy tea towel. Everything wholly inside the image. No cabinet front or room. Original crisp detailed pixel art for a first-person gothic Victorian manor kitchen game. Restrained ivory, navy, brass, copper and natural food colors, hard pixel clusters, subtle dithering, even soft lighting. Orthographic view, no perspective, no labels, no text, no watermark, no surrounding room. Opaque PNG."
+    },
+    {
+      "file": "kitchen-shelves.png",
+      "prompt": "Use case: stylized-concept. Asset type: horizontal 3:2 food shelf FRONT ELEVATION game panel. A dark oak pantry shelving unit filling the entire image edge to edge, exactly three sturdy shelves laden with food. Top shelf: preserving jars of red jam, green pickles, ceramic flour and sugar crocks with plain undecorated bodies. Middle shelf: stacked bread loaves, wheels of cheese, earthenware bowls. Bottom shelf: wicker produce baskets of red apples, carrots, potatoes and cabbage. Deep navy shadowed wood backing, warm brass fittings. Strong readable separated food shapes. Strict straight-on view with no visible sides, no floor, no margin. Original crisp detailed pixel art for a first-person gothic Victorian manor kitchen game. Restrained ivory, navy, brass, copper and natural food colors, hard pixel clusters, subtle dithering, even soft lighting. Orthographic view, no perspective, no labels, no text, no watermark, no surrounding room. Opaque PNG."
+    },
+    {
+      "file": "kitchen-freezer.png",
+      "prompt": "Use case: stylized-concept. Asset type: vertical 2:3 game freezer FRONT PANEL. One closed commercial upright freezer adapted to an elegant old manor kitchen: ivory enameled metal insulated cabinet front filling the entire canvas edge to edge, two vertically stacked sealed doors, thick navy rubber gaskets, heavy antique brass latch handles on the left edges, brass hinges on right, small round frosted temperature gauge at upper center, modest dark ventilation grille at bottom. Readable slightly worn enamel, restrained frost around the door seams, solid practical construction. Strict straight-on orthographic front elevation, no visible side or top, no floor, no margins. Original crisp detailed pixel art for a first-person gothic Victorian manor kitchen game. Restrained ivory, navy, brass, copper and natural food colors, hard pixel clusters, subtle dithering, even soft lighting. Orthographic view, no perspective, no labels, no text, no watermark, no surrounding room. Opaque PNG."
+    }
+  ]
+}

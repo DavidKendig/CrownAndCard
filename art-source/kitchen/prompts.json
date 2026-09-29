@@ -1,0 +1,14 @@
+{
+  "tool": "Built-in image_gen",
+  "date": "2026-09-29",
+  "assets": [
+    {
+      "path": "res/materials/kitchen-range.png",
+      "prompt": "Use case: stylized-concept. Asset type: seamless-ready front elevation PNG texture for a first-person HD pixel-art manor kitchen game. Primary request: an ornate antique cast-iron kitchen cooking range FRONT PANEL, perfectly straight-on orthographic elevation, square composition, filling every edge. Three oven doors in a horizontal row, dark navy-black enamel iron, brass hinges and handles, subtle copper trim, tiny warm amber glow in vent slits. Upper narrow row of brass control knobs; lower short iron kickplate. Crisp hand-placed pixel-art appearance, limited navy, charcoal, ivory, brass and warm copper palette, fine restrained dithering. Flat even material lighting, no perspective, no room, no floor, no people, no pots, no text, no border, no watermark. This image will wrap onto the vertical faces of an existing 3D stove; make the doors broad and readable. Opaque background."
+    },
+    {
+      "path": "res/sprites/chef.png",
+      "prompt": "Use case: stylized-concept. Asset type: production transparent PNG directional character sprite sheet for Crown & Card, a first-person pixel-art Victorian manor game. Primary request: one manor kitchen cook, full body, shown in exactly FIVE equal-width horizontal cells on a wide 3:1 canvas: front, front three-quarter facing viewer-right, right profile, back three-quarter, back. Identical adult cook, identical size and clothing in all five frames, consistent feet baseline. Ivory white double-breasted chef jacket with small dark buttons, tall pleated white chef toque, navy blue trousers, black shoes, white waist apron, sleeves down, relaxed arms and empty hands. Neat moustache, warm medium skin tone, natural adult proportions. Original detailed crisp pixel art, strong legible silhouettes, hard pixel clusters and restrained dithering, warm ivory highlights, navy shadows and brass accents to match an elegant gothic manor. Orthographic views, full body including hats and feet, transparent margins around EVERY figure, figures never overlap, no floor or cast shadow, no labels, no grid, no text, no watermark. Intended for import to five 48x122 frames. Background must be true transparent alpha."
+    }
+  ]
+}

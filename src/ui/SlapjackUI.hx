@@ -12,7 +12,7 @@ import ui.TableKit;
 	(Tuppence is fast, Reggie is tipsy) drawn from the table's AI stream.
 **/
 class SlapjackUI extends CardGameScreen {
-	static final NAMES = ["You", "Tuppence Fitch", "Sir Reggie", "Rafe Vasquez"];
+	public static final NAMES = ["You", "Tuppence Fitch", "Sir Reggie", "Rafe Vasquez"];
 
 	/** Reaction time: fastest possible, plus up to this much more (seconds). **/
 	static final REACTION = [[0.0, 0.0], [0.30, 0.30], [0.55, 0.60], [0.38, 0.40]];
