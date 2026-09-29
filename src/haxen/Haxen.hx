@@ -855,13 +855,21 @@ class Haxen {
 				num(box, "x", g.x, v -> g.x = v);
 				num(box, "y", g.y, v -> g.y = v);
 				num(box, "Facing (°)", g.facing, v -> g.facing = v, 15);
-				check(box, "Turns slowly", g.spins == true, v -> g.spins = v ? true : null);
+				check(box, "Turns", g.turns == true, v -> {
+					g.turns = v ? true : null;
+					if (v) g.spins = null;
+				});
+				check(box, "Turns slowly", g.spins == true, v -> {
+					g.spins = v ? true : null;
+					if (v) g.turns = null;
+				});
 				check(box, "Walks", g.walkTo != null, v -> g.walkTo = v ? {x: g.x, y: g.y + 3} : null);
 				if (g.walkTo != null) {
 					num(box, "Walk to x", g.walkTo.x, v -> g.walkTo.x = v);
 					num(box, "Walk to y", g.walkTo.y, v -> g.walkTo.y = v);
 				}
 				hint(box, "Facing: 0° east, 90° north, 180° west, -90° south.");
+				hint(box, "Turns: faces the player wherever they walk. Turns slowly: spins in place. Neither: always faces the way it's placed.");
 			case SLight(i):
 				var l = map.lights[i];
 				num(box, "x", l.x, v -> l.x = v);

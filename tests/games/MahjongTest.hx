@@ -149,6 +149,10 @@ class MahjongTest extends utest.Test {
 		Assert.equals(2, g.turn);
 		Assert.equals(Act, g.phase);
 		Assert.equals(1, g.players[2].melds.length);
+		// The table turns the called tile toward the seat it came from.
+		var m = g.players[2].melds[0];
+		Assert.equals(0, m.from);
+		Assert.equals(t("5p")[0], m.called);
 	}
 
 	function testRiichiStakesAThousand() {

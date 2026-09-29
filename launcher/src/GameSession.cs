@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace CrownAndCard.Launcher;
@@ -10,12 +11,13 @@ namespace CrownAndCard.Launcher;
 /**
 	Starts the game with the player's settings, then watches it until it ends.
 
-	- Native builds get `--key=value` arguments and are tracked by process.
-	- The web build is served by LocalServer and opened as an Edge/Chrome app
-	  window in guest mode with its own data folder: guest windows can't sign
-	  in to an account or sync browsing data, and the separate folder makes the
-	  window its own process. Without Edge or Chrome it opens in the default
-	  browser, and the session ends when the heartbeats stop.
+	- Native builds get `--key=value` arguments and are tracked by process; their
+	  output (the game's log, GameLog.hx) is recorded line by line.
+	- The web build is served by LocalServer and opened as a Chrome app window,
+	  or Edge's without Chrome, in guest mode with its own data folder: guest
+	  windows can't sign in to an account or sync browsing data, and the
+	  separate folder makes the window its own process. Without either it opens
+	  in the default browser, and the session ends when the heartbeats stop.
 **/
 sealed class GameSession
 {
@@ -54,6 +56,11 @@ sealed class GameSession
 		Process? started;
 		try
 		{
+			// Windows only lets a new window take the front when the app in front
+			// (the launcher, just clicked) allows it. Without this the game window
+			// can open behind everything, playing its music unseen. The browser
+			// often relaunches itself, so the permission can't name one process.
+			AllowSetForegroundWindow(AnyProcess);
 			started = plan.Kind == GameKind.Web ? StartWeb(plan, settings) : StartNative(plan, settings);
 		}
 		catch
@@ -97,6 +104,11 @@ sealed class GameSession
 	public static GameSession Start(GamePlan plan, LauncherSettings settings, LocalServer server, string? mapOverride = null) =>
 		new(plan, settings, server, mapOverride);
 
+	const int AnyProcess = -1; // ASFW_ANY
+
+	[DllImport("user32.dll")]
+	static extern bool AllowSetForegroundWindow(int processId);
+
 	/** The settings' options, with the map swapped for a play test. **/
 	System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> Options(LauncherSettings s)
 	{
@@ -119,13 +131,14 @@ sealed class GameSession
 		{
 			Recorder.SetLaunchCommand("default browser: " + url);
 			Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-			Recorder.Note("No Edge or Chrome found; opened the default browser. The session ends when heartbeats stop.");
+			Recorder.Note("No Chrome or Edge found; opened the default browser. The session ends when heartbeats stop.");
 			return null;
 		}
-		Directory.CreateDirectory(Paths.BrowserProfileDir);
+		var profile = Paths.BrowserProfileDir(browser);
+		Directory.CreateDirectory(profile);
 		var args = string.Join(" ",
 			$"--app=\"{url}\"",
-			$"--user-data-dir=\"{Paths.BrowserProfileDir}\"",
+			$"--user-data-dir=\"{profile}\"",
 			"--guest",
 			$"--window-size={s.WindowWidth},{s.WindowHeight}",
 			"--no-first-run",
@@ -146,15 +159,19 @@ sealed class GameSession
 		var psi = new ProcessStartInfo(plan.Path, string.Join(" ", options))
 		{
 			UseShellExecute = false,
-			WorkingDirectory = Path.GetDirectoryName(plan.Path) ?? Paths.ExeDir,
+			// Beside game.hl, not hl.exe: a developer's hl.exe may be anywhere on PATH.
+			WorkingDirectory = Path.GetDirectoryName(plan.Bytecode ?? plan.Path) ?? Paths.ExeDir,
+			// The game's log (GameLog.hx) is UTF-8; the console code page would garble anything past ASCII.
 			RedirectStandardOutput = true,
 			RedirectStandardError = true,
+			StandardOutputEncoding = System.Text.Encoding.UTF8,
+			StandardErrorEncoding = System.Text.Encoding.UTF8,
 			CreateNoWindow = true,
 		};
 		Recorder.SetLaunchCommand($"\"{psi.FileName}\" {psi.Arguments}");
 		var p = Process.Start(psi) ?? throw new InvalidOperationException("The game didn't start");
 		p.OutputDataReceived += (_, e) => Recorder.OnOutput(e.Data);
-		p.ErrorDataReceived += (_, e) => Recorder.OnOutput(e.Data == null ? null : "[stderr] " + e.Data);
+		p.ErrorDataReceived += (_, e) => Recorder.OnOutput(e.Data, stderr: true);
 		p.BeginOutputReadLine();
 		p.BeginErrorReadLine();
 		return p;
@@ -184,7 +201,7 @@ sealed class GameSession
 		if (!hangNoted && Recorder.Heartbeats > 0 && (now - Recorder.LastContact).TotalSeconds > HangSeconds)
 		{
 			hangNoted = true;
-			Recorder.Note($"No heartbeat for {HangSeconds} s while the game is still running (possible hang)");
+			Recorder.Note($"No heartbeat for {HangSeconds} s while the game is still running (possible hang)", LogLevel.Warn);
 		}
 	}
 
@@ -214,3 +231,4 @@ sealed class GameSession
 
 	static string Quote(string arg) => "\"" + arg.Replace("\"", "\\\"") + "\"";
 }
+

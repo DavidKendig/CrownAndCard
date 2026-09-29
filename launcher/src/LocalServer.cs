@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -15,8 +17,11 @@ namespace CrownAndCard.Launcher;
 	- Serves the web build of the game (and Haxen, the map editor) from `WebRoot`.
 	- Receives the game's state heartbeats and events at `api/state` and `api/event`.
 	- Keeps the Guest Register at `api/save`, and custom maps at `api/maps`.
+	- Takes the settings the player changes in the game menu at `api/settings`.
 	- Lets Haxen ask for a play test at `api/playtest?map=<name>`.
 	- Streams the controller to the game at `api/pad` (XInput works where the browser's gamepad support doesn't).
+	- Starts and ends multiplayer sessions for the game (`api/net/state`, `host`, `join`, `leave`) and
+	  carries their messages at `api/net/events` and `api/net/send` (§13.13).
 
 	Every URL sits under a random per-launch token, so other local pages can't
 	read the game files or post fake reports.
@@ -48,6 +53,20 @@ sealed class LocalServer : IDisposable
 		the game is starting, "busy" if a game is already running, or another reason.
 	**/
 	public Func<string, string?>? PlaytestRequested;
+
+	/** The game menu changed settings (`api/settings`): the JSON object, in the game's key names. Called on a worker thread. **/
+	public Action<Dictionary<string, object>>? SettingsPosted;
+
+	/** The multiplayer session the game may use (`api/net/events`, `api/net/send`), or null. **/
+	public volatile NetSession? Net;
+
+	/** Starts hosting when the game asks (`api/net/host`), given an optional public address. Replaceable for tests. **/
+	public Func<IPAddress?, NetSession> StartHost = advertise => NetSession.Host("Player", "dev", NetSession.DefaultPort, advertise);
+
+	/** Joins with a code when the game asks (`api/net/join`). Replaceable for tests. **/
+	public Func<string, NetSession> StartJoin = code => NetSession.Join(code, "Player", "dev");
+
+	readonly object netGate = new();
 
 	public LocalServer(GuestRegisterStore? register = null, MapStore? maps = null)
 	{
@@ -86,12 +105,37 @@ sealed class LocalServer : IDisposable
 				client.ReceiveTimeout = 10000;
 				client.SendTimeout = 10000;
 				Handle(client.GetStream());
+				CloseGracefully(client);
 			}
 		}
 		catch (Exception e)
 		{
 			Log.Write("Local server: " + e.Message);
 		}
+	}
+
+	/**
+		Finishes sending, then reads off anything the client sent that wasn't read
+		(a refused request's body). Closing with unread data makes Windows reset the
+		connection, and the client loses the response it was about to read.
+	**/
+	static void CloseGracefully(TcpClient client)
+	{
+		try
+		{
+			client.Client.Shutdown(SocketShutdown.Send);
+			client.ReceiveTimeout = 1000;
+			var buffer = new byte[8192];
+			for (int total = 0; total < MaxBodyBytes;)
+			{
+				int n = client.Client.Receive(buffer);
+				if (n <= 0)
+					break;
+				total += n;
+			}
+		}
+		catch (SocketException) { }
+		catch (ObjectDisposedException) { }
 	}
 
 	void Handle(Stream stream)
@@ -172,6 +216,30 @@ sealed class LocalServer : IDisposable
 			return;
 		}
 
+		if (sub is "api/net/state" or "api/net/host" or "api/net/join" or "api/net/leave")
+		{
+			ControlNet(stream, sub.Substring("api/net/".Length), method, method == "POST" ? ReadBody(stream, leftover, contentLength) : []);
+			return;
+		}
+		if (sub == "api/net/events" && method == "GET")
+		{
+			if (Net is { } session) StreamNet(stream, session);
+			else Respond(stream, 409);
+			return;
+		}
+		if (sub == "api/net/send")
+		{
+			if (method != "POST") { Respond(stream, 405); return; }
+			if (Net is not { } session) { Respond(stream, 409); return; }
+			Dictionary<string, object>? msg;
+			try { msg = Json.Obj(Json.Parse(Encoding.UTF8.GetString(ReadBody(stream, leftover, contentLength)))); }
+			catch (ArgumentException) { msg = null; }
+			if (msg == null || !msg.TryGetValue("body", out var body)) { Respond(stream, 400); return; }
+			session.SendFromGame(Json.Int(msg, -1, "to"), body);
+			Respond(stream, 204);
+			return;
+		}
+
 		if (sub == "api/playtest")
 		{
 			if (method != "POST") { Respond(stream, 405); return; }
@@ -181,6 +249,20 @@ sealed class LocalServer : IDisposable
 			try { refusal = PlaytestRequested == null ? "unavailable" : PlaytestRequested(map!); }
 			catch (Exception e) { Log.Write("Play test: " + e.Message); refusal = "failed"; }
 			Respond(stream, refusal == null ? 204 : refusal == "busy" ? 409 : 503);
+			return;
+		}
+
+		if (sub == "api/settings")
+		{
+			// Settings the player changed in the game menu, in the game's key names (§11.4).
+			if (method != "POST") { Respond(stream, 405); return; }
+			Dictionary<string, object>? changed;
+			try { changed = Json.Obj(Json.Parse(Encoding.UTF8.GetString(ReadBody(stream, leftover, contentLength)))); }
+			catch (ArgumentException) { changed = null; }
+			if (changed == null) { Respond(stream, 400); return; }
+			try { SettingsPosted?.Invoke(changed); }
+			catch (Exception e) { Log.Write("Game settings: " + e.Message); Respond(stream, 500); return; }
+			Respond(stream, 204);
 			return;
 		}
 
@@ -251,6 +333,116 @@ sealed class LocalServer : IDisposable
 		}
 		catch (ObjectDisposedException)
 		{
+		}
+	}
+
+	/**
+		The game starts and ends multiplayer sessions from the Private Party table
+		(§13.13): `state` (GET) reports the session, `host` and `join` (POST) start
+		one, `leave` (POST) ends it. Refusals come back as {"error": reason}.
+	**/
+	void ControlNet(Stream stream, string action, string method, byte[] body)
+	{
+		if (action == "state" ? method != "GET" : method != "POST")
+		{
+			Respond(stream, 405);
+			return;
+		}
+		Dictionary<string, object>? args = null;
+		try { if (body.Length > 0) args = Json.Obj(Json.Parse(Encoding.UTF8.GetString(body))); }
+		catch (ArgumentException) { }
+		void Error(int code, string reason) =>
+			Respond(stream, code, "application/json", Encoding.UTF8.GetBytes(Json.Write(new Dictionary<string, object> { ["error"] = reason }, false)));
+		if (action == "leave")
+		{
+			lock (netGate)
+			{
+				Net?.Dispose();
+				Net = null;
+			}
+			Respond(stream, 204);
+			return;
+		}
+		if (action is "host" or "join")
+		{
+			lock (netGate)
+			{
+				if (Net is { Ended: null })
+				{
+					Error(409, "You're already in a multiplayer session.");
+					return;
+				}
+				try
+				{
+					NetSession session;
+					if (action == "host")
+					{
+						IPAddress? advertise = null;
+						var typed = (Json.Str(args, "address") ?? "").Trim();
+						if (typed.Length > 0 && (!IPAddress.TryParse(typed, out advertise) || advertise.AddressFamily != AddressFamily.InterNetwork || typed.Split('.').Length != 4))
+						{
+							Error(400, "The internet address should be an IPv4 address like 203.0.113.7.");
+							return;
+						}
+						session = StartHost(advertise);
+					}
+					else
+						session = StartJoin(Json.Str(args, "code") ?? "");
+					Net?.Dispose();
+					Net = session;
+				}
+				catch (SocketException e)
+				{
+					Error(503, action == "host" ? $"Couldn't host on port {NetSession.DefaultPort}: {e.Message}" : e.Message);
+					return;
+				}
+				catch (Exception e) when (e is IOException or ArgumentException)
+				{
+					Error(action == "join" && e is ArgumentException ? 400 : 503, e.Message);
+					return;
+				}
+			}
+		}
+		var s = Net;
+		var state = new Dictionary<string, object>
+		{
+			["state"] = s == null ? "none" : s.Ended != null ? "ended" : s.IsHost ? "hosting" : "joined",
+			["you"] = s?.You ?? -1,
+			["code"] = s is { IsHost: true } ? s.JoinCode ?? "" : "",
+			["reason"] = s?.Ended ?? "",
+			["peers"] = s == null ? Array.Empty<object>() : s.Peers.Select(p => (object)new Dictionary<string, object> { ["id"] = p.Id, ["name"] = p.Name }).ToArray(),
+		};
+		Respond(stream, 200, "application/json", Encoding.UTF8.GetBytes(Json.Write(state, false)));
+	}
+
+	/** The multiplayer session's events for the game (§13.13), as server-sent events, with a keep-alive every few seconds. **/
+	void StreamNet(Stream stream, NetSession session)
+	{
+		var head = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\nConnection: keep-alive\r\n\r\n");
+		using var feed = session.Subscribe();
+		try
+		{
+			stream.Write(head, 0, head.Length);
+			stream.Flush();
+			while (running && !feed.Lines.IsCompleted)
+			{
+				var bytes = feed.Lines.TryTake(out var line, 3000)
+					? Encoding.UTF8.GetBytes("data: " + line + "\n\n")
+					: Encoding.ASCII.GetBytes(": keep-alive\n\n");
+				stream.Write(bytes, 0, bytes.Length);
+				stream.Flush();
+			}
+		}
+		catch (IOException)
+		{
+			// The game window closed or reloaded.
+		}
+		catch (ObjectDisposedException)
+		{
+		}
+		catch (InvalidOperationException)
+		{
+			// The session ended while waiting.
 		}
 	}
 

@@ -13,7 +13,7 @@ class RouletteWheel extends h2d.Object {
 	public function new(parent:h2d.Object,palette:render.Palette) {
 		super(parent);
 		function art(name:String,size:Int,parent:h2d.Object):h2d.Bitmap {
-			var tile=FoyerArt.surface("roulette/"+name+".png",palette,size,size,0,1,true).toColorTile(palette);
+			var tile=FoyerArt.surfaceTile("roulette/"+name+".png",palette,size,size,0,1,true);
 			tile.dx=-size/2;tile.dy=-size/2;return new h2d.Bitmap(tile,parent);
 		}
 		art("roulette-bowl",240,this);

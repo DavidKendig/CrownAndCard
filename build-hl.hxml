@@ -1,0 +1,17 @@
+# Native build (HashLink + SDL): the game in its own desktop window, with
+# SDL's controller support instead of the browser's Gamepad API.
+#   haxe build-hl.hxml
+# Output goes to native/game.hl. Run it with HashLink (hl native/game.hl),
+# or let the launcher find it: it prefers native/ (hl.exe + game.hl) over web/.
+# tools/fetch_hashlink.ps1 puts the HashLink runtime in native/.
+-cp src
+-lib heaps
+-lib hlsdl
+-lib hlopenal
+-main Main
+-D analyzer-optimize
+-D windowTitle=Crown & Card
+-D windowSize=1280x720
+# Dev tools (inspection views, F3 debug text). Remove for release builds.
+-D devtools
+-hl native/game.hl

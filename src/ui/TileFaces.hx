@@ -7,7 +7,8 @@ import render.Palette;
 /**
 	Mahjong tiles for the seated view (§5.7), reduced from the 144 × 192 art
 	kit in res/mahjong/ to 30 × 40 (your hand) and 21 × 28 (discards, melds,
-	dora), with an area filter and snapped to the master palette.
+	dora) grid units, drawn at the render resolution (render.Resolution),
+	with an area filter and snapped to the master palette.
 **/
 class TileFaces {
 	public static inline var W = 30;
@@ -28,10 +29,11 @@ class TileFaces {
 	public function back(small = false):h2d.Tile return load("back.png", small);
 
 	function load(file:String, small:Bool):h2d.Tile {
-		var key = file + (small ? "@s" : "");
+		var key = file + (small ? "@s" : "") + "@" + render.Resolution.lines;
 		var t = cache.get(key);
 		if (t != null) return t;
-		var w = small ? SW : W, h = small ? SH : H;
+		var gw = small ? SW : W, gh = small ? SH : H;
+		var w = render.Resolution.px(gw), h = render.Resolution.px(gh);
 		var src = hxd.Res.load('mahjong/$file').toImage().getPixels(hxd.PixelFormat.RGBA);
 		var px = hxd.Pixels.alloc(w, h, hxd.PixelFormat.RGBA);
 		var sx = src.width / w, sy = src.height / h;
@@ -52,6 +54,7 @@ class TileFaces {
 		var tex = h3d.mat.Texture.fromPixels(px);
 		tex.filter = Nearest;
 		t = h2d.Tile.fromTexture(tex);
+		t.scaleToSize(gw, gh);
 		cache.set(key, t);
 		return t;
 	}

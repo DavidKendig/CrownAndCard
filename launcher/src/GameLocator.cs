@@ -25,31 +25,81 @@ sealed class GamePlan
 	/** HashLink bytecode file, when running through hl.exe. **/
 	public string? Bytecode;
 
+	/** Why this isn't the kind of build the player asked for, or null. **/
+	public string? Fallback;
+
 	public string Describe() => Kind switch
 	{
-		GameKind.Native when Bytecode != null => $"HashLink build: {Bytecode}",
-		GameKind.Native => $"Desktop build: {Path}",
-		_ => $"Web build: {Path}",
-	};
+		GameKind.Native when Bytecode != null => $"Native window (HashLink): {Bytecode}",
+		GameKind.Native => $"Native window: {Path}",
+		_ => $"Browser window: {Path}",
+	} + (Fallback != null ? $"  ({Fallback})" : "");
 }
 
 /** Finds the game next to the launcher (or in the folder set in Settings) and a browser for the web build. **/
 static class GameLocator
 {
-	public static GamePlan? Find(string overridePath)
+	/**
+		The native build when `preferNative` and there is one, otherwise the web
+		build, otherwise whichever exists. Native: CrownAndCard.exe, or HashLink
+		bytecode (game.hl) with hl.exe beside it, in the folder or its native\
+		subfolder; a developer's hl.exe on PATH also runs a bare native\game.hl.
+	**/
+	public static GamePlan? Find(string overridePath, bool preferNative)
 	{
+		GamePlan? native = null, web = null;
 		foreach (var dir in CandidateDirs(overridePath))
 		{
-			var exe = Path.Combine(dir, "CrownAndCard.exe");
-			if (File.Exists(exe))
-				return new GamePlan { Kind = GameKind.Native, Path = exe };
-			var hl = Path.Combine(dir, "hl.exe");
-			var bytecode = Path.Combine(dir, "game.hl");
-			if (File.Exists(hl) && File.Exists(bytecode))
-				return new GamePlan { Kind = GameKind.Native, Path = hl, Bytecode = bytecode };
-			foreach (var web in new[] { Path.Combine(dir, "web"), dir })
-				if (File.Exists(Path.Combine(web, "index.html")) && File.Exists(Path.Combine(web, "game.js")))
-					return new GamePlan { Kind = GameKind.Web, Path = Path.GetFullPath(web) };
+			native ??= FindNative(dir);
+			web ??= FindWeb(dir);
+		}
+		var plan = preferNative ? native ?? web : web ?? native;
+		if (plan != null && plan.Kind != (preferNative ? GameKind.Native : GameKind.Web))
+			plan.Fallback = preferNative ? "no native build found" : "no web build found";
+		return plan;
+	}
+
+	static GamePlan? FindNative(string dir)
+	{
+		var exe = Path.Combine(dir, "CrownAndCard.exe");
+		if (File.Exists(exe))
+			return new GamePlan { Kind = GameKind.Native, Path = exe };
+		foreach (var d in new[] { dir, Path.Combine(dir, "native") })
+		{
+			var bytecode = Path.Combine(d, "game.hl");
+			if (!File.Exists(bytecode))
+				continue;
+			var hl = Path.Combine(d, "hl.exe");
+			if (!File.Exists(hl))
+				hl = OnPath("hl.exe") ?? "";
+			if (hl.Length > 0)
+				return new GamePlan { Kind = GameKind.Native, Path = Path.GetFullPath(hl), Bytecode = Path.GetFullPath(bytecode) };
+		}
+		return null;
+	}
+
+	static GamePlan? FindWeb(string dir)
+	{
+		foreach (var web in new[] { Path.Combine(dir, "web"), dir })
+			if (File.Exists(Path.Combine(web, "index.html")) && File.Exists(Path.Combine(web, "game.js")))
+				return new GamePlan { Kind = GameKind.Web, Path = Path.GetFullPath(web) };
+		return null;
+	}
+
+	static string? OnPath(string exe)
+	{
+		foreach (var dir in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
+		{
+			try
+			{
+				var path = Path.Combine(dir.Trim().Trim('"'), exe);
+				if (dir.Trim().Length > 0 && File.Exists(path))
+					return path;
+			}
+			catch (ArgumentException)
+			{
+				// A malformed PATH entry.
+			}
 		}
 		return null;
 	}
@@ -80,20 +130,29 @@ static class GameLocator
 		}
 	}
 
-	/** Edge (on every Windows 10/11 PC) or Chrome, to open the web build as an app window. **/
-	public static string? FindBrowser()
+	/**
+		Chrome if it's installed, otherwise Edge (on every Windows 10/11 PC), to
+		open the web build as an app window. Chrome comes first because Edge's
+		"browsing controls" turn the controller into a pointer and keep it from
+		the game until the player picks "Use game controls" (§13.12).
+	**/
+	public static string? FindBrowser() => FindChrome() ?? FindEdge();
+
+	static string? FindChrome() =>
+		AppPath("chrome.exe") ?? FirstExisting(@"Google\Chrome\Application\chrome.exe",
+			Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86, Environment.SpecialFolder.LocalApplicationData);
+
+	static string? FindEdge() =>
+		AppPath("msedge.exe") ?? FirstExisting(@"Microsoft\Edge\Application\msedge.exe",
+			Environment.SpecialFolder.ProgramFilesX86, Environment.SpecialFolder.ProgramFiles);
+
+	static string? FirstExisting(string relative, params Environment.SpecialFolder[] roots)
 	{
-		foreach (var exe in new[] { "msedge.exe", "chrome.exe" })
+		foreach (var root in roots)
 		{
-			var registered = AppPath(exe);
-			if (registered != null)
-				return registered;
-		}
-		foreach (var root in new[] { Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) })
-		{
-			var edge = Path.Combine(root, @"Microsoft\Edge\Application\msedge.exe");
-			if (File.Exists(edge))
-				return edge;
+			var path = Path.Combine(Environment.GetFolderPath(root), relative);
+			if (File.Exists(path))
+				return path;
 		}
 		return null;
 	}

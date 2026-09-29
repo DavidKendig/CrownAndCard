@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.parlour;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 
@@ -59,6 +60,7 @@ class War {
 			pile.push(up[0]);
 			pile.push(up[1]);
 			faceUp.push(up);
+			PlayLog.note('${PlayLog.who(YOU)} ${up[0].toString()}, ${PlayLog.who(THEM)} ${up[1].toString()}' + (up[0].rank == up[1].rank ? ": war!" : ""));
 			if (up[0].rank != up[1].rank) {
 				var w = up[0].rank > up[1].rank ? YOU : THEM;
 				for (c in pile) stacks[w].push(c);
@@ -76,6 +78,7 @@ class War {
 
 	function finish(faceUp:Array<Array<Card>>, count:Int, w:Int):Battle {
 		if (stacks[1 - w].length == 0) winner = w;
+		PlayLog.play(w, 'takes $count cards');
 		return {faceUp: faceUp, cards: count, winner: w};
 	}
 }

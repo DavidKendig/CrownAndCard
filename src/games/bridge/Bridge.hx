@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.bridge;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 import cards.Suit;
@@ -141,6 +142,7 @@ class Bridge {
 		highBid = {level: level, strain: strain, by: seat};
 		passesInRow = 0;
 		callLog.push('$level${strainName(strain)}');
+		PlayLog.play(seat, 'bids $level${strainName(strain)}');
 		turn = (turn + 1) % SEATS;
 	}
 
@@ -148,6 +150,7 @@ class Bridge {
 		if (phase != Bidding || seat != turn) throw 'Not seat $seat\'s turn to bid';
 		passesInRow++;
 		callLog.push("Pass");
+		PlayLog.play(seat, "passes");
 		if (highBid == null && passesInRow == SEATS) {
 			thrownIn = true;
 			phase = HandOver;
@@ -170,6 +173,7 @@ class Bridge {
 		trump = highBid.strain == NoTrumpStrain ? null : Suit.fromInt(highBid.strain);
 		phase = Playing;
 		leader = turn = (declarer + 1) % SEATS;
+		PlayLog.note('Contract: $contractLevel${strainName(contractStrain)} by ${PlayLog.who(declarer)}');
 	}
 
 	// --- Play ----------------------------------------------------------
@@ -194,6 +198,7 @@ class Bridge {
 		if (legalPlays(seat).indexOf(card) < 0) throw 'Seat $seat cannot play ${card.code}';
 		hands[seat].remove(card);
 		trick.push({seat: seat, card: card});
+		PlayLog.play(seat, "plays " + card.toString() + (seat == dummy ? " (from dummy)" : ""));
 		if (trick.length < SEATS) {
 			turn = (turn + 1) % SEATS;
 			return;
@@ -202,6 +207,7 @@ class Bridge {
 		var win = trick[0];
 		for (p in trick) if (beats(p.card, win.card, led)) win = p;
 		tricks[win.seat]++;
+		PlayLog.play(win.seat, "wins the trick");
 		lastTrick.resize(0);
 		for (p in trick) lastTrick.push(p);
 		trick.resize(0);

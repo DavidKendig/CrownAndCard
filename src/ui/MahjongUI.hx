@@ -13,6 +13,9 @@ import ui.TableKit;
 	player's pond in front of them, melds beside their name. Points only: no
 	Sovereigns change hands.
 **/
+/** One tile of a meld as drawn: its face (or back), its kind (-1 face down) and how it lies. **/
+private typedef MeldSlot = {tile:h2d.Tile, kind:Int, sideways:Bool, stacked:Bool};
+
 class MahjongUI extends CardGameScreen {
 	static inline var AI_SECONDS = 0.7;
 	static inline var DRAW_SECONDS = 0.25;
@@ -24,6 +27,12 @@ class MahjongUI extends CardGameScreen {
 
 	final variant:Variant;
 	final tiles:TileFaces;
+
+	/** Every face-up tile drawn this frame, topmost last, for the name shown under the mouse. **/
+	final spots:Array<{x:Float, y:Float, w:Float, h:Float, kind:Int, dora:Bool}> = [];
+
+	final tipBox:h2d.Graphics;
+	final tipText:h2d.Text;
 	final shuffle:rng.IRng;
 	final names:Array<String>;
 	var game:MahjongGame;
@@ -34,14 +43,21 @@ class MahjongUI extends CardGameScreen {
 	var riichiMode = false;
 	var claimKey = "";
 
+	/** Who sits at each variant's table, the player first. **/
+	public static function namesFor(variant:Variant):Array<String>
+		return variant == Riichi
+			? ["You", "Prof. Oyelaran", "Valentine Crake", "Rafe Vasquez"]
+			: ["You", "Baroness von Adler", "Deacon Crane", "Madame Zelenka"];
+
 	public function new(parent:h2d.Object, faces:CardFaces, tiles:TileFaces, variant:Variant, shuffle:rng.IRng) {
 		super(parent, faces, "mahjong");
+		// Over everything else on the table, the end-of-hand panel included.
+		tipBox = new h2d.Graphics(this);
+		tipText = TableKit.text(this, TableKit.GOLD);
 		this.variant = variant;
 		this.tiles = tiles;
 		this.shuffle = shuffle;
-		names = variant == Riichi
-			? ["You", "Prof. Oyelaran", "Valentine Crake", "Rafe Vasquez"]
-			: ["You", "Baroness von Adler", "Deacon Crane", "Madame Zelenka"];
+		names = namesFor(variant);
 		newGame();
 	}
 
@@ -67,10 +83,12 @@ class MahjongUI extends CardGameScreen {
 	override public function update(w:Int, dt:Float, input:MenuInput):Void {
 		var cx = w / 2;
 		begin(w);
+		spots.resize(0);
 		var playing = game.phase == Draw || game.phase == Act || game.phase == Claims;
 		drawTable(w, cx);
 		if (leaveCheck(input, playing, "This game of Mahjong will be abandoned.")) {
-			end(cx, 160);
+			showTileName(w);
+		end(cx, 160);
 			return;
 		}
 		switch game.phase {
@@ -114,6 +132,7 @@ class MahjongUI extends CardGameScreen {
 				handOver(input);
 		}
 		if (note != "" && title == "") label(note, cx, 146, TableKit.GOLD, 1);
+		showTileName(w);
 		end(cx, 160);
 	}
 
@@ -283,8 +302,13 @@ class MahjongUI extends CardGameScreen {
 		// Round, wall and dora.
 		label('${game.roundLabel()}  ·  Wall ${game.tilesLeft}' + (game.riichiSticks > 0 ? '  ·  Sticks ${game.riichiSticks}' : ""), 8, 4, TableKit.DIM);
 		if (variant == Riichi) {
-			label("Dora", w - 8 - 5 * (TileFaces.SW + 1) - 4, 10, TableKit.DIM, 2);
-			for (i in 0...5) card(i < game.doraShown ? tiles.face(game.indicators[i], true) : tiles.back(true), w - 8 - (5 - i) * (TileFaces.SW + 1), 4);
+			// Top left, under the round: the top right is where the player across lays their melds.
+			label("Dora", 8, 24, TableKit.DIM);
+			for (i in 0...5) {
+				var x = 36 + i * (TileFaces.SW + 1);
+				card(i < game.doraShown ? tiles.face(game.indicators[i], true) : tiles.back(true), x, 16);
+				if (i < game.doraShown) spot(x, 16, TileFaces.SW, TileFaces.SH, game.indicators[i], true);
+			}
 		}
 		// Players: plates, melds and ponds. Seat 1 is on your right, 2 across, 3 on your left.
 		var pondX = [cx - 66, cx + 76, cx - 66, cx - 208];
@@ -300,9 +324,9 @@ class MahjongUI extends CardGameScreen {
 				case 0:
 					label('You  ·  $wind  ·  ${p.score}$tag$flowers', 8, 286, color);
 				case 1:
-					label(seatName(s), w - 8, 44, color, 2);
-					label('$wind  ·  ${p.score}$tag', w - 8, 56, color, 2);
-					if (flowers != "") label(flowers.substr(5), w - 8, 68, TableKit.DIM, 2);
+					// The top right corner: below it the player across lays their melds, and this player's run up the right edge.
+					label(seatName(s), w - 8, 3, color, 2);
+					label('$wind  ·  ${p.score}$tag$flowers', w - 8, 13, color, 2);
 				case 2:
 					label('${seatName(s)}  ·  $wind  ·  ${p.score}$tag$flowers', cx, 14, color, 1);
 				case 3:
@@ -319,15 +343,14 @@ class MahjongUI extends CardGameScreen {
 		var order = handOrder();
 		var myTurn = game.phase == Act && game.turn == 0;
 		var legal = myTurn ? (riichiMode ? game.riichiDiscards(0) : game.legalDiscards(0)) : [];
-		var meldWidth = p.melds.length * (4 * (TileFaces.SW + 1) + 6);
-		var total = order.length * (TileFaces.W + 1) + (p.drawn >= 0 ? 6 : 0);
-		var x0 = Math.round(Math.max(8, cx - (total + meldWidth) / 2));
+		var x0 = handLeft(cx);
 		for (i in 0...order.length) {
 			var gap = p.drawn >= 0 && i == order.length - 1 ? 6 : 0;
 			var x = x0 + i * (TileFaces.W + 1) + gap;
 			var lifted = myTurn && !onRow && i == cursor;
 			var dim = myTurn && legal.indexOf(order[i]) < 0;
 			card(tiles.face(order[i]), x, lifted ? 294 : 300, dim);
+			spot(x, lifted ? 294 : 300, TileFaces.W, TileFaces.H, order[i]);
 			if (myTurn) hit(i, x, 294, TileFaces.W, TileFaces.H + 6);
 		}
 	}
@@ -338,45 +361,165 @@ class MahjongUI extends CardGameScreen {
 			var col = i % 6, row = Std.int(i / 6);
 			var tx = x + col * (TileFaces.SW + 1), ty = y + row * (TileFaces.SH + 1);
 			card(tiles.face(p.discards[i], true), tx, ty, p.claimed[i]);
+			spot(tx, ty, TileFaces.SW, TileFaces.SH, p.discards[i]);
 			if (i == p.riichiDiscard) label("^", tx + TileFaces.SW / 2, ty + TileFaces.SH - 6, TableKit.GOLD, 1);
 		}
 	}
 
+	/** Notes a face-up tile's box (in this screen's pixels) so its name can show under the mouse. **/
+	function spot(x:Float, y:Float, w:Float, h:Float, kind:Int, dora = false):Void
+		spots.push({x: x, y: y, w: w, h: h, kind: kind, dora: dora});
+
+	/**
+		The English name of the tile under the mouse, in a small label above it
+		(below it at the top edge): "5 dots", "East wind", "Red dragon". A dora
+		indicator also says which tile it makes dora. Hidden while a panel is up.
+	**/
+	function showTileName(w:Int):Void {
+		tipBox.clear();
+		tipText.visible = false;
+		var scene = getScene();
+		if (scene == null || title != "") return;
+		var mouse = globalToLocal(new h2d.col.Point(scene.mouseX, scene.mouseY));
+		var i = spots.length;
+		while (--i >= 0) {
+			var t = spots[i];
+			if (mouse.x < t.x || mouse.y < t.y || mouse.x >= t.x + t.w || mouse.y >= t.y + t.h) continue;
+			tipText.text = Tiles.name(t.kind) + (t.dora ? "  ·  makes " + Tiles.name(Tiles.doraFrom(t.kind)) + " dora" : "");
+			var tw = tipText.textWidth + 8, th = tipText.textHeight + 4;
+			var x = Math.round(Math.max(2, Math.min(w - 2 - tw, t.x + t.w / 2 - tw / 2)));
+			var y = Math.round(t.y - th - 2 >= 2 ? t.y - th - 2 : t.y + t.h + 2);
+			TableKit.panel(tipBox, x, y, tw, th, .92);
+			tipText.x = x + 4;
+			tipText.y = y + 2;
+			tipText.visible = true;
+			return;
+		}
+	}
+
+	/**
+		A seat's melds, laid along the table edge in front of that player and
+		turned to face them: yours upright below your hand, the right player's
+		up the right edge, the player across along the top, the left player's
+		down the left edge. As at a real table, the called tile lies sideways
+		at the end nearest the player who discarded it: first if from their
+		left, in the middle if from across, last if from their right. A chow
+		is only ever called from the left. An added kong stacks its fourth tile
+		on the sideways one.
+	**/
 	function melds(s:Int, w:Int, cx:Float):Void {
 		var p = game.players[s];
-		var step = TileFaces.SW + 1;
+		if (p.melds.length == 0) return;
+		// Each seat's row runs left to right from that player's point of view.
+		var theta = [0.0, -Math.PI / 2, Math.PI, Math.PI / 2][s];
+		var perLine = s == 0 ? p.melds.length : 2;
+		var lineLength = [0.0, 0.0, 0.0, 0.0];
 		for (i in 0...p.melds.length) {
-			var m = p.melds[i];
-			var kinds = switch m.type {
-				case Chow: [m.kind, m.kind + 1, m.kind + 2];
-				case Pung: [m.kind, m.kind, m.kind];
-				default: [m.kind, m.kind, m.kind, m.kind];
-			}
-			var x:Float, y:Float;
+			var line = Std.int(i / perLine);
+			lineLength[line] += (i % perLine == 0 ? 0 : MELD_GAP) + meldLength(meldSlots(s, p.melds[i]));
+		}
+		var u = 0.0;
+		for (i in 0...p.melds.length) {
+			var line = Std.int(i / perLine);
+			if (i % perLine == 0) u = 0;
+			// Where local (0, 0) lands: the first tile's far corner. Later lines move in toward the table.
+			var ox:Float, oy:Float;
 			switch s {
 				case 0:
-					// Right of your hand.
-					var order = handOrder();
-					var total = order.length * (TileFaces.W + 1) + (p.drawn >= 0 ? 6 : 0);
-					var meldWidth = p.melds.length * (4 * step + 6);
-					var x0 = Math.max(8, cx - (total + meldWidth) / 2);
-					x = x0 + total + 6 + i * (4 * step + 6);
-					y = 312;
+					ox = handLeft(cx) + handWidth() + 6;
+					oy = 312;
 				case 1:
-					x = w - 8 - kinds.length * step;
-					y = 84 + i * (TileFaces.SH + 3);
+					ox = w - 8 - TileFaces.SH;
+					oy = 290;
 				case 2:
-					x = cx + 76 + (i % 2) * (4 * step + 6);
-					y = 26 + Std.int(i / 2) * (TileFaces.SH + 3);
+					ox = cx + 76 + lineLength[line];
+					oy = 28 + TileFaces.SH;
 				default:
-					x = 8;
-					y = 84 + i * (TileFaces.SH + 3);
+					ox = 8 + TileFaces.SH;
+					oy = 96;
 			}
-			for (j in 0...kinds.length) {
-				// A closed kong shows its end tiles face down.
-				var faceDown = m.type == ClosedKong && (j == 0 || j == 3);
-				card(faceDown ? tiles.back(true) : tiles.face(kinds[j], true), x + j * step, y);
+			var v0 = -line * (TileFaces.SH + 4.0);
+			var slots = meldSlots(s, p.melds[i]);
+			var x = u;
+			for (slot in slots) {
+				var width = slot.sideways ? TileFaces.SH : TileFaces.SW;
+				if (slot.stacked) {
+					// On top of the sideways tile before it, further into the table.
+					meldTile(slot.tile, slot.kind, ox, oy, theta, x - 1 - TileFaces.SH / 2, v0 + TileFaces.SH - TileFaces.SW - 1 - TileFaces.SW / 2, true);
+					continue;
+				}
+				var vc = slot.sideways ? TileFaces.SH - TileFaces.SW / 2 : TileFaces.SH / 2;
+				meldTile(slot.tile, slot.kind, ox, oy, theta, x + width / 2, v0 + vc, slot.sideways);
+				x += width + 1;
 			}
+			u = x - 1 + MELD_GAP;
 		}
+	}
+
+	static inline var MELD_GAP = 6;
+
+	/** The tiles of a meld in order, from the claiming player's point of view. **/
+	function meldSlots(seat:Int, m:Meld):Array<MeldSlot> {
+		inline function up(kind:Int) return {tile: tiles.face(kind, true), kind: kind, sideways: false, stacked: false};
+		if (m.type == ClosedKong)
+			return [{tile: tiles.back(true), kind: -1, sideways: false, stacked: false}, up(m.kind), up(m.kind), {tile: tiles.back(true), kind: -1, sideways: false, stacked: false}];
+		var called = m.called != null && m.called >= 0 ? m.called : m.kind;
+		if (m.type == Chow) {
+			// Always from the player on the left: the called tile first, then the other two in order.
+			var out = [{tile: tiles.face(called, true), kind: called, sideways: true, stacked: false}];
+			for (k in m.kind...m.kind + 3) if (k != called) out.push(up(k));
+			return out;
+		}
+		var added = m.type == Kong && m.added == true;
+		var count = m.type == Pung || added ? 3 : 4;
+		// Where the discarder sits relative to the claimer: 3 on their left, 2 across, 1 on their right.
+		var side = m.from < 0 ? -1 : (m.from - seat + 4) % 4;
+		var turned = side == 3 ? 0 : side == 2 ? 1 : side == 1 ? count - 1 : -1;
+		var out = [];
+		for (j in 0...count) {
+			out.push({tile: tiles.face(m.kind, true), kind: m.kind, sideways: j == turned, stacked: false});
+			if (added && j == turned) out.push({tile: tiles.face(m.kind, true), kind: m.kind, sideways: true, stacked: true});
+		}
+		return out;
+	}
+
+	/** How far a meld runs along its row. **/
+	static function meldLength(slots:Array<MeldSlot>):Float {
+		var n = 0.0;
+		for (slot in slots) if (!slot.stacked) n += (slot.sideways ? TileFaces.SH : TileFaces.SW) + 1;
+		return n - 1;
+	}
+
+	/**
+		Draws a small tile with its center at (uc, vc) in a meld row turned by
+		`theta` from `(ox, oy)`; `sideways` lays it a quarter turn further.
+		Heaps turns a bitmap about its top-left corner, so the corner is placed
+		back from the center by the turned half-size.
+	**/
+	function meldTile(tile:h2d.Tile, kind:Int, ox:Float, oy:Float, theta:Float, uc:Float, vc:Float, sideways:Bool):Void {
+		var c = Math.cos(theta), sn = Math.sin(theta);
+		var centerX = ox + uc * c - vc * sn, centerY = oy + uc * sn + vc * c;
+		var phi = theta + (sideways ? -Math.PI / 2 : 0);
+		var pc = Math.cos(phi), ps = Math.sin(phi);
+		var hw = TileFaces.SW / 2, hh = TileFaces.SH / 2;
+		var b = card(tile, centerX - (hw * pc - hh * ps), centerY - (hw * ps + hh * pc));
+		b.rotation = phi;
+		// Lying across the view (a quarter turn either way), it's wider than tall.
+		var across = Math.abs(Math.sin(phi)) > .5;
+		var bw = across ? TileFaces.SH : TileFaces.SW, bh = across ? TileFaces.SW : TileFaces.SH;
+		if (kind >= 0) spot(centerX - bw / 2, centerY - bh / 2, bw, bh, kind);
+	}
+
+	/** Your hand's width, and where it starts so that it and your melds sit centered together. **/
+	function handWidth():Float {
+		var p = you();
+		return handOrder().length * (TileFaces.W + 1) + (p.drawn >= 0 ? 6 : 0);
+	}
+
+	function handLeft(cx:Float):Float {
+		var p = you();
+		var meldWidth = 0.0;
+		for (m in p.melds) meldWidth += meldLength(meldSlots(0, m)) + MELD_GAP;
+		return Math.round(Math.max(8, cx - (handWidth() + meldWidth) / 2));
 	}
 }

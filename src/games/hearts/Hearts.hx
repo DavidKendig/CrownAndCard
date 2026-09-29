@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.hearts;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 import cards.Suit;
@@ -118,6 +119,8 @@ class Hearts {
 		if (cards.length != 3) throw "Pass exactly 3 cards";
 		for (c in cards) if (hands[seat].indexOf(c) < 0) throw 'Seat $seat does not hold ${c.code}';
 		passOut[seat] = cards.copy();
+		// Only the player's own pass is on show; the house players' stay face down.
+		PlayLog.play(seat, seat == 0 ? "passes " + PlayLog.cards(cards) : "passes three cards");
 		if (allPassed()) resolvePass();
 	}
 
@@ -170,6 +173,7 @@ class Hearts {
 		if (card.suit == Suit.Hearts) heartsBroken = true;
 		trick.push({seat: seat, card: card});
 		played.push(card);
+		PlayLog.play(seat, "plays " + card.toString());
 		if (trick.length < SEATS) {
 			turn = (turn + 1) % SEATS;
 			return;
@@ -178,6 +182,7 @@ class Hearts {
 		var win = trick[0];
 		for (p in trick) if (p.card.suit == led && p.card.rank > win.card.rank) win = p;
 		for (p in trick) tricks[win.seat].push(p.card);
+		PlayLog.play(win.seat, "takes the trick");
 		lastTrick.resize(0);
 		for (p in trick) lastTrick.push(p);
 		trick.resize(0);

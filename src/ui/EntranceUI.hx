@@ -49,6 +49,8 @@ class EntranceUI {
 	public function show():Void { open=true; root.visible=true; selected=0; }
 	function cancel():Void { if (!open || departed) return; open=false; root.visible=false; onStay(); }
 	function confirm():Void { if (!open || departed) return; departed=true; onLeave(); }
+	/** Leaves without asking (the game menu has already asked): the same goodbye as the front doors. **/
+	public function depart():Void { if (departed) return; open=true; root.visible=true; departed=true; onLeave(); }
 
 	/** `actionable` prompts get the E key or the controller's A button in front of them. **/
 	public function update(w:Int,dt:Float,pad:hxd.Pad,prompt:String,actionable:Bool=false):Void {

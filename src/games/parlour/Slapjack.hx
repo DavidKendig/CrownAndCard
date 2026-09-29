@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.parlour;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 
@@ -78,6 +79,7 @@ class Slapjack {
 		if (piles[turn].length == 0) throw 'Seat $turn has no cards';
 		var card = piles[turn].shift();
 		center.push({card: card, seat: turn});
+		PlayLog.play(turn, "turns up " + card.toString());
 		var from = turn;
 		if (piles[from].length == 0) lastChance[from] = true;
 		advanceTurn(from);
@@ -92,6 +94,7 @@ class Slapjack {
 	**/
 	function redealCenter():Void {
 		var cards = [for (c in center) c.card];
+		PlayLog.note("No one can play and no jack is showing: the center is shuffled and dealt back out");
 		center.resize(0);
 		rng.shuffle(cards);
 		var seatsIn = [for (i in 0...piles.length) if (!out[i]) i];
@@ -105,6 +108,7 @@ class Slapjack {
 		if (center.length == 0) return Empty;
 		if (jackShowing) {
 			var won = [for (c in center) c.card];
+			PlayLog.play(seat, 'slaps the jack and takes the pile (${won.length} cards)');
 			center.resize(0);
 			for (c in won) piles[seat].push(c);
 			rng.shuffle(piles[seat]);
@@ -119,6 +123,7 @@ class Slapjack {
 		}
 		if (piles[seat].length == 0) return NothingToPay;
 		var owner = top.seat;
+		PlayLog.play(seat, "slaps with no jack showing and pays a card" + (owner == seat ? " under the pile" : " to " + PlayLog.who(owner)));
 		if (owner == seat) {
 			// Slapping your own card: it goes under the center pile instead.
 			center.insert(0, {card: piles[seat].shift(), seat: seat});

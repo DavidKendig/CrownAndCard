@@ -96,6 +96,7 @@ class CardGameScreen extends h2d.Object {
 		b.tile = tile;
 		b.x = Math.round(x);
 		b.y = Math.round(y);
+		b.rotation = 0; // pooled: a caller may have turned it last frame
 		b.visible = true;
 		if (dim) b.color.set(.5, .5, .55, 1) else b.color.set(1, 1, 1, 1);
 		return b;

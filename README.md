@@ -4,15 +4,19 @@ A first-person, HD pixel-art game night inside a secret society's manor, written
 
 ## Building
 
-Requirements: [Haxe](https://haxe.org) 4.3+, Python 3 (tools), Node.js (JS test run). HashLink is needed later for native builds.
+Requirements: [Haxe](https://haxe.org) 4.3+, Python 3 (tools), Node.js (JS test run). The native build runs on [HashLink](https://hashlink.haxe.org) 1.16, which `tools/fetch_hashlink.ps1` puts in `native/`.
 
 Install the libraries into a project-local repo (`.haxelib/`, git-ignored):
 
 ```bash
 haxelib newrepo
 haxelib install heaps 2.1.0
+haxelib install hlsdl 1.16.0
+haxelib install hlopenal 1.16.0
 haxelib install utest 1.13.2
 ```
+
+`hlsdl` and `hlopenal` are for the native build and must match the HashLink runtime's version.
 
 | Task | Command |
 |---|---|
@@ -22,12 +26,15 @@ haxelib install utest 1.13.2
 | Regenerate the card faces and back in `res/cards/` (needs `npm install --no-save sharp`) | `node tools/build_cards.cjs` |
 | RNG lint (no `Std.random` / `Math.random`) | `python tools/lint_rng.py` |
 | Regenerate RNG reference vectors | `python tools/rng_reference.py` |
+| Native build (its own window; what the launcher plays) | `haxe build-hl.hxml` (writes `native/game.hl`), and once, `powershell -File toolsetch_hashlink.ps1` for the runtime. Run it with `native\hl.exe native\game.hl`, or press PLAY in the launcher |
 | Web build | `haxe build-js.hxml`, then serve `web/` (for example `python -m http.server 8080 --directory web`) and open http://localhost:8080 |
 | Haxen, the map editor | `haxe haxen.hxml`, then serve `web/` and open http://localhost:8080/haxen.html (or use the launcher's HAXEN button) |
 
-**Render spike controls:** WASD move, arrows turn, drag with the mouse (or press M to capture it) to look, PgUp/PgDn look up/down (up to 75° either way), End re-centers, Shift runs. **Controller:** left stick (or d-pad) moves, right stick looks, LB or clicking the left stick runs, clicking the right stick (or Y) re-centers. Under the launcher the controller is read through XInput and streamed to the game, so it works even when the browser can't see it. If Steam is running, its desktop controller layout also moves the mouse: turn it off in Steam (Settings > Controller) for clean input.
+**Render spike controls:** WASD move, the mouse looks around, Left/Right turn, Up/Down (or PgUp/PgDn) look up and down (up to 75° either way), End re-centers, Shift runs. The mouse is captured for looking while you walk; M frees it, and a click takes it back. Menus and tables free it on their own.
 
-**Window and fullscreen:** in a window the game shows a 16:9 widescreen frame, letterboxed or pillarboxed to fit. In fullscreen (Alt+Enter, F11, or the launcher's Fullscreen setting) it fills the whole screen at any aspect ratio.
+**Game menu:** Esc in fullscreen (or Start on a controller) pauses the game and opens a menu: Resume, Settings, or Quit the game. In a window, Esc first frees the mouse and a second Esc opens the menu. Settings (display, pixel scaling, render resolution, field of view, head bob, looking style, mouse sensitivity, frame rate, volumes) take effect at once, and the launcher keeps them for next time. **Render resolution** is 480 lines by default, or 720. Everything is drawn into one frame that tall and then scaled to the screen: the world, sprites, the hands, the HUD, menus, card tables, cards, tiles and text. Layout stays on the 360-line design grid, so nothing moves when you switch, it only gets finer: art from high-resolution sources (materials, sprites, cards, tiles, the casino art) is redrawn at the new size, while the hand-drawn pixel glyphs and the font grow in whole steps (1× at 480, 2× at 720). Switching redraws all the art, which takes a few seconds. Arrows or WASD choose and change, Enter picks, Esc goes back; the mouse can click the < > arrows. In devtools builds F12 saves a screenshot to `%LOCALAPPDATA%\CrownAndCard\screenshots\` (Windows' own capture can come out black for the native window). In the browser build, click the game once to start mouse look (browsers only lock the pointer on a click); while the mouse is free, dragging with it still looks. **Controller:** left stick (or d-pad) moves, right stick looks, LB or clicking the left stick runs, clicking the right stick (or Y) re-centers. The native window reads controllers itself through SDL (Xbox, PlayStation, Switch and other pads). In the browser build the launcher reads the controller through XInput and streams it to the game, so it works even when the browser can't see it. If Steam is running, its desktop controller layout also moves the mouse: turn it off in Steam (Settings > Controller) for clean input.
+
+**Window and fullscreen:** the game starts fullscreen, filling the whole screen at any aspect ratio. Alt+Enter or F11 switches to a window (or set Display to Windowed in the launcher's Settings), where it shows a 16:9 widescreen frame, letterboxed or pillarboxed to fit. The native window paces its frames at the display's refresh rate itself: OpenGL vsync paced some drivers far below it.
 
 **Sprite preview:** click **F2: Sprites** at the bottom left (or press F2). Use **Next / C** to cycle the player, male/female guests and male/female staff, and **Rotate / R** to inspect eight directions. The player body is previewed here pending mirror support; the new first-person hand is visible while walking.
 
@@ -111,7 +118,9 @@ The launcher follows the manor's navy, burgundy, brass and ivory palette. Its ne
 - **News:** the latest posts from [davidkendig.info](https://davidkendig.info), from every category, cached for offline use.
 - **Settings:** graphics and audio options, passed to the game as `--key=value` arguments (native builds) or URL parameters (web build).
 - **Error tracking:** the game reports its state every 5 seconds, plus any errors, to the launcher, which records each session under `%LOCALAPPDATA%\CrownAndCard\sessions\`. Reports stay on the computer; nothing is uploaded.
-- **Play:** starts the native build if there is one, otherwise the web build, served locally and opened as an Edge or Chrome app window in guest mode.
+- **Game log:** the native window has no browser console, so the game logs what it's doing (window size and focus, the graphics driver and frame pacing, controllers connecting, slow frames, uncaught errors with their stack, and every play at the tables, yours and the house players': cards played, bids, bets, draws, rolls and who won) and the launcher shows it live in the game log window beside the game, with the game's reported events and the launcher's own notes. Plays only record what the table can see (a card drawn from the stock stays hidden until it's played). Filter by level or source (**Plays at the tables** shows just the moves), search (Ctrl+F), copy lines, or follow along. It opens with the game (Settings > Launcher), from the **LOG** button, or from **Open log** in Reports for a past session; each session keeps it as `session.log`. Run on its own, the game writes `%LOCALAPPDATA%\CrownAndCard\logs\game.log`. In devtools builds F10 throws a test error to check the whole path.
+- **Play:** starts the native build (its own window, reading controllers through SDL) if there is one; Settings > Graphics > **Run the game in** can choose the browser instead. Otherwise it plays the web build, served locally and opened as an app window in guest mode: in Chrome if it's installed, otherwise in Edge. In Edge, a controller starts out moving a pointer; right-click the game and choose **Use game controls** to play with it.
+- **Multiplayer:** in the game, take the empty chair at the Private Party table to host or join a Texas Hold'em table with friends on the same version (up to six players; the host can fill seats with house players). The host's lobby shows a 16-character join code, and friends type or paste it at their own Private Party table. On the same network it just works; over the internet the host forwards TCP port 47724 to their PC and chooses **Host over the internet** with their public address, so the code points there. The launcher carries the connection (it has no multiplayer controls of its own), and your name at the table is in its Settings. Everyone sits down with 1,000 chips that never touch your purse or save. Each hand is shuffled from a seed every player adds to, and every guest's game replays the hand afterwards to check the host dealt it fairly ([GAME_DESIGN.md §13.13](GAME_DESIGN.md)).
 - **Install:** `CrownAndCard-Setup-<version>.exe` (Inno Setup) installs for the current user into `%LOCALAPPDATA%\Programs\CrownAndCard` with no admin prompt. It adds a Start menu entry (and an optional desktop icon) and a normal uninstaller in Windows' installed apps. The zip is a portable alternative.
 - **Updates:** on start it checks the latest [GitHub release](https://github.com/DavidKendig/CrownAndCard/releases) and offers anything newer. When you click Install, it downloads that release's Setup exe, checks its SHA-256 against GitHub's digest, runs it and closes; the installer replaces the files. A copy inside a git checkout only reports the new version.
 - **Controller:** A or Start plays, LB/RB switch tabs, Y toggles the music.
@@ -119,9 +128,10 @@ The launcher follows the manor's navy, burgundy, brass and ivory palette. Its ne
 
 | Task | Command |
 |---|---|
+| After a `git pull`, rebuild the game, Haxen and the exe (the built files aren't in git) | `rebuild.bat` |
 | Build the exe (needs Visual Studio Build Tools with the C# and C++ build tools) | `powershell -File launcher\build.ps1` |
 | Build the exe and check the Guest Register save store and the local save API | `powershell -File launcher\build.ps1 -Verify` |
-| Build the release: `dist\CrownAndCard\`, the portable zip and the Setup exe (run `haxe build-js.hxml` first; also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php): `winget install JRSoftware.InnoSetup`) | `powershell -File launcher\build.ps1 -Package` |
+| Build the release: `dist\CrownAndCard\`, the portable zip and the Setup exe (run `haxe build-hl.hxml`, `tools\fetch_hashlink.ps1` and `haxe build-js.hxml` first; also needs [Inno Setup 6](https://jrsoftware.org/isinfo.php): `winget install JRSoftware.InnoSetup`) | `powershell -File launcher\build.ps1 -Package` |
 | Show or bump the version (0.YY.BBB: year, then build number) | `python tools/version.py` / `python tools/version.py bump` |
 | Build, package and publish a GitHub release (needs `gh`) | `powershell -File tools\release.ps1 -Bump -Notes "What changed"` |
 | Check the menu music decodes and the audio device opens (result in `%LOCALAPPDATA%\CrownAndCard\launcher.log`) | `CrownAndCardLauncher.exe --check-audio` |

@@ -1,0 +1,14 @@
+{
+  "tool": "Built-in image_gen",
+  "date": "2026-09-29",
+  "assets": [
+    {
+      "path": "res/materials/security-vhs.png",
+      "prompt": "Use case: stylized-concept. Asset type: wide 3:1 PNG texture for the FRONT FACE of a VHS video recorder in a pixel-art manor security room. Strict orthographic straight-on front elevation, black-charcoal metal rectangular VCR fills canvas edge to edge. Wide cassette slot on left with a partly inserted black VHS tape, small green segmented digital clock reading exactly '00:00', chunky silver transport buttons, tiny red recording indicator, jog dial and brass-edged power switch. Believable retro 1980s surveillance recorder, subtle wear, detailed crisp pixel art with hard clusters, muted navy charcoal, cool grey, brass and green palette. Flat even material lighting, opaque background. No visible top or sides, no floor, no room, no border or branding, no other text."
+    },
+    {
+      "path": "res/materials/security-monitors.png",
+      "prompt": "Use case: stylized-concept. Asset type: wide 3:2 PNG decorative surveillance console FRONT PANEL for a first-person pixel-art gothic manor game. Strict straight-on orthographic view of FOUR old black CRT security monitors arranged in a precise 2 by 2 grid, all filling the canvas edge to edge in a dark charcoal metal mounting frame. Each screen shows a different grainy monochrome green camera view: upper left a grand manor foyer with fountain and staircase; upper right a kitchen with counters and cooks; lower left an Art Deco nightclub salon with round cocktail tables, bar and singer; lower right dark courtyard cedar trees. Convex glass, green scanlines, tiny red status lights, chunky knobs on bezels, restrained brass screw details. Crisp original pixel-art texture, muted navy charcoal and phosphor green palette, no glossy modern flatscreens. No outer room, no perspective or visible side faces, no labels, no readable text, no watermark, opaque image."
+    }
+  ]
+}

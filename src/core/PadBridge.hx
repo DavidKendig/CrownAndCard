@@ -7,6 +7,9 @@ package core;
 	browser's Gamepad API can't see it: before the first button press, or
 	while Steam's desktop controller layout has it turning into a mouse. The
 	stream drives an hxd.Pad, so the rest of the game reads it like any pad.
+
+	The native window doesn't need it: SDL reads XInput (and PlayStation,
+	Switch and other controllers) itself, so there the bridge stays a dummy.
 **/
 class PadBridge {
 	public final pad:hxd.Pad;

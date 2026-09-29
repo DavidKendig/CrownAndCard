@@ -38,6 +38,7 @@ sealed class ReportsView : UserControl
 		Dock = DockStyle.Fill,
 	};
 
+	readonly Button openLog = new() { Text = "Open log", AutoSize = true };
 	readonly Button openFolder = new() { Text = "Open session folder", AutoSize = true };
 	readonly Button copy = new() { Text = "Copy report", AutoSize = true };
 	readonly Button openAll = new() { Text = "Open reports folder", AutoSize = true };
@@ -73,12 +74,17 @@ sealed class ReportsView : UserControl
 		Theme.DarkScrollbars(list);
 		Theme.DarkScrollbars(details);
 
-		foreach (var b in new[] { openFolder, copy, openAll, deleteAll })
+		foreach (var b in new[] { openLog, openFolder, copy, openAll, deleteAll })
 		{
 			Theme.StyleButton(b);
 			b.Margin = new Padding(0, 0, 8, 0);
 			b.Padding = new Padding(6, 1, 6, 1);
 		}
+		openLog.Click += (_, _) =>
+		{
+			if (SelectedDir != null)
+				GameLogWindow.ShowSaved(SelectedDir);
+		};
 		openFolder.Click += (_, _) => OpenFolder(SelectedDir);
 		openAll.Click += (_, _) => OpenFolder(Paths.SessionsDir);
 		copy.Click += (_, _) =>
@@ -101,7 +107,7 @@ sealed class ReportsView : UserControl
 		intro.MaximumSize = new Size(900, 0);
 		intro.Margin = new Padding(3, 4, 3, 10);
 		var buttons = new FlowLayoutPanel { AutoSize = true, WrapContents = false, BackColor = Color.Transparent, Margin = new Padding(0, 10, 0, 10) };
-		buttons.Controls.AddRange([openFolder, copy, openAll, deleteAll]);
+		buttons.Controls.AddRange([openLog, openFolder, copy, openAll, deleteAll]);
 
 		var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, BackColor = Color.Transparent };
 		layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -177,7 +183,7 @@ sealed class ReportsView : UserControl
 
 	void UpdateButtons()
 	{
-		openFolder.Enabled = copy.Enabled = SelectedDir != null;
+		openLog.Enabled = openFolder.Enabled = copy.Enabled = SelectedDir != null;
 		deleteAll.Enabled = list.Items.Count > 0;
 	}
 

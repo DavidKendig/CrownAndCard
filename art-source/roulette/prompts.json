@@ -12,6 +12,14 @@
     {
       "file": "res/roulette/roulette-ball.png",
       "prompt": "Use case: stylized-concept. PNG game sprite for Crown & Card, Victorian gothic manor casino in detailed 1990s Build-engine / Ion Fury pixel art. Crisp deliberate pixel clusters, mahogany, antique brass, burgundy, ivory, dark navy, restrained highlights. A SINGLE tiny polished ivory roulette ball sprite, perfectly round sphere shown top-down, centered in square canvas with generous transparent gutter, circle occupies 75% of canvas. Cream ivory with bright warm pinpoint specular highlight at upper left, soft gray shaded lower-right edge, subtle reflected brass tint. No ground, no cast shadow, no other objects, no text. Genuine transparent background. Clearly readable at 8 to 12 game pixels."
+    },
+    {
+      "file": "res/tabletops/roulette.png",
+      "prompt": "Use case: stylized-concept. Asset: roulette betting table background PNG for Crown & Card, a grand Victorian secret society manor with crisp 1990s Ion Fury / Blood pixel art. Wide 16:9 full-bleed flat orthographic top-down rectangular tabletop. Deep dark bottle green baize covering entire center, narrow carved mahogany and oxblood padded rail around outermost 3%, fine antique brass trim, tiny crown and laurel corner inlays. Subdued even low-contrast felt texture to support exact numbered roulette betting grid drawn by game across right two thirds, and roulette wheel overlaid on left. No wheel, no printed grid, no text, no numbers, no chips, no cards, no people, no objects on felt. Crisp textured pixel clusters, restrained navy shadows, muted brass highlights, conspiratorial luxury. Entire surface visible, no perspective, no surrounding room."
+    },
+    {
+      "file": "res/chips/*.png",
+      "prompt": "Use case: stylized-concept. Asset: one poker-chip sprite atlas for Crown & Card, grand Victorian secret society casino, 1990s Ion Fury / Blood crisp shaded pixel art. Seven round casino chips laid out in ONE evenly spaced horizontal row of SEVEN equal square cells, transparent background and transparent gutters. All identical diameter and top-down straight orthographic view, circular silhouettes, no perspective, thin layered bevel, six ivory edge inserts, thin antique brass inner ring, entirely blank plain central enamel disc reserved for denomination digits added later. Left to right base colors: ivory white, oxblood red, royal blue, jade green, deep violet, charcoal black, antique gold. Each chip centered in its own cell, maximum 80 percent cell width, visible separated edges. No writing, no numerals, no symbols, no shadows outside silhouettes, no stacks, no background, no watermark. Premium tactile casino clay chips with subtle wear and strong readable color separation."
     }
   ]
 }

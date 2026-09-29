@@ -12,19 +12,22 @@ namespace CrownAndCard.Launcher.UI;
 **/
 sealed class SettingsView : UserControl
 {
-	/** Raised with the name of what changed: "gamePath", "newsCategory" or "game". **/
+	/** Raised with the name of what changed: "gamePath" (also the game window choice), "newsCategory" or "game". **/
 	public event Action<string>? Changed;
 
 	readonly LauncherSettings s;
 	bool loading;
 
+	readonly Choice gameWindow = new(("native", "Its own window (best for controllers)"), ("browser", "A browser window (web build)"));
 	readonly Choice displayMode = new(("windowed", "Windowed"), ("fullscreen", "Fullscreen"));
 	readonly Choice windowSize = new(LauncherSettings.WindowSizes.Select(w => ($"{w.W}x{w.H}", $"{w.W} × {w.H}")).ToArray());
 	readonly Choice scaling = new(("integer", "Whole-number (sharpest pixels)"), ("fit", "Fill the window"));
+	readonly Choice renderHeight = new(("480", "480 lines"), ("720", "720 lines (sharpest)"));
 	readonly Slider fov = new() { Minimum = 70, Maximum = 110, Suffix = "°" };
 	readonly Slider headBob = new();
 	readonly Choice lookStyle = new(("shear", "Classic (Build-style shear)"), ("perspective", "Modern (true perspective)"));
 	readonly CheckBox showFps = Check("Show frame rate");
+	readonly Slider mouseSensitivity = new() { Minimum = 25, Maximum = 300 };
 
 	readonly Slider master = new();
 	readonly Slider music = new();
@@ -34,9 +37,11 @@ sealed class SettingsView : UserControl
 
 	readonly Choice newsCategory = new(("all", "All posts"), ("news", "News"), ("games", "Games"));
 	readonly CheckBox minimize = Check("Minimize the launcher while playing");
+	readonly CheckBox showGameLog = Check("Open the game log beside the game");
 	readonly CheckBox autoUpdate = Check("Check GitHub for updates when the launcher starts");
 	readonly TextBox gamePath = new() { Width = 240, BackColor = Theme.Card, ForeColor = Theme.Cream, BorderStyle = BorderStyle.FixedSingle, Font = Theme.Body };
 	readonly Button browse = new() { Text = "Browse…", AutoSize = true };
+	readonly TextBox playerName = new() { Width = 240, MaxLength = 20, BackColor = Theme.Card, ForeColor = Theme.Cream, BorderStyle = BorderStyle.FixedSingle, Font = Theme.Body, Margin = new Padding(0, 4, 0, 0) };
 
 	public SettingsView(LauncherSettings settings)
 	{
@@ -51,12 +56,15 @@ sealed class SettingsView : UserControl
 		pathRow.Controls.AddRange([gamePath, browse]);
 
 		var graphics = Group("GRAPHICS",
+			("Run the game in", gameWindow),
 			("Display", displayMode),
 			("Window size", windowSize),
 			("Pixel scaling", scaling),
+			("Render resolution", renderHeight),
 			("Field of view", fov),
 			("Head bob and sway", headBob),
 			("Looking up and down", lookStyle),
+			("Mouse sensitivity", mouseSensitivity),
 			("", showFps));
 		var audio = Group("AUDIO",
 			("Master", master),
@@ -70,8 +78,10 @@ sealed class SettingsView : UserControl
 		var launcher = Group("LAUNCHER",
 			("News category", newsCategory),
 			("", minimize),
+			("", showGameLog),
 			("", autoUpdate),
-			("Game folder", pathRow));
+			("Game folder", pathRow),
+			("Name at multiplayer tables", playerName));
 		var pathHint = Theme.Label("Leave empty to find the game next to the launcher.", Theme.Small, Theme.Muted);
 
 		var right = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, BackColor = Color.Transparent };
@@ -95,12 +105,13 @@ sealed class SettingsView : UserControl
 		Controls.Add(layout);
 
 		LoadValues();
-		foreach (var choice in new[] { displayMode, windowSize, scaling, lookStyle })
+		foreach (var choice in new[] { displayMode, windowSize, scaling, renderHeight, lookStyle })
 			choice.SelectedIndexChanged += (_, _) => Apply("game");
-		foreach (var slider in new[] { fov, headBob, master, music, effects, voices })
+		foreach (var slider in new[] { fov, headBob, mouseSensitivity, master, music, effects, voices })
 			slider.ValueChanged += (_, _) => Apply("game");
-		foreach (var box in new[] { showFps, muteInBackground, minimize, autoUpdate })
+		foreach (var box in new[] { showFps, muteInBackground, minimize, showGameLog, autoUpdate })
 			box.CheckedChanged += (_, _) => Apply("game");
+		gameWindow.SelectedIndexChanged += (_, _) => Apply("gamePath");
 		newsCategory.SelectedIndexChanged += (_, _) => Apply("newsCategory");
 		gamePath.Leave += (_, _) => Apply("gamePath");
 		gamePath.KeyDown += (_, e) =>
@@ -109,18 +120,30 @@ sealed class SettingsView : UserControl
 				Apply("gamePath");
 		};
 		browse.Click += (_, _) => Browse();
+		playerName.Leave += (_, _) => Apply("playerName");
+		playerName.KeyDown += (_, e) =>
+		{
+			if (e.KeyCode == Keys.Enter)
+				Apply("playerName");
+		};
 	}
+
+	/** Shows the current values again (after the game menu changed them). **/
+	public void Reload() => LoadValues();
 
 	void LoadValues()
 	{
 		loading = true;
+		gameWindow.Value = s.GameWindow;
 		displayMode.Value = s.Fullscreen ? "fullscreen" : "windowed";
 		windowSize.Value = $"{s.WindowWidth}x{s.WindowHeight}";
 		scaling.Value = s.Scaling;
+		renderHeight.Value = s.RenderHeight.ToString();
 		fov.Value = s.Fov;
 		headBob.Value = s.HeadBob;
 		lookStyle.Value = s.LookStyle;
 		showFps.Checked = s.ShowFps;
+		mouseSensitivity.Value = s.MouseSensitivity;
 		master.Value = s.MasterVolume;
 		music.Value = s.MusicVolume;
 		effects.Value = s.EffectsVolume;
@@ -128,8 +151,10 @@ sealed class SettingsView : UserControl
 		muteInBackground.Checked = s.MuteInBackground;
 		newsCategory.Value = s.NewsCategory;
 		minimize.Checked = s.MinimizeWhilePlaying;
+		showGameLog.Checked = s.ShowGameLog;
 		autoUpdate.Checked = s.AutoUpdate;
 		gamePath.Text = s.GamePath;
+		playerName.Text = s.PlayerName;
 		loading = false;
 	}
 
@@ -137,6 +162,7 @@ sealed class SettingsView : UserControl
 	{
 		if (loading)
 			return;
+		s.GameWindow = gameWindow.Value;
 		s.Fullscreen = displayMode.Value == "fullscreen";
 		var size = windowSize.Value.Split('x');
 		if (size.Length == 2 && int.TryParse(size[0], out var w) && int.TryParse(size[1], out var h))
@@ -145,10 +171,12 @@ sealed class SettingsView : UserControl
 			s.WindowHeight = h;
 		}
 		s.Scaling = scaling.Value;
+		s.RenderHeight = renderHeight.Value == "720" ? 720 : 480;
 		s.Fov = fov.Value;
 		s.HeadBob = headBob.Value;
 		s.LookStyle = lookStyle.Value;
 		s.ShowFps = showFps.Checked;
+		s.MouseSensitivity = mouseSensitivity.Value;
 		s.MasterVolume = master.Value;
 		s.MusicVolume = music.Value;
 		s.EffectsVolume = effects.Value;
@@ -156,9 +184,13 @@ sealed class SettingsView : UserControl
 		s.MuteInBackground = muteInBackground.Checked;
 		s.NewsCategory = newsCategory.Value;
 		s.MinimizeWhilePlaying = minimize.Checked;
+		s.ShowGameLog = showGameLog.Checked;
 		s.AutoUpdate = autoUpdate.Checked;
 		s.GamePath = gamePath.Text.Trim();
+		s.PlayerName = playerName.Text.Trim();
 		s.Save();
+		if (what == "playerName")
+			playerName.Text = s.PlayerName; // Save() fills in a default for an empty name
 		Changed?.Invoke(what);
 	}
 
@@ -169,10 +201,12 @@ sealed class SettingsView : UserControl
 		s.WindowWidth = d.WindowWidth;
 		s.WindowHeight = d.WindowHeight;
 		s.Scaling = d.Scaling;
+		s.RenderHeight = d.RenderHeight;
 		s.Fov = d.Fov;
 		s.HeadBob = d.HeadBob;
 		s.LookStyle = d.LookStyle;
 		s.ShowFps = d.ShowFps;
+		s.MouseSensitivity = d.MouseSensitivity;
 		s.MasterVolume = d.MasterVolume;
 		s.MusicVolume = d.MusicVolume;
 		s.EffectsVolume = d.EffectsVolume;
@@ -185,7 +219,7 @@ sealed class SettingsView : UserControl
 
 	void Browse()
 	{
-		using var dialog = new FolderBrowserDialog { Description = "Choose the folder that contains the game (web\\index.html, CrownAndCard.exe, or hl.exe + game.hl)." };
+		using var dialog = new FolderBrowserDialog { Description = "Choose the folder that contains the game (native\\game.hl with hl.exe, CrownAndCard.exe, or web\\index.html)." };
 		if (dialog.ShowDialog(this) == DialogResult.OK)
 		{
 			gamePath.Text = dialog.SelectedPath;

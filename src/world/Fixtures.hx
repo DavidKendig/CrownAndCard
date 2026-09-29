@@ -33,6 +33,16 @@ typedef FixtureKind = {
 class Fixtures {
 	public static final KINDS:Array<FixtureKind> = [
 		{
+			type: "privateTable", label: "Private party table", round: false,
+			description: "A 6 x 1.4 m table with a draped teal cloth and a spread of tabletop games. Standing 1.7 m south of its center and facing it (put an empty chair there) opens the multiplayer tables: host or join friends. Anchor: its center.",
+			x0: -3, y0: -.7, x1: 3, y1: .7
+		},
+		{
+			type: "rouletteTable", label: "Roulette table", round: false,
+			description: "A 2.4 x 1.35 m roulette table with a complete betting mat and resting wheel. Facing it from the guests' side opens the game menu. Anchor: its center.",
+			x0: -1.2, y0: -0.675, x1: 1.2, y1: 0.675
+		},
+		{
 			type: "frontDoors", label: "Front doors", round: false,
 			description: "The grand doors in a south wall. Walking up to them asks whether to leave the manor. Anchor: the middle of the wall line.",
 			x0: -2.6, y0: -0.2, x1: 2.6, y1: 1.2
@@ -70,6 +80,10 @@ class Fixtures {
 			map.props.push({x0: ax + x0, y0: ay + y0, x1: ax + x1, y1: ay + y1, height: top, baseZ: base, topTex: tex, sideTex: tex, solid: solid});
 		}
 		switch type {
+			case "privateTable":
+				map.props.push({x0:ax-3,y0:ay-.7,x1:ax+3,y1:ay+.7,height:.82,topTex:"tableWood",sideTex:"tableWood",hidden:true});
+				box(-3,-.7,3,.7,.82,"tableWood",.77,false);
+				for(dx in [-2.5,2.5]) for(dy in [-.43,.43]) box(dx-.09,dy-.09,dx+.09,dy+.09,.78,"tableWood");
 			case "frontDesk":
 				// Broad desk, overhanging marble counter, brass plinth, and the Guest Register.
 				box(-2.2, -.6, 2.2, .6, 1.08, "tableWood");
@@ -109,6 +123,8 @@ class Fixtures {
 				rope(map, ax + 4.4, ay - .6, ax + 4.4, ay + 6.3);
 			case "cardTable":
 				map.props.push({x0: ax - 1.2, y0: ay - .6, x1: ax + 1.2, y1: ay + .6, height: 0.9, topTex: "felt", sideTex: "tableWood"});
+			case "rouletteTable":
+				map.props.push({x0: ax - 1.2, y0: ay - .675, x1: ax + 1.2, y1: ay + .675, height: 0.9, topTex: "felt", sideTex: "tableWood"});
 			default:
 		}
 	}
@@ -150,6 +166,17 @@ class Fixtures {
 	/** In front of the roped-off stairs. **/
 	public static function belowStairs(ax:Float, ay:Float, x:Float, y:Float):Bool {
 		return y > ay - 1.9 && y < ay && x > ax - 5 && x < ax + 5;
+	}
+
+	/**
+		At the Private Party table's empty chair (1.7 m south of its center) and
+		facing the table: the multiplayer seat (§13.13).
+	**/
+	public static function atPrivateSeat(ax:Float, ay:Float, x:Float, y:Float, yaw:Float):Bool {
+		var sx = ax, sy = ay - 1.7;
+		if ((x - sx) * (x - sx) + (y - sy) * (y - sy) > 0.9 * 0.9) return false;
+		// Facing north, toward the table, within about 55 degrees.
+		return Math.sin(yaw) > 0.57;
 	}
 
 	/** Standing at the table on the guests' side (the dealer works the north side) and facing it. **/

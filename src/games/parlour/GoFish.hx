@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.parlour;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 
@@ -102,7 +103,12 @@ class GoFish {
 			result.fished = card;
 			result.again = card.rank == rank;
 		}
+		// A fished card stays face down unless it's the rank asked for (then it's shown).
+		var asked = 'asks ${PlayLog.who(target)} for ${PlayLog.rank(rank)}s: ';
+		PlayLog.play(asker, asked + (given.length > 0 ? 'gets ${given.length}'
+			: result.fished == null ? "go fish, but the pond is empty" : result.again ? "go fish, and fishes one up" : "go fish"));
 		result.books = layBooks(asker);
+		for (b in result.books) PlayLog.play(asker, 'lays down a book of ${PlayLog.rank(b)}s');
 		sortHands();
 		if (bookCount() == 13) over = true;
 		else if (!result.again || !refillIfEmpty(asker)) nextTurn();

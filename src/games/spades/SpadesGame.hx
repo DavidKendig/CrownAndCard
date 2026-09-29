@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.spades;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 import cards.Suit;
@@ -148,6 +149,7 @@ class SpadesGame {
 		if (blindNil && (amount != 0 || !canBidBlindNil(seat))) throw 'Blind nil is not allowed';
 		bids[seat] = amount;
 		blind[seat] = blindNil;
+		PlayLog.play(seat, blindNil ? "bids blind nil" : amount == 0 ? "bids nil" : 'bids $amount');
 		turn = (turn + 1) % SEATS;
 		if (bids[turn] != null) {
 			phase = Playing;
@@ -197,12 +199,14 @@ class SpadesGame {
 		if (card.suit == Suit.Spades) spadesBroken = true;
 		trick.push({seat: seat, card: card});
 		played.push(card);
+		PlayLog.play(seat, "plays " + card.toString());
 		if (trick.length < SEATS) {
 			turn = (turn + 1) % SEATS;
 			return;
 		}
 		var win = winning(trick);
 		tricks[win.seat]++;
+		PlayLog.play(win.seat, "takes the trick");
 		lastTrick.resize(0);
 		for (p in trick) lastTrick.push(p);
 		trick.resize(0);

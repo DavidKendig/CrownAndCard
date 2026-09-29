@@ -3,12 +3,15 @@ package ui;
 
 import cards.Card;
 import render.Palette;
+import render.Resolution;
 
 /**
-	Seated-view cards (§5.7): 40×56, drawn 1:1 on the 360p grid. The index and
-	pips are pixel glyphs so they stay readable; aces and court portraits are
-	reduced from the authored 200×280 faces (res/cards/). Colors snap to the
-	master palette.
+	Seated-view cards (§5.7): 40×56 grid units, drawn at the render
+	resolution (render.Resolution). The card, its edge and corners, the ace
+	and the court portraits are traced at full resolution from the authored
+	200×280 faces (res/cards/); the index and pips are hand-drawn pixel
+	glyphs, drawn at the nearest whole-number size and centered where they
+	sit on the grid. Colors snap to the master palette.
 **/
 class CardFaces {
 	public static inline var W = 40;
@@ -20,52 +23,60 @@ class CardFaces {
 	static inline var EDGE = 0xB89B63;
 
 	final palette:Palette;
-	final faces = new Map<Int, h2d.Tile>();
+
+	/** Faces by resolution, then card: a change of resolution draws a fresh set. **/
+	final faces = new Map<String, h2d.Tile>();
+
 	final snapped = new Map<Int, Int>();
-	var backTile:Null<h2d.Tile>;
 
 	public function new(palette:Palette) {
 		this.palette = palette;
 	}
 
 	public function face(card:Card):h2d.Tile {
-		var t = faces.get(card.index);
+		var key = '${Resolution.lines}/${card.index}';
+		var t = faces.get(key);
 		if (t == null) {
 			t = toTile(drawFace(card));
-			faces.set(card.index, t);
+			faces.set(key, t);
 		}
 		return t;
 	}
 
 	public function back():h2d.Tile {
-		if (backTile == null) {
+		var key = '${Resolution.lines}/back';
+		var t = faces.get(key);
+		if (t == null) {
 			var px = blank();
+			var pw = px.width, ph = px.height, e = Resolution.pixelScale();
 			var src = hxd.Res.load("cards/back.png").toImage().getPixels();
-			for (y in 1...H - 1) for (x in 1...W - 1)
-				if (inside(x, y)) {
-					var c = average(src, x * src.width / W, y * src.height / H, (x + 1) * src.width / W, (y + 1) * src.height / H);
+			for (y in e...ph - e) for (x in e...pw - e)
+				if (inside(x, y, pw, ph)) {
+					var c = average(src, x * src.width / pw, y * src.height / ph, (x + 1) * src.width / pw, (y + 1) * src.height / ph);
 					if ((c >>> 24) > 128) px.setPixel(x, y, snap(c));
 				}
-			backTile = toTile(px);
+			t = toTile(px);
+			faces.set(key, t);
 		}
-		return backTile;
+		return t;
 	}
 
 	function drawFace(card:Card):hxd.Pixels {
 		var px = blank();
+		var d = Resolution.density, k = Resolution.pixelScale();
 		var ink = snap(card.suit.isRed ? INK_RED : INK_DARK);
 		var rank = card.rank;
 		var label = rank == 10 ? "|0" : "23456789TJQKA".charAt(rank - 2);
+		// A 7×7 pip whose top-left sat at (gx, gy) on the grid, centered on the same spot.
+		inline function pipAt(gx:Float, gy:Float, flip = false)
+			PixelGlyphs.drawSuit(px, card.suit, Math.round((gx + 3.5) * d - 3.5 * k), Math.round((gy + 3.5) * d - 3.5 * k), ink, flip, k);
 		if (rank >= Card.JACK && rank <= Card.KING) court(px, card);
 		else if (rank == Card.ACE) ace(px, card, ink);
-		else for (p in pips(rank)) {
-			var x = Std.int(Math.round(11 + p.x * 13)), y = Std.int(Math.round(5 + p.y * 39));
-			PixelGlyphs.drawSuit(px, card.suit, x, y, ink, p.y > .5);
-		}
+		else for (p in pips(rank)) pipAt(Math.round(11 + p.x * 13), Math.round(5 + p.y * 39), p.y > .5);
 		// Indices last, over the corners of the court frames.
-		PixelGlyphs.drawText(px, label, rank == 10 ? 2 : 3, 3, ink);
-		PixelGlyphs.drawSuit(px, card.suit, 2, 12, ink);
-		PixelGlyphs.drawSuit(px, card.suit, W - 9, H - 9, ink, true);
+		PixelGlyphs.drawText(px, label, Math.round((rank == 10 ? 2 : 3) * d), Math.round(3 * d), ink, k);
+		pipAt(2, 12);
+		pipAt(W - 9, H - 9, true);
 		return px;
 	}
 
@@ -90,18 +101,20 @@ class CardFaces {
 
 	/** The court frame (both portraits) from the authored face, reduced into the pip field. **/
 	function court(px:hxd.Pixels, card:Card):Void {
+		var d = Resolution.density;
 		var src = hxd.Res.load(art.CardArt.path(card)).toImage().getPixels();
 		// Frame rectangle in the 200×280 face (tools/build_cards.cjs).
 		var fx = 47 * src.width / 200, fy = 34 * src.height / 280, fw = 106 * src.width / 200, fh = 212 * src.height / 280;
-		var ox = 10, oy = 5, ow = 22, oh = 44;
+		var ox = Math.round(10 * d), oy = Math.round(5 * d), ow = Math.round(22 * d), oh = Math.round(44 * d);
 		for (y in 0...oh) for (x in 0...ow) {
 			var c = average(src, fx + x * fw / ow, fy + y * fh / oh, fx + (x + 1) * fw / ow, fy + (y + 1) * fh / oh);
 			px.setPixel(ox + x, oy + y, snap(c));
 		}
 	}
 
-	/** The ace's large pip, found by its ink and reduced to fit 22×22. **/
+	/** The ace's large pip, found by its ink and reduced to fit 22×22 grid units. **/
 	function ace(px:hxd.Pixels, card:Card, ink:Int):Void {
+		var d = Resolution.density;
 		var src = hxd.Res.load(art.CardArt.path(card)).toImage().getPixels();
 		inline function isInk(c:Int):Bool {
 			var r = (c >> 16) & 255, g = (c >> 8) & 255, b = c & 255;
@@ -118,9 +131,9 @@ class CardFaces {
 				}
 		if (x1 < 0) return;
 		var bw = x1 - x0 + 1, bh = y1 - y0 + 1;
-		var size = 22, scale = Math.max(bw, bh) / size;
+		var size = Math.round(22 * d), scale = Math.max(bw, bh) / size;
 		var ow = Math.round(bw / scale), oh = Math.round(bh / scale);
-		var ox = Std.int(20 - ow / 2), oy = Std.int(28 - oh / 2);
+		var ox = Std.int(20 * d - ow / 2), oy = Std.int(28 * d - oh / 2);
 		for (y in 0...oh) for (x in 0...ow) {
 			var inkCount = 0, total = 0;
 			for (sy in Std.int(y0 + y * scale)...Std.int(y0 + (y + 1) * scale))
@@ -132,22 +145,27 @@ class CardFaces {
 		}
 	}
 
-	/** Cream card with a tan edge and cut corners. **/
+	/** Cream card with a tan edge and cut corners, at the render resolution. **/
 	function blank():hxd.Pixels {
-		var px = hxd.Pixels.alloc(W, H, hxd.PixelFormat.RGBA);
+		var pw = Resolution.px(W), ph = Resolution.px(H), e = Resolution.pixelScale();
+		var px = hxd.Pixels.alloc(pw, ph, hxd.PixelFormat.RGBA);
 		var face = snap(CREAM), edge = snap(EDGE);
-		for (y in 0...H) for (x in 0...W) {
-			if (!inside(x, y)) continue;
-			var border = x == 0 || y == 0 || x == W - 1 || y == H - 1 || !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
+		for (y in 0...ph) for (x in 0...pw) {
+			if (!inside(x, y, pw, ph)) continue;
+			// The edge is one grid pixel thick, in whole frame pixels.
+			var border = !inside(x - e, y, pw, ph) || !inside(x + e, y, pw, ph) || !inside(x, y - e, pw, ph) || !inside(x, y + e, pw, ph);
 			px.setPixel(x, y, border ? edge : face);
 		}
 		return px;
 	}
 
-	static inline function inside(x:Int, y:Int):Bool {
-		if (x < 0 || y < 0 || x >= W || y >= H) return false;
-		var cx = x < 2 ? 2 - x : x > W - 3 ? x - (W - 3) : 0;
-		var cy = y < 2 ? 2 - y : y > H - 3 ? y - (H - 3) : 0;
+	/** Inside the card's cut-corner outline, in frame pixels: the grid outline, scaled. **/
+	static function inside(x:Int, y:Int, pw:Int, ph:Int):Bool {
+		if (x < 0 || y < 0 || x >= pw || y >= ph) return false;
+		var d = Resolution.density;
+		var gx = Std.int(x / d), gy = Std.int(y / d);
+		var cx = gx < 2 ? 2 - gx : gx > W - 3 ? gx - (W - 3) : 0;
+		var cy = gy < 2 ? 2 - gy : gy > H - 3 ? gy - (H - 3) : 0;
 		return cx + cy < 3;
 	}
 
@@ -180,9 +198,12 @@ class CardFaces {
 		return c;
 	}
 
+	/** A tile drawn at the render resolution, sized in grid units. **/
 	static function toTile(px:hxd.Pixels):h2d.Tile {
 		var tex = h3d.mat.Texture.fromPixels(px);
 		tex.filter = Nearest;
-		return h2d.Tile.fromTexture(tex);
+		var t = h2d.Tile.fromTexture(tex);
+		t.scaleToSize(W, H);
+		return t;
 	}
 }

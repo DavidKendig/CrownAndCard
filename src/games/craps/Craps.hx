@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.craps;
 
+import games.PlayLog;
+
 /** One outstanding Come or Don't Come bet, with its own point and any odds behind it. **/
 typedef PointBet = {point:Int, amount:Int, odds:Int};
 
@@ -248,6 +250,7 @@ class Craps {
 	/** Throws the dice and settles every bet at once (§7.7: the RNG decides, then the table animates to match). **/
 	public function roll():RollResult {
 		lastPayout = 0;
+		PlayLog.play(0, "rolls with " + betsOnTable());
 		var d1 = rng.between(1, 6), d2 = rng.between(1, 6);
 		var total = d1 + d2;
 		var events:Array<String> = [];
@@ -258,7 +261,30 @@ class Craps {
 
 		if (point == null) resolveComeOut(total, events) else resolvePoint(total, events);
 
+		PlayLog.note('Dice: $d1 + $d2 = $total' + (events.length > 0 ? ". " + events.join(" ") : "") + (lastPayout > 0 ? ' Paid $lastPayout.' : ""));
 		return {die1: d1, die2: d2, total: total, point: point, events: events, payout: lastPayout};
+	}
+
+	/** Every bet on the table, for the play log. **/
+	function betsOnTable():String {
+		var out = [];
+		function add(name:String, amount:Int) if (amount > 0) out.push('$name $amount');
+		add("Pass line", passLine);
+		add("Pass odds", passOdds);
+		add("Don't Pass", dontPass);
+		add("Don't Pass odds", dontPassOdds);
+		add("Come", comePending);
+		add("Don't Come", dontComePending);
+		for (b in come) add('Come on ${b.point}', b.amount);
+		for (b in dontCome) add("Don't Come on " + b.point, b.amount);
+		add("Field", field);
+		for (n in [4, 5, 6, 8, 9, 10]) add('Place $n', place.get(n));
+		for (n in [4, 6, 8, 10]) add('Hard $n', hardway.get(n));
+		add("Any seven", anySeven);
+		add("Any craps", anyCraps);
+		add("Yo", yo);
+		add("Hi-Lo", hiLo);
+		return out.length == 0 ? "no bets" : out.join(", ");
 	}
 
 	function resolveComeOut(total:Int, events:Array<String>):Void {

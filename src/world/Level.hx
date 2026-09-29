@@ -65,6 +65,13 @@ class Level {
 
 	public function atTable(x:Float, y:Float, yaw:Float):Bool {
 		for (f in fixtures("cardTable")) if (Fixtures.atTable(f.x, f.y, x, y, yaw)) return true;
+		for (f in fixtures("rouletteTable")) if (Fixtures.atTable(f.x, f.y, x, y, yaw)) return true;
+		return false;
+	}
+
+	/** At the Private Party table's empty chair, facing the table: where multiplayer starts (§13.13). **/
+	public function atPrivateTable(x:Float, y:Float, yaw:Float):Bool {
+		for (f in fixtures("privateTable")) if (Fixtures.atPrivateSeat(f.x, f.y, x, y, yaw)) return true;
 		return false;
 	}
 

@@ -17,7 +17,7 @@ private final STRAINS = [ClubsStrain, DiamondsStrain, HeartsStrain, SpadesStrain
 
 /** Seated (simplified) Bridge view (§5.7, §6.4): you and the Colonel against the Vasquez twins. **/
 class BridgeTableUI extends h2d.Object {
-	static final NAMES = ["You", "Rosalind Vasquez", "Colonel Blythe", "Rafe Vasquez"];
+	public static final NAMES = ["You", "Rosalind Vasquez", "Colonel Blythe", "Rafe Vasquez"];
 
 	static inline var AI_SECONDS = 0.7;
 	static inline var TRICK_HOLD_SECONDS = 1.2;

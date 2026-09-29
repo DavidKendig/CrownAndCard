@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.durak;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Suit;
 
@@ -115,6 +116,7 @@ class Durak {
 		if (!canAttackWith(card)) throw 'Cannot attack with ${card.code}';
 		hands[attacker].remove(card);
 		table.push({attack: card, defend: null});
+		PlayLog.play(attacker, "attacks with " + card.toString());
 		phase = Defending;
 	}
 
@@ -129,6 +131,7 @@ class Durak {
 		if (legalDefends(index).indexOf(card) < 0) throw 'Cannot defend table slot $index with ${card.code}';
 		hands[defender].remove(card);
 		table[index].defend = card;
+		PlayLog.play(defender, 'beats ${table[index].attack.toString()} with ${card.toString()}');
 		phase = allBeaten() ? Attacking : Defending;
 	}
 
@@ -150,6 +153,12 @@ class Durak {
 	/** The defender takes the whole table: it goes to their hand, and the attacker keeps the lead. **/
 	public function take():Void {
 		if (phase != Defending && !canFinish) throw 'Nothing to take';
+		var taken:Array<Card> = [];
+		for (p in table) {
+			taken.push(p.attack);
+			if (p.defend != null) taken.push(p.defend);
+		}
+		PlayLog.play(defender, "takes the table: " + PlayLog.cards(taken));
 		for (p in table) {
 			hands[defender].push(p.attack);
 			if (p.defend != null) hands[defender].push(p.defend);
@@ -164,6 +173,7 @@ class Durak {
 	/** All attack cards were beaten and the attacker has nothing more to add: the table is cleared and roles swap. **/
 	public function finish():Void {
 		if (!canFinish) throw 'The table is not fully beaten yet';
+		PlayLog.play(attacker, "ends the attack; the beaten cards are discarded");
 		discarded += table.length * 2;
 		table.resize(0);
 		refill(attacker);

@@ -22,6 +22,7 @@ class TestMain {
 			new games.MahjongTest(),
 			new games.CrapsTest(),
 			new games.RouletteTest(),
+			new games.BettingLayoutTest(),
 			new games.WheelMotionTest(),
 			new games.SlotsTest(),
 			new games.LeverPhysicsTest(),
@@ -32,6 +33,8 @@ class TestMain {
 			new games.EuchreTest(),
 			new games.CanastaTest(),
 			new games.BridgeTest(),
+			new games.PlayLogTest(),
+			new net.NetPokerTest(),
 		]);
 	}
 }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.rummy;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 import cards.Suit;
@@ -195,6 +196,7 @@ class GinRummy {
 		if (phase != Draw || seat != turn) throw 'Seat $seat cannot draw now';
 		if (stock.length == 0) throw 'The stock is empty';
 		hands[seat].push(stock.shift());
+		PlayLog.play(seat, "draws from the stock");
 		phase = Discard;
 	}
 
@@ -202,6 +204,7 @@ class GinRummy {
 		if (phase != Draw || seat != turn) throw 'Seat $seat cannot draw now';
 		if (discardPile.length == 0) throw 'The discard pile is empty';
 		hands[seat].push(discardPile.pop());
+		PlayLog.play(seat, "takes " + hands[seat][hands[seat].length - 1].toString() + " from the discard pile");
 		phase = Discard;
 	}
 
@@ -221,6 +224,7 @@ class GinRummy {
 		if (knock && !canKnock(seat, card)) throw 'Deadwood is too high to knock';
 		hands[seat].remove(card);
 		discardPile.push(card);
+		PlayLog.play(seat, "discards " + card.toString() + (knock ? ' and knocks (deadwood ${evaluate(hands[seat]).deadwoodPoints})' : ""));
 		if (knock) {
 			resolveRound(seat);
 			return;

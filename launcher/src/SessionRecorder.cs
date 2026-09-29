@@ -28,8 +28,11 @@ sealed class SessionSummary
 	- state.json          the game's most recent state heartbeat
 	- state-history.json  the last 120 heartbeats (about 10 minutes)
 	- events.jsonl        start, error and quit events, one per line
-	- game-output.log     console output from native builds
+	- game-output.log     console output from native builds, exactly as printed
 	- notes.log           the launcher's own observations (hangs, lost contact)
+	- session.log         all of it as one timeline: the game's log lines, the
+	                      events it reported and the launcher's notes (what the
+	                      game log window shows)
 
 	Nothing here is uploaded anywhere.
 **/
@@ -37,6 +40,7 @@ sealed class SessionRecorder
 {
 	const int MaxHistory = 120;
 	const int KeepSessions = 30;
+	const int MaxEntries = 20000;
 
 	public string Dir { get; }
 	public DateTime StartedAt { get; } = DateTime.Now;
@@ -47,15 +51,38 @@ sealed class SessionRecorder
 	public DateTime? QuitAt { get; private set; }
 	public bool Ended { get; private set; }
 
+	/** Warnings and errors in the game's own log (native builds), counted apart from reported errors. **/
+	public int LogWarnings { get; private set; }
+	public int LogErrors { get; private set; }
+
+	/** The latest heartbeat's state (room, fps, controller...), or null before the first. **/
+	public object? LastState { get; private set; }
+
+	public string Status
+	{
+		get
+		{
+			lock (gate)
+				return info["status"] as string ?? "unknown";
+		}
+	}
+
 	/** Raised on whichever thread recorded something. **/
 	public event Action? Changed;
 
 	readonly object gate = new();
 	readonly Dictionary<string, object?> info = new();
 	readonly Queue<object> history = new();
+	readonly List<LogEntry> entries = [];
+	readonly List<Action<LogEntry>> listeners = [];
+	readonly GameLogParser parser = new();
+
+	/** Native builds log their own errors; their reported error events would show twice. **/
+	readonly bool gameLogs;
 
 	SessionRecorder(GamePlan plan, LauncherSettings settings)
 	{
+		gameLogs = plan.Kind == GameKind.Native;
 		var id = StartedAt.ToString("yyyy-MM-dd_HH-mm-ss", CultureInfo.InvariantCulture);
 		Dir = Path.Combine(Paths.SessionsDir, id);
 		for (int n = 2; Directory.Exists(Dir); n++)
@@ -82,8 +109,64 @@ sealed class SessionRecorder
 	{
 		var recorder = new SessionRecorder(plan, settings);
 		recorder.WriteInfo();
+		recorder.Note("Starting the game: " + plan.Describe());
 		Prune();
 		return recorder;
+	}
+
+	/**
+		The log so far, and every entry after it as it's recorded (on the recording
+		thread, so `listener` should hand off to its own). Call Unsubscribe to stop.
+	**/
+	public (LogEntry[] Past, Action Unsubscribe) Follow(Action<LogEntry> listener)
+	{
+		lock (gate)
+		{
+			listeners.Add(listener);
+			return (entries.ToArray(), () =>
+			{
+				lock (gate)
+					listeners.Remove(listener);
+			});
+		}
+	}
+
+	/** Records a log entry. Call with the gate held, so entries keep their order. **/
+	void Add(LogEntry entry)
+	{
+		entries.Add(entry);
+		if (entries.Count > MaxEntries)
+			entries.RemoveRange(0, MaxEntries / 10);
+		Append("session.log", entry.ToLine());
+		if (entry.Source == LogSource.Game && !entry.Continuation)
+		{
+			if (entry.Level == LogLevel.Error)
+				info["logErrors"] = ++LogErrors;
+			else if (entry.Level == LogLevel.Warn)
+				info["logWarnings"] = ++LogWarnings;
+		}
+		foreach (var listener in listeners.ToArray())
+		{
+			try
+			{
+				listener(entry);
+			}
+			catch (Exception e)
+			{
+				Log.Write("Log listener failed: " + e.Message);
+			}
+		}
+	}
+
+	/** Records a message (and any stack) as an entry plus indented continuation lines. **/
+	void AddLines(LogSource source, LogLevel level, string tag, string message, string? more = null)
+	{
+		var now = DateTime.Now;
+		var lines = message.Replace("\r\n", "\n").Split('\n');
+		Add(new LogEntry { Time = now, Level = level, Source = source, Tag = tag, Message = lines[0] });
+		var rest = lines.Skip(1).Concat(more == null ? [] : more.Replace("\r\n", "\n").Split('\n'));
+		foreach (var line in rest.Select(l => l.Trim()).Where(l => l.Length > 0))
+			Add(new LogEntry { Time = now, Level = level, Source = source, Tag = tag, Message = line, Continuation = true });
 	}
 
 	public void SetLaunchCommand(string command)
@@ -111,9 +194,12 @@ sealed class SessionRecorder
 		{
 			if (parsed == null)
 			{
-				Append("notes.log", $"{Now()}  Ignored a malformed {endpoint} report ({body.Length} bytes)");
+				var text = $"Ignored a malformed {endpoint} report ({body.Length} bytes)";
+				Append("notes.log", $"{Now()}  {text}");
+				AddLines(LogSource.Launcher, LogLevel.Warn, "", text);
 				return;
 			}
+			var roomBefore = LastRoom;
 			LastContact = DateTime.Now;
 			if (endpoint == "state")
 			{
@@ -123,7 +209,7 @@ sealed class SessionRecorder
 					history.Dequeue();
 				LastRoom = Json.Str(parsed, "state", "room") ?? LastRoom;
 				info["build"] = Json.Str(parsed, "build") ?? info.GetValueOr("build");
-				info["lastState"] = Json.Get(parsed, "state");
+				info["lastState"] = LastState = Json.Get(parsed, "state");
 				info["lastHeartbeatAt"] = Iso(LastContact);
 				info["heartbeats"] = Heartbeats;
 				Write("state.json", Json.Write(parsed));
@@ -133,6 +219,9 @@ sealed class SessionRecorder
 			{
 				var kind = Json.Str(parsed, "kind") ?? "event";
 				Append("events.jsonl", Json.Write(parsed, indent: false));
+				if (kind != "error" || !gameLogs)
+					AddLines(LogSource.Event, kind == "error" ? LogLevel.Error : LogLevel.Info, kind,
+						Json.Str(parsed, "message") ?? "(no message)", kind == "error" ? Json.Str(parsed, "stack") : null);
 				switch (kind)
 				{
 					case "start":
@@ -154,23 +243,36 @@ sealed class SessionRecorder
 					LastRoom = room;
 			}
 			info["lastRoom"] = LastRoom;
+			if (LastRoom != roomBefore && LastRoom.Length > 0)
+				AddLines(LogSource.Event, LogLevel.Info, "room", "Now in: " + LastRoom);
 			WriteInfo();
 		}
 		Changed?.Invoke();
 	}
 
-	public void OnOutput(string? line)
+	/** A line the game printed (native builds). **/
+	public void OnOutput(string? line, bool stderr = false)
 	{
 		if (line == null)
 			return;
 		lock (gate)
-			Append("game-output.log", line);
+		{
+			Append("game-output.log", stderr ? "[stderr] " + line : line);
+			int errors = LogErrors, warnings = LogWarnings;
+			Add(parser.Parse(line, stderr, DateTime.Now));
+			if (LogErrors != errors || LogWarnings != warnings)
+				WriteInfo();
+		}
+		Changed?.Invoke();
 	}
 
-	public void Note(string text)
+	public void Note(string text, LogLevel level = LogLevel.Info)
 	{
 		lock (gate)
+		{
 			Append("notes.log", $"{Now()}  {text}");
+			AddLines(LogSource.Launcher, level, "", text);
+		}
 		Changed?.Invoke();
 	}
 
@@ -193,6 +295,8 @@ sealed class SessionRecorder
 			info["endReason"] = reason;
 			if (exitCode != null)
 				info["exitCode"] = exitCode;
+			AddLines(LogSource.Launcher, status switch { "crashed" => LogLevel.Error, "ok" => LogLevel.Info, _ => LogLevel.Warn }, "",
+				$"Session ended: {reason}" + (exitCode != null ? $" (exit code {exitCode})" : "") + $". Result: {UI.Theme.StatusText(status)}.");
 			WriteInfo();
 		}
 		Changed?.Invoke();
@@ -254,10 +358,12 @@ sealed class SessionRecorder
 		sb.AppendLine("Crown & Card session report");
 		sb.AppendLine("Folder: " + dir);
 		sb.AppendLine();
-		foreach (var (title, file, tail) in new[] { ("Session", "session.json", 0), ("Last game state", "state.json", 0), ("Events (latest last)", "events.jsonl", 25), ("Launcher notes", "notes.log", 25), ("Game output (latest last)", "game-output.log", 40) })
+		// session.log has the notes and the game's output in one timeline; older sessions only have the separate files.
+		var timeline = File.Exists(Path.Combine(dir, "session.log"));
+		foreach (var (title, file, tail) in new[] { ("Session", "session.json", 0), ("Last game state", "state.json", 0), ("Events (latest last)", "events.jsonl", 25), ("Launcher notes", "notes.log", 25), ("Game output (latest last)", "game-output.log", 40), ("Log (latest last)", "session.log", 60) })
 		{
 			var path = Path.Combine(dir, file);
-			if (!File.Exists(path))
+			if (!File.Exists(path) || (timeline && file is "notes.log" or "game-output.log"))
 				continue;
 			sb.AppendLine($"== {title} ==");
 			try

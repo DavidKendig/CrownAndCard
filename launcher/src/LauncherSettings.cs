@@ -12,14 +12,16 @@ namespace CrownAndCard.Launcher;
 sealed class LauncherSettings
 {
 	// Graphics
-	public bool Fullscreen;
+	public bool Fullscreen = true;
 	public int WindowWidth = 1280;
 	public int WindowHeight = 720;
 	public string Scaling = "integer"; // integer | fit
+	public int RenderHeight = 480; // lines everything renders at: 480 | 720 (the game's render.Resolution)
 	public int Fov = 90; // horizontal degrees at 16:9
 	public int HeadBob = 100; // percent
 	public string LookStyle = "shear"; // shear | perspective
 	public bool ShowFps = true;
+	public int MouseSensitivity = 100; // percent
 
 	// Audio
 	public int MasterVolume = 80;
@@ -35,6 +37,11 @@ sealed class LauncherSettings
 	public bool AutoUpdate = true; // check GitHub for a newer release at startup (installing always asks)
 	public string GamePath = ""; // optional override; empty = auto-detect
 	public string Map = ""; // a custom Haxen map to play; empty = Dodriec Manor
+	public string PlayerName = DefaultName(); // shown at multiplayer tables
+	public string GameWindow = "native"; // native (its own window, SDL controllers) | browser (the web build)
+	public bool ShowGameLog = true; // open the game log window beside the game
+
+	public bool PreferNative => GameWindow != "browser";
 
 	public static readonly (int W, int H)[] WindowSizes = [(1280, 720), (1600, 900), (1920, 1080), (2560, 1440)];
 
@@ -47,10 +54,12 @@ sealed class LauncherSettings
 		new("windowWidth", WindowWidth.ToString()),
 		new("windowHeight", WindowHeight.ToString()),
 		new("scaling", Scaling),
+		new("renderHeight", RenderHeight.ToString()),
 		new("fov", Fov.ToString()),
 		new("headBob", HeadBob.ToString()),
 		new("lookStyle", LookStyle),
 		new("showFps", Bool(ShowFps)),
+		new("mouseSensitivity", MouseSensitivity.ToString()),
 		new("masterVolume", MasterVolume.ToString()),
 		new("musicVolume", MusicVolume.ToString()),
 		new("effectsVolume", EffectsVolume.ToString()),
@@ -78,25 +87,16 @@ sealed class LauncherSettings
 			if (!File.Exists(Paths.SettingsFile))
 				return s;
 			var d = Json.Parse(File.ReadAllText(Paths.SettingsFile));
-			s.Fullscreen = ReadBool(d, "fullscreen", s.Fullscreen);
-			s.WindowWidth = Json.Int(d, s.WindowWidth, "windowWidth");
-			s.WindowHeight = Json.Int(d, s.WindowHeight, "windowHeight");
-			s.Scaling = Json.Str(d, "scaling") ?? s.Scaling;
-			s.Fov = Json.Int(d, s.Fov, "fov");
-			s.HeadBob = Json.Int(d, s.HeadBob, "headBob");
-			s.LookStyle = Json.Str(d, "lookStyle") ?? s.LookStyle;
-			s.ShowFps = ReadBool(d, "showFps", s.ShowFps);
-			s.MasterVolume = Json.Int(d, s.MasterVolume, "masterVolume");
-			s.MusicVolume = Json.Int(d, s.MusicVolume, "musicVolume");
-			s.EffectsVolume = Json.Int(d, s.EffectsVolume, "effectsVolume");
-			s.VoiceVolume = Json.Int(d, s.VoiceVolume, "voiceVolume");
-			s.MuteInBackground = ReadBool(d, "muteInBackground", s.MuteInBackground);
+			s.ReadGameOptions(d);
 			s.NewsCategory = Json.Str(d, "newsCategory") ?? s.NewsCategory;
 			s.MinimizeWhilePlaying = ReadBool(d, "minimizeWhilePlaying", s.MinimizeWhilePlaying);
 			s.LauncherMusic = ReadBool(d, "launcherMusic", s.LauncherMusic);
 			s.AutoUpdate = ReadBool(d, "autoUpdate", s.AutoUpdate);
 			s.GamePath = Json.Str(d, "gamePath") ?? s.GamePath;
 			s.Map = Json.Str(d, "map") ?? s.Map;
+			s.PlayerName = Json.Str(d, "playerName") ?? s.PlayerName;
+			s.GameWindow = Json.Str(d, "gameWindow") ?? s.GameWindow;
+			s.ShowGameLog = ReadBool(d, "showGameLog", s.ShowGameLog);
 		}
 		catch (Exception e)
 		{
@@ -104,6 +104,30 @@ sealed class LauncherSettings
 		}
 		s.Clamp();
 		return s;
+	}
+
+	/**
+		Takes the graphics and audio options from `d`, in the game's key names:
+		the saved settings, or what the player changed in the game menu
+		(`api/settings`). Keys that are missing keep their value. Call Clamp after.
+	**/
+	public void ReadGameOptions(object? d)
+	{
+		Fullscreen = ReadBool(d, "fullscreen", Fullscreen);
+		WindowWidth = Json.Int(d, WindowWidth, "windowWidth");
+		WindowHeight = Json.Int(d, WindowHeight, "windowHeight");
+		Scaling = Json.Str(d, "scaling") ?? Scaling;
+		RenderHeight = Json.Int(d, RenderHeight, "renderHeight");
+		Fov = Json.Int(d, Fov, "fov");
+		HeadBob = Json.Int(d, HeadBob, "headBob");
+		LookStyle = Json.Str(d, "lookStyle") ?? LookStyle;
+		ShowFps = ReadBool(d, "showFps", ShowFps);
+		MouseSensitivity = Json.Int(d, MouseSensitivity, "mouseSensitivity");
+		MasterVolume = Json.Int(d, MasterVolume, "masterVolume");
+		MusicVolume = Json.Int(d, MusicVolume, "musicVolume");
+		EffectsVolume = Json.Int(d, EffectsVolume, "effectsVolume");
+		VoiceVolume = Json.Int(d, VoiceVolume, "voiceVolume");
+		MuteInBackground = ReadBool(d, "muteInBackground", MuteInBackground);
 	}
 
 	public void Save()
@@ -116,6 +140,9 @@ sealed class LauncherSettings
 		d["autoUpdate"] = Bool(AutoUpdate);
 		d["gamePath"] = GamePath;
 		d["map"] = Map;
+		d["playerName"] = PlayerName;
+		d["gameWindow"] = GameWindow;
+		d["showGameLog"] = Bool(ShowGameLog);
 		try
 		{
 			File.WriteAllText(Paths.SettingsFile, Json.Write(d));
@@ -132,8 +159,10 @@ sealed class LauncherSettings
 		WindowWidth = Clamp(WindowWidth, 640, 7680);
 		WindowHeight = Clamp(WindowHeight, 360, 4320);
 		Scaling = Scaling == "fit" ? "fit" : "integer";
+		RenderHeight = RenderHeight >= 720 ? 720 : 480; // an old 360 becomes 480
 		Fov = Clamp(Fov, 70, 110);
 		HeadBob = Clamp(HeadBob, 0, 100);
+		MouseSensitivity = Clamp(MouseSensitivity, 25, 300);
 		LookStyle = LookStyle == "perspective" ? "perspective" : "shear";
 		MasterVolume = Clamp(MasterVolume, 0, 100);
 		MusicVolume = Clamp(MusicVolume, 0, 100);
@@ -141,8 +170,21 @@ sealed class LauncherSettings
 		VoiceVolume = Clamp(VoiceVolume, 0, 100);
 		if (string.IsNullOrWhiteSpace(NewsCategory))
 			NewsCategory = "all";
+		GameWindow = GameWindow == "browser" ? "browser" : "native";
 		if (!MapStore.ValidName(Map))
 			Map = "";
+		PlayerName = (PlayerName ?? "").Trim();
+		if (PlayerName.Length > 20)
+			PlayerName = PlayerName.Substring(0, 20).Trim();
+		if (PlayerName.Length == 0)
+			PlayerName = DefaultName();
+	}
+
+	/** The Windows account's name to start with; the player can change it in the Multiplayer window. **/
+	static string DefaultName()
+	{
+		var n = (Environment.UserName ?? "").Trim();
+		return n.Length == 0 ? "Player" : n.Length > 20 ? n.Substring(0, 20) : n;
 	}
 
 	static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);

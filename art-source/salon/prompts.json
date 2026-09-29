@@ -1,0 +1,18 @@
+{
+  "tool": "Built-in image_gen",
+  "date": "2026-09-29",
+  "assets": [
+    {
+      "name": "bartender",
+      "path": "res/sprites/bartender.png",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: transparent PNG directional bartender sprite sheet for a first-person gothic manor nightclub game. Exactly FIVE equal-width cells horizontally: front, front three-quarter facing viewer-right, right profile, back three-quarter, back. Same charismatic adult male bartender in every view, same height and grounded feet. Slick dark hair, neat small moustache, ivory shirt with sleeves rolled to elbows, fitted midnight navy waistcoat with brass buttons, burgundy bow tie, dark navy trousers, polished black shoes. Holding a small silver cocktail shaker naturally at waist level. Full body, natural adult proportions, detailed crisp pixel art with hard pixel clusters, restrained dithering, navy shadows, warm ivory and gold highlights. Wide 3:1 canvas, generous transparent margins around all figures, hats not needed. No overlap, no background, no cast shadows, no floor, no labels or text. Real transparent alpha. Designed to import as five 48x112 frames, so a clear compact silhouette."
+    },
+    {
+      "name": "round-tabletop",
+      "path": "res/tabletops/salon-round.png",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: transparent PNG round cocktail tabletop for a first-person gothic Art Deco nightclub salon. Perfectly top-down orthographic view of ONE circular midnight navy lacquer table surface with a narrow polished brass rim and subtle concentric Art Deco gold inlay. On the tabletop: two small coupe cocktail glasses containing amber and ruby drinks on ivory coasters, a small round brass candle holder with ivory candle, and a small ivory dish of olives. Objects tastefully spaced, center mostly clear, no hands. Fine crisp detailed pixel art, hard pixel clusters, deep navy and burgundy with restrained gold highlights. Exact circular silhouette centered in a square canvas, full rim visible with only 2 percent transparent margin, background outside the disk genuinely transparent. No legs, no room, no perspective, no cast shadow outside the disk, no lettering or watermark. Designed to sample at 256x256."
+    }
+  ]
+}

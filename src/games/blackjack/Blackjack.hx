@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.blackjack;
 
+import games.PlayLog;
 import cards.Card;
 
 enum abstract Phase(String) to String {
@@ -214,6 +215,7 @@ class Blackjack {
 		giveDealer();
 		give(hand);
 		giveDealer();
+		PlayLog.play(0, 'bets $bet: dealt ${PlayLog.cards(hand.cards)}; the dealer shows ${upcard.toString()}');
 		if (upcard.rank == Card.ACE && purse >= bet >> 1) {
 			phase = Insurance;
 			return;
@@ -224,6 +226,7 @@ class Blackjack {
 	/** Insurance: half the bet against a dealer blackjack, paying 2:1. **/
 	public function insure(takeIt:Bool):Void {
 		if (phase != Insurance) throw 'No insurance offered now';
+		PlayLog.play(0, takeIt ? "takes insurance" : "declines insurance");
 		if (takeIt) {
 			insuranceBet = hands[0].bet >> 1;
 			take(insuranceBet);
@@ -278,6 +281,7 @@ class Blackjack {
 	public function act(action:Action):Void {
 		if (legal().indexOf(action) < 0) throw '$action is not allowed now';
 		var hand = hands[active];
+		var before = hand.cards.length;
 		switch action {
 			case Hit:
 				give(hand);
@@ -304,6 +308,8 @@ class Blackjack {
 				hand.done = true;
 				settleHand(hand, Surrendered, hand.bet >> 1);
 		}
+		var drew = hand.cards.length > before ? ": draws " + hand.cards[hand.cards.length - 1].toString() : "";
+		PlayLog.play(0, Std.string(action).toLowerCase() + (hands.length > 1 ? ' (hand ${active + 1})' : "") + drew + ' (total ${hand.total})');
 		advance();
 	}
 
@@ -329,9 +335,14 @@ class Blackjack {
 		revealHole();
 		var live = false;
 		for (h in hands) if (h.outcome == null && h.total <= 21) live = true;
+		PlayLog.by("Dealer", "turns over " + dealer[1].toString());
 		// Stands on all 17s, soft ones included.
-		if (live) while (total(dealer) < 17) giveDealer();
+		if (live) while (total(dealer) < 17) {
+			giveDealer();
+			PlayLog.by("Dealer", "draws " + dealer[dealer.length - 1].toString());
+		}
 		var d = total(dealer);
+		PlayLog.by("Dealer", d > 21 ? 'busts with $d' : 'stands on $d');
 		for (h in hands) {
 			if (h.outcome != null) continue;
 			var t = h.total;
@@ -344,6 +355,7 @@ class Blackjack {
 	}
 
 	function settleHand(hand:Hand, outcome:Outcome, payout:Int):Void {
+		PlayLog.play(0, '${(outcome : String)}' + (payout > 0 ? ': paid $payout' : ""));
 		hand.outcome = outcome;
 		hand.payout = payout;
 		pay(payout);

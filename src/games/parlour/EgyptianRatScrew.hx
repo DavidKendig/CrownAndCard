@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.parlour;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 import games.parlour.Slapjack.CenterCard;
@@ -93,6 +94,7 @@ class EgyptianRatScrew {
 		var seat = turn;
 		var card = piles[seat].shift();
 		center.push({card: card, seat: seat});
+		PlayLog.play(seat, "plays " + card.toString());
 		var faceChances = chancesFor(card.rank);
 		if (faceChances > 0) {
 			var responder = nextWithCards(seat);
@@ -127,6 +129,7 @@ class EgyptianRatScrew {
 
 	function awardPile(seat:Int):Void {
 		var won = [for (c in center) c.card];
+		PlayLog.play(seat, 'takes the pile (${won.length} cards)');
 		center.resize(0);
 		for (c in won) piles[seat].push(c);
 		turn = piles[seat].length > 0 ? seat : nextWithCards(seat);
@@ -151,6 +154,7 @@ class EgyptianRatScrew {
 		if (center.length == 0) return Empty;
 		var pattern = slappable();
 		if (pattern != "") {
+			PlayLog.play(seat, 'slaps the pile: $pattern');
 			challenge = null;
 			var count = center.length;
 			awardPile(seat);
@@ -158,6 +162,7 @@ class EgyptianRatScrew {
 			return Won(count, pattern);
 		}
 		if (piles[seat].length == 0) return NothingToPay;
+		PlayLog.play(seat, "slaps with nothing to slap and pays a card");
 		center.insert(0, {card: piles[seat].shift(), seat: seat});
 		if (piles[seat].length == 0 && challenge != null && challenge.responder == seat) {
 			awardPile(challenge.owner);

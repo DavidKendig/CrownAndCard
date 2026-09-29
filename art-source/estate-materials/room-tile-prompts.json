@@ -1,0 +1,14 @@
+{
+  "tool": "Built-in image_gen",
+  "date": "2026-09-29",
+  "assets": [
+    {
+      "path": "res/materials/kitchen-floor-tile.png",
+      "prompt": "Use case: stylized-concept. Asset type: seamless repeatable square PNG floor texture for a first-person gothic manor kitchen. Perfect TOP-DOWN orthographic surface, exactly four by four equal square ceramic tiles in an alternating warm ivory and dark charcoal-navy checkerboard, narrow warm grey grout. Each tile has subtle restrained speckling and gentle worn edges, clean and well maintained, no cracks or dirt. Original crisp detailed pixel art, hard pixel clusters, flat even lighting, no directional cast shadow or perspective. Seamless horizontal and vertical tiling: consistent half-width grout at all four image edges, no border, no vignette, no objects, no text. Pattern fills the entire square canvas. Opaque background. Intended for palette conversion to 128x128 and repetition once per square metre."
+    },
+    {
+      "path": "res/materials/bathroom-floor-tile.png",
+      "prompt": "Use case: stylized-concept. Asset type: seamless repeatable square PNG bathroom floor texture for a first-person Art Deco manor game. Perfect TOP-DOWN orthographic view of exactly four by four equal warm ivory porcelain octagonal tiles, with SMALL deep navy diamond inserts precisely at the intersections and narrow cool grey grout. Elegant classic bathroom mosaic, ivory dominant, navy only on the small inserts. Clean polished porcelain with subtle tiny pixel highlights and restrained speckling. Original crisp detailed pixel art with hard clusters and flat even lighting. Perfect seamless repetition left-right and top-bottom: pattern continues consistently across every edge, partial edge motifs match their opposite edges. No border, no vignette, no perspective, no objects, no text, no shadows. Fill whole square canvas, opaque image. Intended to sample at 128x128, one texture repeat per square metre."
+    }
+  ]
+}

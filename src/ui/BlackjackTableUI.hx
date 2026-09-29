@@ -272,10 +272,14 @@ class BlackjackTableUI extends h2d.Object {
 		b.y = Math.round(y);
 	}
 
-	/** The authored felt, reduced to the 360p grid with its chip rack cleared for the dealer's cards. **/
-	static function feltTile(palette:Palette):h2d.Tile {
+	/** The authored felt, reduced to the render resolution with its chip rack cleared for the dealer's cards. **/
+	static function feltTile(palette:Palette):h2d.Tile
+		return render.Resolution.tile(FELT_W, FELT_H, (pw, ph) -> feltPixels(palette, pw, ph));
+
+	/** The felt at `fw` × `fh` pixels (the render resolution). **/
+	static function feltPixels(palette:Palette, fw:Int, fh:Int):hxd.Pixels {
 		var src = hxd.Res.load("materials/blackjack-table.png").toImage().getPixels();
-		var px = hxd.Pixels.alloc(FELT_W, FELT_H, hxd.PixelFormat.RGBA);
+		var px = hxd.Pixels.alloc(fw, fh, hxd.PixelFormat.RGBA);
 		var snapped = new Map<Int, Int>();
 		function snap(c:Int):Int {
 			var key = c & 0xFCFCFC;
@@ -297,8 +301,8 @@ class BlackjackTableUI extends h2d.Object {
 				fn++;
 			}
 		var feltColor = snap((Std.int(fr / fn) << 16) | (Std.int(fg / fn) << 8) | Std.int(fb / fn));
-		var sx = src.width / FELT_W, sy = src.height / FELT_H;
-		for (y in 0...FELT_H) for (x in 0...FELT_W) {
+		var sx = src.width / fw, sy = src.height / fh;
+		for (y in 0...fh) for (x in 0...fw) {
 			var r = 0, g = 0, b = 0, n = 0;
 			for (yy in Std.int(y * sy)...Std.int((y + 1) * sy)) for (xx in Std.int(x * sx)...Std.int((x + 1) * sx)) {
 				var c = src.getPixel(xx, yy);
@@ -311,14 +315,12 @@ class BlackjackTableUI extends h2d.Object {
 		}
 		// Clear the chip rack for the dealer's cards: re-lay plain felt from the clear band
 		// to its left, mirrored back and forth so the weave has no seams.
-		var x0 = Std.int(FELT_W * .30), x1 = Std.int(FELT_W * .70), y0 = Std.int(FELT_H * .05), y1 = Std.int(FELT_H * .235);
-		var c0 = Std.int(FELT_W * .115), c1 = Std.int(FELT_W * .29), cw = c1 - c0;
+		var x0 = Std.int(fw * .30), x1 = Std.int(fw * .70), y0 = Std.int(fh * .05), y1 = Std.int(fh * .235);
+		var c0 = Std.int(fw * .115), c1 = Std.int(fw * .29), cw = c1 - c0;
 		for (y in y0...y1) for (x in x0...x1) {
 			var k = (x - x0) % (2 * cw);
 			px.setPixel(x, y, px.getPixel(k < cw ? c0 + k : c1 - 1 - (k - cw), y));
 		}
-		var tex = h3d.mat.Texture.fromPixels(px);
-		tex.filter = Nearest;
-		return h2d.Tile.fromTexture(tex);
+		return px;
 	}
 }

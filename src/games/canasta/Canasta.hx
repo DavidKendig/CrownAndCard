@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 package games.canasta;
 
+import games.PlayLog;
 import cards.Card;
 import cards.Deck;
 
@@ -90,6 +91,7 @@ class Canasta {
 			return;
 		}
 		hands[turn].push(stock.shift());
+		PlayLog.play(turn, "draws from the stock");
 		phase = Turn;
 	}
 
@@ -107,6 +109,7 @@ class Canasta {
 
 	public function takeDiscard():Void {
 		if (!canTakeDiscard()) throw "Cannot take the discard pile now";
+		PlayLog.play(turn, 'takes the discard pile (${discardPile.length} cards, ${discardPile[discardPile.length - 1].toString()} on top)');
 		for (c in discardPile) hands[turn].push(c);
 		discardPile.resize(0);
 		phase = Turn;
@@ -129,6 +132,7 @@ class Canasta {
 		for (c in cards) if (hands[turn].indexOf(c) < 0) throw 'Does not hold ${c.code}';
 		for (c in cards) hands[turn].remove(c);
 		melds[turn].push({rank: rank, cards: cards.copy()});
+		PlayLog.play(turn, "melds " + PlayLog.cards(cards));
 	}
 
 	/** Adds cards from the hand onto one of this player's existing melds. **/
@@ -141,6 +145,7 @@ class Canasta {
 		for (c in cards) if (hands[turn].indexOf(c) < 0) throw 'Does not hold ${c.code}';
 		for (c in cards) hands[turn].remove(c);
 		for (c in cards) m.cards.push(c);
+		PlayLog.play(turn, 'lays ${PlayLog.cards(cards)} on a meld (now ${m.cards.length} cards)');
 	}
 
 	public function hasCanasta(seat:Int):Bool {
@@ -155,6 +160,7 @@ class Canasta {
 		if (hands[turn].length == 1 && !hasCanasta(turn)) throw "Cannot go out without a canasta";
 		hands[turn].remove(card);
 		discardPile.push(card);
+		PlayLog.play(turn, "discards " + card.toString() + (hands[turn].length == 0 ? " and goes out" : ""));
 		if (hands[turn].length == 0) {
 			endHand(turn);
 			return;

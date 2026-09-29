@@ -14,8 +14,10 @@
   (cc_vorbis.dll, music\menu-loop-dark.ogg). Nothing is embedded and unpacked
   at run time: behavior-based antivirus treats that pattern as malware.
 
-  -Package also assembles dist\CrownAndCard\ (the launcher, the web build and
-  Haxen, the music and the licenses; run `haxe build-js.hxml` and `haxe haxen.hxml` first), zips it as
+  -Package also assembles dist\CrownAndCard\ (the launcher, the native build
+  in native\ when there is one, the web build and Haxen, the music and the
+  licenses; run `haxe build-hl.hxml`, tools\fetch_hashlink.ps1,
+  `haxe build-js.hxml` and `haxe haxen.hxml` first), zips it as
   dist\CrownAndCard-<version>-win64.zip (+ .sha256), and builds the installer
   dist\CrownAndCard-Setup-<version>.exe with Inno Setup (installer\CrownAndCard.iss).
 
@@ -120,6 +122,13 @@ if ($Package) {
     New-Item -ItemType Directory -Force (Join-Path $dist "web"), (Join-Path $dist "music") | Out-Null
     Copy-Item $exe, "$exe.config", (Join-Path $repo "cc_vorbis.dll") $dist
     Copy-Item (Join-Path $web "index.html"), (Join-Path $web "game.js"), (Join-Path $web "haxen.html"), (Join-Path $web "haxen.js") (Join-Path $dist "web")
+    # The native build (its own window, SDL controllers), which the launcher prefers; the web build stays as the fallback.
+    $native = Join-Path $repo "native"
+    if ((Test-Path (Join-Path $native "game.hl")) -and (Test-Path (Join-Path $native "hl.exe"))) {
+        Copy-Item $native (Join-Path $dist "native") -Recurse
+    } else {
+        Write-Warning "No native build (native\game.hl + hl.exe): run 'haxe build-hl.hxml' and tools\fetch_hashlink.ps1. Packaging the web build only."
+    }
     Copy-Item (Join-Path $repo "res\audio\music\menu-loop-dark.ogg") (Join-Path $dist "music")
     Copy-Item (Join-Path $repo "LICENSE"), (Join-Path $repo "LICENSE-ASSETS"), (Join-Path $repo "version.json") $dist
     Write-Host "Packaged $dist"

@@ -56,7 +56,7 @@ class Tiles {
 	}
 
 	public static function name(k:Int):String {
-		if (isSuited(k)) return rank(k) + " " + SUIT_NAMES[suit(k)];
+		if (isSuited(k)) return rank(k) + " of " + SUIT_NAMES[suit(k)]; // "5 of dots", "1 of characters"
 		if (isHonor(k)) return HONOR_NAMES[k - 27];
 		return BONUS_NAMES[k - FIRST_BONUS];
 	}

@@ -169,7 +169,7 @@ class GinRummyUI extends CardGameScreen {
 		var myTurn = game.turn == 0;
 		for (i in 0...hand.length) {
 			var lifted = myTurn && game.phase == Discard && i == cursor;
-			card(hand[i] != null ? faces.face(hand[i]) : faces.back(), x0 + i * step, lifted ? 224 : 232);
+			card(faces.face(hand[i]), x0 + i * step, lifted ? 224 : 232);
 		}
 		if (myTurn && game.phase == Discard) label('Deadwood if you keep this hand: ${GinRummy.evaluate(hand).deadwoodPoints}', cx, 202, TableKit.DIM, 1);
 	}

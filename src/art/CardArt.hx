@@ -9,6 +9,6 @@ class CardArt {
 	public static inline var HEIGHT=280;
 	public static function path(card:Card):String return 'cards/faces/${card.code}.png';
 	public static function texture(card:Null<Card>,palette:Palette):h3d.mat.Texture {
-		return FoyerArt.surface(card==null?"cards/back.png":path(card),palette,100,140,0,1,true).toIndexTexture(true,false);
+		return FoyerArt.texture(true,false,card==null?"cards/back.png":path(card),palette,100,140,0,1,true);
 	}
 }

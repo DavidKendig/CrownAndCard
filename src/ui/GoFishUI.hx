@@ -8,7 +8,7 @@ import ui.TableKit;
 
 /** Go Fish, four-handed: you ask, they answer, and everyone remembers. **/
 class GoFishUI extends CardGameScreen {
-	static final NAMES = ["You", "Madame Zelenka", "Sir Reggie", "Tuppence Fitch"];
+	public static final NAMES = ["You", "Madame Zelenka", "Sir Reggie", "Tuppence Fitch"];
 	static inline var AI_SECONDS = 1.1;
 	static inline var RESULT_SECONDS = 1.3;
 

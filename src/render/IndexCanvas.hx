@@ -114,6 +114,13 @@ class IndexCanvas {
 		`transparentZero`, index 0 gets alpha 0 so sprites can cut out.
 	**/
 	public function toIndexTexture(transparentZero:Bool, repeat:Bool):h3d.mat.Texture {
+		var tex = h3d.mat.Texture.fromPixels(toIndexPixels(transparentZero));
+		tex.filter = Nearest;
+		tex.wrap = repeat ? Repeat : Clamp;
+		return tex;
+	}
+
+	public function toIndexPixels(transparentZero:Bool):hxd.Pixels {
 		var px = hxd.Pixels.alloc(width, height, hxd.PixelFormat.RGBA);
 		for (y in 0...height)
 			for (x in 0...width) {
@@ -121,22 +128,23 @@ class IndexCanvas {
 				var alpha = (transparentZero && i == 0) ? 0 : 0xFF;
 				px.setPixel(x, y, (alpha << 24) | (i << 16));
 			}
-		var tex = h3d.mat.Texture.fromPixels(px);
-		tex.filter = Nearest;
-		tex.wrap = repeat ? Repeat : Clamp;
-		return tex;
+		return px;
 	}
 
 	/** Full-brightness true color, for 2D layers (HUD hands, UI) that skip the shade table. **/
 	public function toColorTile(palette:Palette):h2d.Tile {
+		var tex = h3d.mat.Texture.fromPixels(toColorPixels(palette));
+		tex.filter = Nearest;
+		return h2d.Tile.fromTexture(tex);
+	}
+
+	public function toColorPixels(palette:Palette):hxd.Pixels {
 		var px = hxd.Pixels.alloc(width, height, hxd.PixelFormat.RGBA);
 		for (y in 0...height)
 			for (x in 0...width) {
 				var i = get(x, y);
 				px.setPixel(x, y, i == 0 ? 0 : 0xFF000000 | palette.colors[i]);
 			}
-		var tex = h3d.mat.Texture.fromPixels(px);
-		tex.filter = Nearest;
-		return h2d.Tile.fromTexture(tex);
+		return px;
 	}
 }

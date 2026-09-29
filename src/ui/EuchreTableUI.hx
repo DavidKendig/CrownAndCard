@@ -10,7 +10,7 @@ import ui.TableKit;
 
 /** Seated Euchre view (§5.7, §6.4): you and the Colonel against the Vasquez twins. **/
 class EuchreTableUI extends h2d.Object {
-	static final NAMES = ["You", "Rosalind Vasquez", "Colonel Blythe", "Rafe Vasquez"];
+	public static final NAMES = ["You", "Rosalind Vasquez", "Colonel Blythe", "Rafe Vasquez"];
 	static final SUIT_NAMES = ["clubs", "diamonds", "hearts", "spades"];
 
 	static inline var AI_SECONDS = 0.7;
