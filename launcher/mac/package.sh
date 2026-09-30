@@ -61,16 +61,18 @@ if otool -L "$dir"/* 2>/dev/null | grep -E '^\s*/(opt/homebrew|usr/local)/'; the
 	echo "Some libraries still load from Homebrew (above)" >&2
 	exit 1
 fi
-# Signing refuses files carrying Finder metadata or quarantine flags.
-xattr -cr "$app"
-for f in "$dir"/*; do codesign --force --sign - "$f" >/dev/null 2>&1; done
-codesign --force --deep --sign - "$app"
+# Sign and pack a clean copy outside the checkout: in a synced folder (like
+# ~/Documents) macOS keeps putting back the Finder metadata codesign refuses.
+staging="$(mktemp -d)"
+ditto --norsrc --noextattr --noqtn "$app" "$staging/Crown & Card.app"
+signed="$staging/Crown & Card.app"
+for f in "$signed/Contents/Resources/game/native/mac"/*; do codesign --force --sign - "$f" >/dev/null; done
+codesign --force --deep --sign - "$signed"
+codesign --verify --deep --strict "$signed"
+ln -s /Applications "$staging/Applications"
 
 mkdir -p dist
 dmg="dist/CrownAndCard-$version-mac-arm64.dmg"
-staging="$(mktemp -d)"
-cp -R "$app" "$staging/"
-ln -s /Applications "$staging/Applications"
 rm -f "$dmg"
 hdiutil create -volname "Crown & Card $version" -srcfolder "$staging" -fs HFS+ -format UDZO -imagekey zlib-level=9 "$dmg" >/dev/null
 rm -rf "$staging"
