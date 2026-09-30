@@ -29,6 +29,10 @@ haxelib install utest 1.13.2
 | Native build (its own window; what the launcher plays) | `haxe build-hl.hxml` (writes `native/game.hl`), and once, `powershell -File toolsetch_hashlink.ps1` for the runtime. Run it with `native\hl.exe native\game.hl`, or press PLAY in the launcher |
 | Web build | `haxe build-js.hxml`, then serve `web/` (for example `python -m http.server 8080 --directory web`) and open http://localhost:8080 |
 | Haxen, the map editor | `haxe haxen.hxml`, then serve `web/` and open http://localhost:8080/haxen.html (or use the launcher's HAXEN button) |
+| Native build on a Mac (Apple Silicon) | `sh tools/build_mac.sh` (writes `native/mac/game`). The HashLink VM doesn't run on arm64, so this compiles the game to C (HL/C, `build-hlc-mac.hxml`) and links it with clang against HashLink 1.16 built from source (`HASHLINK`, default `~/src/hashlink`; its libraries come from Homebrew). Run it with `native/mac/game`, or press PLAY in the Mac launcher |
+| Mac launcher | `sh launcher/mac/build.sh` (needs the .NET 10 SDK) writes `Crown & Card.app` at the repo root. It builds the Windows launcher's own code (`launcher/src`, with `MACOS` defined) with an Avalonia UI in `launcher/mac/src` |
+| Mac release (disk image) | `sh launcher/mac/package.sh` writes `dist/CrownAndCard-<version>-mac-arm64.dmg`: the Mac launcher with the native game, the web build and Haxen inside, and the game's Homebrew libraries bundled. It isn't notarized, so the first launch needs right-click > Open. Add it to a release with `gh release upload v<version> dist/CrownAndCard-<version>-mac-arm64.dmg*` |
+| Windows release from any machine | The **Release (Windows)** GitHub Actions workflow (`.github/workflows/release-windows.yml`) runs `tools/release.ps1` on a Windows runner and publishes release `v<version>`: `gh workflow run release-windows.yml -f notes="..."` |
 
 **Render spike controls:** WASD move, the mouse looks around, Left/Right turn, Up/Down (or PgUp/PgDn) look up and down (up to 75° either way), End re-centers, Shift runs. The mouse is captured for looking while you walk; M frees it, and a click takes it back. Menus and tables free it on their own.
 

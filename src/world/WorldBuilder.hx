@@ -32,20 +32,31 @@ class WorldBuilder {
 			return b;
 		}
 
-		for (cy in 0...map.height)
-			for (cx in 0...map.width) {
-				var s = map.sectorAt(cx, cy);
-				if (s == null)
-					continue;
-				addFloorAndCeiling(mb, s, cx, cy);
-				// East, west, north, south neighbors.
-				addEdge(mb, s, map.sectorAt(cx + 1, cy), new Point(cx + 1, cy, 0), new Point(cx + 1, cy + 1, 0), cy, 1);
-				addEdge(mb, s, map.sectorAt(cx - 1, cy), new Point(cx, cy + 1, 0), new Point(cx, cy, 0), cy, 1);
-				addEdge(mb, s, map.sectorAt(cx, cy + 1), new Point(cx + 1, cy + 1, 0), new Point(cx, cy + 1, 0), cx, 0);
-				var opening:Null<FoyerWindows.FoyerWindow> = null;
-				for (w in map.windows) if (cy == w.y && cx >= w.x0 && cx + 1 <= w.x1) opening = w;
-				addEdge(mb, s, map.sectorAt(cx, cy - 1), new Point(cx, cy, 0), new Point(cx + 1, cy, 0), cx, 0, opening);
-			}
+		// Every storey. A wall looks across its edge at the same storey (or, through
+		// cells open to the storey below, at the room below), and leaves gaps where
+		// rooms on other storeys open into the same heights.
+		for (layer in map.layers)
+			for (cy in 0...map.height)
+				for (cx in 0...map.width) {
+					var s = layer.cells[cy * map.width + cx];
+					if (s == null)
+						continue;
+					addFloorAndCeiling(mb, s, cx, cy);
+					function edge(nx:Int, ny:Int, a:Point, b:Point, along:Int, shadeBias:Float, ?opening:FoyerWindows.FoyerWindow) {
+						var n = map.across(layer, s, nx, ny);
+						holes = map.openSpans(nx, ny, layer.level, n.level);
+						addEdge(mb, s, n.sector, a, b, along, shadeBias, opening);
+						holes = NO_HOLES;
+					}
+					// East, west, north, south neighbors.
+					edge(cx + 1, cy, new Point(cx + 1, cy, 0), new Point(cx + 1, cy + 1, 0), cy, 1);
+					edge(cx - 1, cy, new Point(cx, cy + 1, 0), new Point(cx, cy, 0), cy, 1);
+					edge(cx, cy + 1, new Point(cx + 1, cy + 1, 0), new Point(cx, cy + 1, 0), cx, 0);
+					var opening:Null<FoyerWindows.FoyerWindow> = null;
+					if (layer.level == 0)
+						for (w in map.windows) if (cy == w.y && cx >= w.x0 && cx + 1 <= w.x1) opening = w;
+					edge(cx, cy - 1, new Point(cx, cy, 0), new Point(cx + 1, cy, 0), cx, 0, opening);
+				}
 
 		for (p in map.props) {
 			if(p.kind=="galleryDeck") {
@@ -62,7 +73,7 @@ class WorldBuilder {
 				continue;
 			}
 			if (p.hidden == true) continue;
-			var s = map.sectorAtWorld((p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2);
+			var s = map.sectorAtWorld((p.x0 + p.x1) / 2, (p.y0 + p.y1) / 2, map.layers.length > 1 ? (p.baseZ == null ? 0 : p.baseZ) : null);
 			var shade = s == null ? 8.0 : s.shade;
 			MeshBuilder.box(mb(p.topTex), mb(p.sideTex), p.x0, p.y0, p.baseZ == null ? 0 : p.baseZ, p.x1, p.y1, p.height, shade);
 		}
@@ -88,7 +99,7 @@ class WorldBuilder {
 		var x0 = cx, y0 = cy, x1 = cx + 1, y1 = cy + 1;
 		inline function uv(x:Float, y:Float, span:Float=1)
 			return new UV(x/span, -y/span);
-		var floorSpan=s.floorTex=="partyFloor"?3.:1.,ceilingSpan=s.ceilTex=="partyCeiling"?6.:1.;
+		var floorSpan=(s.floorTex=="partyFloor" || s.floorTex=="bedroomCarpet")?3.:1.,ceilingSpan=s.ceilTex=="partyCeiling"?6.:1.;
 		mb(s.floorTex).quad(new Point(x0, y0, s.floorZ), new Point(x1, y0, s.floorZ), new Point(x1, y1, s.floorZ), new Point(x0, y1, s.floorZ),
 			uv(x0, y0,floorSpan), uv(x1, y0,floorSpan), uv(x1, y1,floorSpan), uv(x0, y1,floorSpan), new Point(0, 0, 1), s.shade);
 		// Ceilings sit a little darker than floors, like Build maps usually did.
@@ -142,7 +153,35 @@ class WorldBuilder {
 		}
 	}
 
+	static final NO_HOLES:Array<{z0:Float, z1:Float}> = [];
+
+	/** Height ranges the wall being built must leave open (rooms on other storeys). Empty on one-storey maps. **/
+	static var holes = NO_HOLES;
+
 	static function wall(builder:MeshBuilder, a:Point, b:Point, z0:Float, z1:Float, u0:Float, u1:Float, vTop:Float, vBottom:Float, shade:Float):Void {
+		if (holes.length > 0) {
+			// Build only the parts outside the holes, with the texture where it would have been.
+			var pieces = [{z0: z0, z1: z1}];
+			for (h in holes) {
+				var next = [];
+				for (p in pieces) {
+					if (h.z1 <= p.z0 || h.z0 >= p.z1) {
+						next.push(p);
+						continue;
+					}
+					if (h.z0 > p.z0) next.push({z0: p.z0, z1: h.z0});
+					if (h.z1 < p.z1) next.push({z0: h.z1, z1: p.z1});
+				}
+				pieces = next;
+			}
+			var all = holes;
+			holes = NO_HOLES;
+			inline function v(z:Float) return vTop + (z1 - z) / (z1 - z0) * (vBottom - vTop);
+			for (p in pieces) if (p.z1 - p.z0 > 1e-4)
+				wall(builder, a, b, p.z0, p.z1, u0, u1, v(p.z1), v(p.z0), shade);
+			holes = all;
+			return;
+		}
 		var normal = new Point(-(b.y - a.y), b.x - a.x, 0);
 		builder.quad(new Point(a.x, a.y, z1), new Point(b.x, b.y, z1), new Point(b.x, b.y, z0), new Point(a.x, a.y, z0), new UV(u0, vTop),
 			new UV(u1, vTop), new UV(u1, vBottom), new UV(u0, vBottom), normal, shade);

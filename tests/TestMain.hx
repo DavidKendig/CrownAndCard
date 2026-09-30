@@ -14,6 +14,7 @@ class TestMain {
 			new world.ConservatoryTest(),
 			new world.CardRoomTest(),
 			new world.MapDataTest(),
+			new world.FloorsTest(),
 			new core.GuestRegisterTest(),
 			new games.BlackjackTest(),
 			new games.SpadesTest(),

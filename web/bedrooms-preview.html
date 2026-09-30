@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<html lang="en">
+<head><meta charset="utf-8"><title>Bedroom art review</title>
+<style>
+html,body{margin:0;height:100%;background:#020308;color:#e8d9b2;font:14px Georgia}
+canvas#webgl{display:block;width:100%!important;height:100%!important;image-rendering:pixelated}
+nav{position:fixed;top:12px;right:12px;z-index:2;display:flex;gap:6px}
+button{padding:8px 12px;background:#281724;color:#e8d9b2;border:1px solid #a2824e;cursor:pointer}
+</style></head>
+<body><canvas id="webgl" globalEvents="1"></canvas>
+<nav><button data-view="front">Bed front</button><button data-view="side">Bed side</button><button data-view="back">Headboard back</button><button data-view="corridor">Corridor</button><button data-view="stairs">Basement stairs</button><button data-view="basement">Basement</button><button data-view="boiler">Boiler</button><button data-view="entrance">Foyer entrance</button></nav>
+<script src="game.js"></script>
+<script>
+const views={front:[5.9,6.8,122,-6],side:[1.55,9.2,12,-10],back:[5.9,11.5,222,-5],corridor:[9.5,5.3,90,0],stairs:[9.5,33.2,90,-14],basement:[9.5,41.2,90,0],boiler:[9.5,50.5,90,0],entrance:[26,5,180,0]};
+const preview=(name)=>window.crownDebug?.teleport(...views[name]);
+document.querySelectorAll('button').forEach(button=>button.onclick=()=>preview(button.dataset.view));
+const ready=setInterval(()=>{if(window.crownDebug){clearInterval(ready);preview('front');}},250);
+</script></body></html>

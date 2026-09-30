@@ -19,6 +19,9 @@ typedef Sector = {
 
 	/** Base shade level: 0 is brightest, 31 is black. **/
 	var shade:Float;
+
+	/** The storey it's on (see Layer); absent means the ground floor. **/
+	@:optional var level:Int;
 }
 
 /** A solid box standing on the floor: tables, desks. **/
@@ -36,57 +39,204 @@ typedef Prop = {
 	@:optional var hidden:Bool;
 	@:optional var kind:String;
 	@:optional var collisionRadius:Float;
+
+	/** In a map file, the floor it stands on (its heights are measured from that floor). The built level's props are in world heights. **/
+	@:optional var floor:Int;
+}
+
+/**
+	One storey of the grid: the ground floor is level 0, floors above count up
+	and basements count down. Its sectors carry world heights.
+**/
+typedef Layer = {
+	var level:Int;
+
+	/** Where the storey starts, in meters: it owns the heights from here up to the next storey's. **/
+	var elevation:Float;
+
+	/** Each cell's sector; null for solid cells and cells open to the storey below. **/
+	var cells:Array<Null<Sector>>;
+
+	/** Cells with no floor of their own, open to the storey below ("."). **/
+	var open:Array<Bool>;
 }
 
 /**
 	A grid of 1 m cells (§13.6). Each open cell belongs to a sector; `#` is
 	solid. The first text row is the north edge (+Y), so the map reads like a
 	floor plan.
+
+	A map can stack any number of storeys over the same grid, above and below
+	the ground floor. Asked with a height (the feet of whoever is asking), a
+	cell is the room on the storey that holds that height, so the same cell
+	can be a cellar, a hall and a bedroom. Asked without one, it's the ground
+	floor's, as it always was.
 **/
 class GridMap {
+	/** How far up a step can be and still be walked onto (see canStep). **/
+	static inline var STEP = 0.26;
+
 	public final width:Int;
 	public final height:Int;
 	public final props:Array<Prop> = [];
 	public final windows:Array<FoyerWindows.FoyerWindow> = [];
 	public final plants:Array<Conservatory.PlantPlacement> = [];
 
+	/** Every storey, lowest first. The ground floor is always there. **/
+	public final layers:Array<Layer> = [];
+
+	final ground:Layer;
 	final cells:Array<Null<Sector>>;
 
 	public function new(rows:Array<String>, sectors:Map<String, Sector>) {
 		height = rows.length;
 		width = rows[0].length;
-		cells = [for (_ in 0...width * height) null];
+		ground = layer(0, 0, rows, sectors);
+		cells = ground.cells;
+		layers.push(ground);
+	}
+
+	/** Adds a storey above or below the ground floor, with its sectors in world heights. **/
+	public function addFloor(level:Int, elevation:Float, rows:Array<String>, sectors:Map<String, Sector>):Void {
+		for (l in layers) if (l.level == level) throw 'Two floors are level $level';
+		layers.push(layer(level, elevation, rows, sectors));
+		layers.sort((a, b) -> a.level - b.level);
+	}
+
+	function layer(level:Int, elevation:Float, rows:Array<String>, sectors:Map<String, Sector>):Layer {
+		if (rows.length != height)
+			throw 'Floor $level is ${rows.length} rows, expected $height';
+		var l:Layer = {level: level, elevation: elevation, cells: [for (_ in 0...width * height) null], open: [for (_ in 0...width * height) false]};
 		for (row in 0...height) {
 			if (rows[row].length != width)
 				throw 'Map row $row is ${rows[row].length} wide, expected $width';
 			for (cx in 0...width) {
 				var ch = rows[row].charAt(cx);
+				var i = (height - 1 - row) * width + cx;
 				if (ch == "#")
 					continue;
+				if (ch == ".") {
+					l.open[i] = true;
+					continue;
+				}
 				var sector = sectors.get(ch);
 				if (sector == null)
 					throw 'Map uses unknown sector "$ch"';
-				cells[(height - 1 - row) * width + cx] = sector;
+				l.cells[i] = sector;
 			}
 		}
+		return l;
 	}
 
-	/** The sector of a cell, or null for solid cells and anything outside the map. **/
-	public function sectorAt(cx:Int, cy:Int):Null<Sector> {
+	/**
+		The sector of a cell, or null for solid cells and anything outside the
+		map. With `z` (feet height) on a map with several storeys, it's the room
+		holding that height (see resolve); without, the ground floor's.
+	**/
+	public function sectorAt(cx:Int, cy:Int, ?z:Float):Null<Sector> {
 		if (cx < 0 || cy < 0 || cx >= width || cy >= height)
 			return null;
-		return cells[cy * width + cx];
+		if (z == null || layers.length == 1)
+			return cells[cy * width + cx];
+		return resolve(cy * width + cx, z);
 	}
 
-	public function sectorAtWorld(x:Float, y:Float):Null<Sector> {
-		return sectorAt(Math.floor(x), Math.floor(y));
+	public function sectorAtWorld(x:Float, y:Float, ?z:Float):Null<Sector> {
+		return sectorAt(Math.floor(x), Math.floor(y), z);
+	}
+
+	/**
+		From the top storey down: the first room whose floor is at or just below
+		`z` and whose ceiling is above it. A solid cell stops the search (null,
+		a wall) when `z` is within its storey's heights; open cells, and rooms
+		that don't hold `z`, let it carry on down.
+	**/
+	function resolve(i:Int, z:Float):Null<Sector> {
+		var k = layers.length;
+		while (k-- > 0) {
+			var l = layers[k];
+			var s = l.cells[i];
+			if (s != null) {
+				if (s.floorZ <= z + STEP && z < s.ceilZ)
+					return s;
+				continue;
+			}
+			if (l.open[i])
+				continue;
+			var top = k + 1 < layers.length ? layers[k + 1].elevation : Math.POSITIVE_INFINITY;
+			if (z >= l.elevation && z < top)
+				return null;
+		}
+		return null;
+	}
+
+	/** The storey numbered `level`, or null. **/
+	public function floor(level:Int):Null<Layer> {
+		for (l in layers) if (l.level == level) return l;
+		return null;
+	}
+
+	/** The room painted at (x, y) on storey `level` itself (null for walls, open cells and missing floors). **/
+	public function sectorOn(level:Int, x:Float, y:Float):Null<Sector> {
+		var l = floor(level), cx = Math.floor(x), cy = Math.floor(y);
+		if (l == null || cx < 0 || cy < 0 || cx >= width || cy >= height)
+			return null;
+		return l.cells[cy * width + cx];
+	}
+
+	/** The storey someone standing at (x, y) with their feet at `z` is on (0 when outside every room). **/
+	public function levelAt(x:Float, y:Float, z:Float):Int {
+		var s = sectorAtWorld(x, y, z);
+		return s == null || s.level == null ? 0 : s.level;
+	}
+
+	/**
+		What a wall of `s` on `from` looks across at, through the edge into cell
+		(cx, cy): that cell on the same storey or, where the cell is open to the
+		storey below, the first room below that rises past `s`'s floor. `level`
+		is the storey the answer came from.
+	**/
+	public function across(from:Layer, s:Sector, cx:Int, cy:Int):{sector:Null<Sector>, level:Int} {
+		if (cx < 0 || cy < 0 || cx >= width || cy >= height)
+			return {sector: null, level: from.level};
+		var i = cy * width + cx;
+		if (!from.open[i])
+			return {sector: from.cells[i], level: from.level};
+		var k = layers.indexOf(from);
+		while (k-- > 0) {
+			var t = layers[k].cells[i];
+			if (t != null)
+				return t.ceilZ > s.floorZ ? {sector: t, level: layers[k].level} : {sector: null, level: from.level};
+			if (!layers[k].open[i])
+				break;
+		}
+		return {sector: null, level: from.level};
+	}
+
+	/**
+		The height ranges of cell (cx, cy) that are open rooms on storeys other
+		than `a` and `b`: where a wall between storeys has to leave a gap.
+	**/
+	public function openSpans(cx:Int, cy:Int, a:Int, b:Int):Array<{z0:Float, z1:Float}> {
+		var out = [];
+		if (layers.length == 1 || cx < 0 || cy < 0 || cx >= width || cy >= height)
+			return out;
+		var i = cy * width + cx;
+		for (l in layers) {
+			if (l.level == a || l.level == b)
+				continue;
+			var s = l.cells[i];
+			if (s != null)
+				out.push({z0: s.floorZ, z1: s.ceilZ});
+		}
+		return out;
 	}
 
 	/** Whether a circle at (x, y) overlaps a solid cell or a prop. **/
 	public function blocked(x:Float, y:Float, radius:Float, ?feetZ:Float):Bool {
 		for (cy in Math.floor(y - radius)...Math.floor(y + radius) + 1)
 			for (cx in Math.floor(x - radius)...Math.floor(x + radius) + 1)
-				if (sectorAt(cx, cy) == null && circleHitsBox(x, y, radius, cx, cy, cx + 1, cy + 1))
+				if (sectorAt(cx, cy, feetZ) == null && circleHitsBox(x, y, radius, cx, cy, cx + 1, cy + 1))
 					return true;
 		for (p in props)
 			if (blocksAtHeight(p,feetZ) && propOverlap(x,y,radius,p)>0)
@@ -125,7 +275,7 @@ class GridMap {
 		var deepest = 0.0;
 		for (cy in Math.floor(y - radius)...Math.floor(y + radius) + 1)
 			for (cx in Math.floor(x - radius)...Math.floor(x + radius) + 1)
-				if (sectorAt(cx, cy) == null)
+				if (sectorAt(cx, cy, feetZ) == null)
 					deepest = Math.max(deepest, overlap(x, y, radius, cx, cy, cx + 1, cy + 1));
 		for (p in props)
 			if (blocksAtHeight(p,feetZ))
@@ -135,7 +285,7 @@ class GridMap {
 
 	function canStep(x0:Float, y0:Float, x1:Float, y1:Float, radius:Float, ?feetZ:Float):Bool {
 		var from=feetZ==null?floorAt(x0,y0):feetZ, to=floorAt(x1,y1,feetZ);
-		if (Math.abs(to-from) > 0.26) return false;
+		if (Math.abs(to-from) > STEP) return false;
 		var targetZ=feetZ==null?null:to;
 		return !blocked(x1,y1,radius,targetZ) || penetration(x1,y1,radius,targetZ)<=penetration(x0,y0,radius,feetZ);
 	}
@@ -158,7 +308,7 @@ class GridMap {
 
 	/** Stair treads share their rendered heights with movement; ropes are separate. */
 	public function floorAt(x:Float, y:Float, ?feetZ:Float):Float {
-		var sector = sectorAtWorld(x, y);
+		var sector = sectorAtWorld(x, y, feetZ);
 		var z = sector == null ? 0.0 : sector.floorZ;
 		for (p in props)
 			if (p.walkable == true && (feetZ==null || p.height<=feetZ+.26) && x >= p.x0 && x < p.x1 && y >= p.y0 && y < p.y1)

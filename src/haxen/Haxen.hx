@@ -49,6 +49,11 @@ private enum Drag {
 	map, edits rooms, walls, props, fixtures, guests, lights and the start
 	point on a top-down plan, checks the map with the game's own rules, and
 	saves maps the game can play.
+
+	A map can have any number of floors above and below the ground floor. The
+	plan shows one floor at a time (PageUp and PageDown move between them);
+	painting and placing work on that floor, and cells left open to the floor
+	below show it through.
 **/
 class Haxen {
 	static final TOOLS:Array<{tool:Tool, label:String, key:String, help:String}> = [
@@ -68,6 +73,7 @@ class Haxen {
 	static final KEY_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 	static final SNAPS = [0.0, 0.05, 0.1, 0.25, 0.5, 1.0];
 	static inline var WALL = "#";
+	static inline var OPEN = ".";
 	static inline var UNDO_LIMIT = 200;
 
 	final doc = Browser.document;
@@ -80,6 +86,10 @@ class Haxen {
 	final undoStack:Array<String> = [];
 	final redoStack:Array<String> = [];
 	var tool = Select;
+
+	/** The floor on the plan (MapData.FloorDef.level; 0 is the ground floor). **/
+	var floor = 0;
+
 	var paintKey = WALL;
 	var fixtureType = "frontDesk";
 	var sel:Null<Sel> = null;
@@ -134,6 +144,7 @@ class Haxen {
 		map = m;
 		savedAs = name;
 		dirty = false;
+		floor = 0;
 		undoStack.resize(0);
 		redoStack.resize(0);
 		sel = null;
@@ -159,6 +170,7 @@ class Haxen {
 		dirty = true;
 		scheduleCheck();
 		refreshDoc();
+		refreshFloors();
 		refreshMapPanel();
 		invalidate();
 	}
@@ -178,6 +190,7 @@ class Haxen {
 	}
 
 	function afterHistory():Void {
+		if (MapData.floorRows(map, floor) == null) floor = 0;
 		if (!selectionValid()) sel = null;
 		dirty = true;
 		refreshAll();
@@ -185,6 +198,7 @@ class Haxen {
 
 	function refreshAll():Void {
 		refreshDoc();
+		refreshFloors();
 		refreshRooms();
 		refreshMapPanel();
 		refreshSelection();
@@ -460,28 +474,29 @@ class Haxen {
 				drag = NewProp(sx, sy, sx, sy);
 			case GuestTool:
 				place(() -> {
-					map.guests.push({name: 'Guest ${map.guests.length + 1}', x: snapped(x), y: snapped(y), facing: 90, art: "masked_guest"});
+					map.guests.push(here({name: 'Guest ${map.guests.length + 1}', x: snapped(x), y: snapped(y), facing: 90, art: "masked_guest"}));
 					SGuest(map.guests.length - 1);
 				});
 			case LightTool:
 				place(() -> {
-					map.lights.push({x: snapped(x), y: snapped(y), z: 3, radius: 7, power: 9});
+					map.lights.push(here({x: snapped(x), y: snapped(y), z: 3, radius: 7, power: 9}));
 					SLight(map.lights.length - 1);
 				});
 			case LampTool:
 				place(() -> {
-					map.chandeliers.push({x: snapped(x), y: snapped(y), z: 3, width: 1.5});
+					map.chandeliers.push(here({x: snapped(x), y: snapped(y), z: 3, width: 1.5}));
 					SLamp(map.chandeliers.length - 1);
 				});
 			case FixtureTool:
 				place(() -> {
-					map.fixtures.push({type: fixtureType, x: snapped(x), y: snapped(y)});
+					map.fixtures.push(here({type: fixtureType, x: snapped(x), y: snapped(y)}));
 					SFixture(map.fixtures.length - 1);
 				});
 			case StartTool:
 				place(() -> {
 					map.start.x = snapped(x);
 					map.start.y = snapped(y);
+					setFloorOf(map.start, floor);
 					SStart;
 				});
 		}
@@ -533,7 +548,7 @@ class Haxen {
 			case NewProp(x0, y0, x1, y1):
 				var ax = Math.min(x0, x1), bx = Math.max(x0, x1), ay = Math.min(y0, y1), by = Math.max(y0, y1);
 				if (bx - ax >= .05 && by - ay >= .05) {
-					map.props.push({x0: ax, y0: ay, x1: bx, y1: by, height: .9, baseZ: 0, topTex: "tableWood", sideTex: "tableWood", solid: true});
+					map.props.push(here({x0: ax, y0: ay, x1: bx, y1: by, height: .9, baseZ: 0, topTex: "tableWood", sideTex: "tableWood", solid: true}));
 					sel = SProp(map.props.length - 1);
 				}
 			default:
@@ -598,6 +613,11 @@ class Haxen {
 				invalidate();
 				return;
 			}
+			if (e.key == "PageUp" || e.key == "PageDown") {
+				stepFloor(e.key == "PageUp" ? 1 : -1);
+				e.preventDefault();
+				return;
+			}
 			if (e.key == "+" || e.key == "=") zoomBy(1.25);
 			if (e.key == "-") zoomBy(1 / 1.25);
 			if (StringTools.startsWith(e.key, "Arrow") && sel != null) {
@@ -627,17 +647,39 @@ class Haxen {
 
 	inline function height():Int return map.rows.length;
 
-	function cellKey(cx:Int, cy:Int):String {
-		if (cx < 0 || cy < 0 || cx >= width() || cy >= height()) return WALL;
-		return map.rows[height() - 1 - cy].charAt(cx);
+	/** The plan of the floor being edited. **/
+	function rows():Array<String> {
+		var r = MapData.floorRows(map, floor);
+		return r == null ? map.rows : r;
+	}
+
+	function cellKey(cx:Int, cy:Int):String return keyOn(rows(), cx, cy);
+
+	static function keyOn(rows:Array<String>, cx:Int, cy:Int):String {
+		if (rows.length == 0 || cx < 0 || cy < 0 || cx >= rows[0].length || cy >= rows.length) return WALL;
+		var row = rows[rows.length - 1 - cy];
+		return cx < row.length ? row.charAt(cx) : WALL;
 	}
 
 	function setCell(cx:Int, cy:Int, key:String):Void {
 		if (cx < 0 || cy < 0 || cx >= width() || cy >= height()) return;
+		var rows = rows();
 		var r = height() - 1 - cy;
-		var row = map.rows[r];
+		var row = rows[r];
 		if (row.charAt(cx) == key) return;
-		map.rows[r] = row.substr(0, cx) + key + row.substr(cx + 1);
+		rows[r] = row.substr(0, cx) + key + row.substr(cx + 1);
+	}
+
+	/**
+		What shows through an open cell of the current floor: the first floor
+		below with something painted there (its key and level), or null.
+	**/
+	function below(cx:Int, cy:Int):Null<{key:String, level:Int}> {
+		for (st in MapData.storeys(map)) if (st.level < floor) {
+			var k = keyOn(st.rows, cx, cy);
+			if (k != OPEN) return {key: k, level: st.level};
+		}
+		return null;
 	}
 
 	function paintCell(cx:Int, cy:Int):Void {
@@ -716,22 +758,22 @@ class Haxen {
 	function hitTest(x:Float, y:Float):Null<Sel> {
 		var r = Math.max(.35, 8 / zoom);
 		inline function near(px:Float, py:Float) return (px - x) * (px - x) + (py - y) * (py - y) <= r * r;
-		if (near(map.start.x, map.start.y)) return SStart;
+		if (shown(map.start.floor) && near(map.start.x, map.start.y)) return SStart;
 		var i = map.guests.length;
-		while (i-- > 0) if (near(map.guests[i].x, map.guests[i].y)) return SGuest(i);
+		while (i-- > 0) if (shown(map.guests[i].floor) && near(map.guests[i].x, map.guests[i].y)) return SGuest(i);
 		i = map.chandeliers.length;
-		while (i-- > 0) if (near(map.chandeliers[i].x, map.chandeliers[i].y)) return SLamp(i);
+		while (i-- > 0) if (shown(map.chandeliers[i].floor) && near(map.chandeliers[i].x, map.chandeliers[i].y)) return SLamp(i);
 		i = map.lights.length;
-		while (i-- > 0) if (near(map.lights[i].x, map.lights[i].y)) return SLight(i);
+		while (i-- > 0) if (shown(map.lights[i].floor) && near(map.lights[i].x, map.lights[i].y)) return SLight(i);
 		i = map.fixtures.length;
 		while (i-- > 0) {
 			var f = map.fixtures[i], k = Fixtures.get(f.type);
-			if (k != null && x >= f.x + k.x0 && x <= f.x + k.x1 && y >= f.y + k.y0 && y <= f.y + k.y1) return SFixture(i);
+			if (shown(f.floor) && k != null && x >= f.x + k.x0 && x <= f.x + k.x1 && y >= f.y + k.y0 && y <= f.y + k.y1) return SFixture(i);
 		}
 		var best = -1, bestArea = Math.POSITIVE_INFINITY;
 		for (j in 0...map.props.length) {
 			var p = map.props[j];
-			if (x >= p.x0 && x <= p.x1 && y >= p.y0 && y <= p.y1) {
+			if (shown(p.floor) && x >= p.x0 && x <= p.x1 && y >= p.y0 && y <= p.y1) {
 				var area = (p.x1 - p.x0) * (p.y1 - p.y0);
 				if (area < bestArea) {
 					bestArea = area;
@@ -784,7 +826,9 @@ class Haxen {
 					map.props.push(p);
 					sel = SProp(map.props.length - 1);
 				case SFixture(i):
-					map.fixtures.push({type: map.fixtures[i].type, x: map.fixtures[i].x + off, y: map.fixtures[i].y});
+					var f:FixtureDef = Reflect.copy(map.fixtures[i]);
+					f.x += off;
+					map.fixtures.push(f);
 					sel = SFixture(map.fixtures.length - 1);
 				case SGuest(i):
 					var g:GuestDef = Reflect.copy(map.guests[i]);
@@ -841,12 +885,15 @@ class Haxen {
 				check(box, "Solid", p.solid != false, v -> p.solid = v);
 				check(box, "Walk on top", p.walkable == true, v -> p.walkable = v);
 				check(box, "Invisible", p.hidden == true, v -> p.hidden = v);
+				floorPick(box, p);
+				hint(box, "Base and top are measured from the floor's elevation.");
 			case SFixture(i):
 				var f = map.fixtures[i];
 				var k = Fixtures.get(f.type);
 				pick(box, "Fixture", [for (kk in Fixtures.KINDS) kk.type], f.type, v -> f.type = v, [for (kk in Fixtures.KINDS) kk.label]);
 				num(box, "Anchor x", f.x, v -> f.x = v);
 				num(box, "Anchor y", f.y, v -> f.y = v);
+				floorPick(box, f);
 				if (k != null) hint(box, k.description);
 			case SGuest(i):
 				var g = map.guests[i];
@@ -868,6 +915,7 @@ class Haxen {
 					num(box, "Walk to x", g.walkTo.x, v -> g.walkTo.x = v);
 					num(box, "Walk to y", g.walkTo.y, v -> g.walkTo.y = v);
 				}
+				floorPick(box, g);
 				hint(box, "Facing: 0° east, 90° north, 180° west, -90° south.");
 				hint(box, "Turns: faces the player wherever they walk. Turns slowly: spins in place. Neither: always faces the way it's placed.");
 			case SLight(i):
@@ -877,18 +925,21 @@ class Haxen {
 				num(box, "Height (m)", l.z, v -> l.z = v);
 				num(box, "Radius (m)", l.radius, v -> l.radius = v, .5);
 				num(box, "Power", l.power, v -> l.power = v, .5);
+				floorPick(box, l);
 			case SLamp(i):
 				var c = map.chandeliers[i];
 				num(box, "x", c.x, v -> c.x = v);
 				num(box, "y", c.y, v -> c.y = v);
 				num(box, "Height (m)", c.z, v -> c.z = v);
 				num(box, "Width (m)", c.width, v -> c.width = v);
+				floorPick(box, c);
 				hint(box, "A decorative candle chandelier. Add a Light near it to light the room.");
 			case SStart:
 				hint(box, "Where the player begins.");
 				num(box, "x", map.start.x, v -> map.start.x = v);
 				num(box, "y", map.start.y, v -> map.start.y = v);
 				num(box, "Facing (°)", map.start.facing, v -> map.start.facing = v, 15);
+				floorPick(box, map.start);
 		}
 	}
 
@@ -960,10 +1011,184 @@ class Haxen {
 		s.appendChild(o);
 	}
 
+	// --- Side panel: floors ---
+
+	/** Whether something on floor `f` (absent: the ground floor) is on the floor being edited. **/
+	inline function shown(f:Null<Int>):Bool return (f == null ? 0 : f) == floor;
+
+	/** Marks something new as standing on the floor being edited. **/
+	function here(o:Dynamic):Dynamic {
+		setFloorOf(o, floor);
+		return o;
+	}
+
+	/** Sets an object's `floor` field, leaving it out for the ground floor as map files do. **/
+	static function setFloorOf(o:Dynamic, level:Int):Void {
+		if (level == 0) Reflect.deleteField(o, "floor") else Reflect.setField(o, "floor", level);
+	}
+
+	/** Rewrites every floor's plan (the ground floor's included). **/
+	function eachPlan(f:Array<String>->Array<String>):Void {
+		map.rows = f(map.rows);
+		for (fl in map.floors) fl.rows = f(fl.rows);
+	}
+
+	/** Everything placed on the map, for moving it between floors. **/
+	function placed():Array<Dynamic> {
+		var all:Array<Dynamic> = [map.start];
+		for (p in map.props) all.push(p);
+		for (f in map.fixtures) all.push(f);
+		for (g in map.guests) all.push(g);
+		for (l in map.lights) all.push(l);
+		for (c in map.chandeliers) all.push(c);
+		return all;
+	}
+
+	function setFloor(level:Int):Void {
+		if (MapData.floorRows(map, level) == null) level = 0;
+		if (level != floor) sel = null;
+		floor = level;
+		refreshFloors();
+		refreshSelection();
+		invalidate();
+	}
+
+	/** Moves to the next floor up (1) or down (-1), if there is one. **/
+	function stepFloor(dir:Int):Void {
+		var levels = [for (st in MapData.storeys(map)) st.level];
+		levels.reverse(); // lowest first
+		var i = levels.indexOf(floor) + dir;
+		if (i < 0 || i >= levels.length) {
+			message(dir > 0 ? "This is the top floor. Add a floor above to build higher." : "This is the lowest floor. Add a floor below to dig deeper.");
+			return;
+		}
+		setFloor(levels[i]);
+		message('${cap(MapData.floorName(map, floor))}.');
+	}
+
+	static function defaultFloorName(level:Int):String {
+		return switch level {
+			case 1: "First floor";
+			case 2: "Second floor";
+			case 3: "Third floor";
+			case -1: "Basement";
+			case -2: "Sub-basement";
+			case n if (n > 0): 'Floor $n';
+			case n: 'Basement ${-n}';
+		}
+	}
+
+	static function fmtElevation(e:Float):String return (e > 0 ? "+" : e < 0 ? "−" : "") + Math.abs(round(e)) + " m";
+
+	function refreshFloors():Void {
+		var box = doc.getElementById("floors");
+		if (box == null) return;
+		box.innerHTML = "";
+		for (st in MapData.storeys(map)) {
+			var r = doc.createDivElement();
+			r.className = "room" + (st.level == floor ? " on" : "");
+			var number = st.level == 0 ? "G" : st.level > 0 ? Std.string(st.level) : "B" + (-st.level);
+			r.innerHTML = '<span class="key">${number}</span><span style="flex:1">${StringTools.htmlEscape(st.level == 0 ? "Ground floor" : st.name)}</span><small style="color:var(--muted)">${fmtElevation(st.elevation)}</small>';
+			r.title = "Edit this floor (PageUp and PageDown move between floors)";
+			r.onclick = _ -> setFloor(st.level);
+			box.appendChild(r);
+		}
+		var buttons = doc.createDivElement();
+		buttons.className = "row";
+		for (b in [{label: "+ Floor above", f: () -> addFloor(true)}, {label: "+ Floor below", f: () -> addFloor(false)}, {label: "Delete floor", f: deleteFloor}]) {
+			var e = doc.createButtonElement();
+			e.textContent = b.label;
+			e.onclick = _ -> b.f();
+			if (b.label == "Delete floor") e.disabled = floor == 0;
+			buttons.appendChild(e);
+		}
+		box.appendChild(buttons);
+		for (fl in map.floors) if (fl.level == floor) {
+			var f:FloorDef = fl;
+			text(box, "Name", f.name, v -> f.name = StringTools.trim(v) == "" ? defaultFloorName(f.level) : StringTools.trim(v));
+			num(box, "Elevation (m)", f.elevation, v -> f.elevation = v, .1);
+		}
+		hint(box, floor == 0
+			? "Floors stack over the same grid, as many as you like above and below. Paint cells \"Open to the floor below\" for stairwells, galleries and atriums."
+			: "Heights of this floor's rooms and of everything placed on it are measured from its elevation. Cells open to the floor below show it through.");
+	}
+
+	/** Adds a floor above the top one or below the lowest, a storey away, and switches to it. **/
+	function addFloor(up:Bool):Void {
+		var all = MapData.storeys(map); // top first
+		var edge = up ? all[0] : all[all.length - 1];
+		var level = edge.level + (up ? 1 : -1);
+		var elevation = round(edge.elevation + (up ? MapData.STOREY : -MapData.STOREY));
+		// Over rooms that rise into the new floor, start it open to below; elsewhere solid.
+		var plan = [];
+		if (up) {
+			var built = new world.Level(map);
+			for (r in 0...height()) {
+				var line = new StringBuf();
+				var cy = height() - 1 - r;
+				for (cx in 0...width()) {
+					var i = cy * width() + cx, rises = false;
+					for (l in built.map.layers) {
+						var s = l.cells[i];
+						if (s != null && s.ceilZ > elevation + 1e-6) rises = true;
+					}
+					line.add(rises ? OPEN : WALL);
+				}
+				plan.push(line.toString());
+			}
+		} else for (_ in 0...height()) plan.push(StringTools.rpad("", WALL, width()));
+		var name = defaultFloorName(level);
+		change(() -> map.floors.push({level: level, name: name, elevation: elevation, rows: plan}));
+		setFloor(level);
+		message('Added ${name} at ${fmtElevation(elevation)}. Paint its rooms; mark stairwells and galleries open to the floor below.');
+	}
+
+	/** Deletes the floor being edited and everything on it; the floors beyond it move one closer to the ground floor. **/
+	function deleteFloor():Void {
+		if (floor == 0) return;
+		var name = MapData.floorName(map, floor);
+		var count = [for (o in placed()) if (o != map.start && shown(o.floor)) o].length;
+		if (!Browser.window.confirm('Delete $name' + (count > 0 ? ' and the $count thing${count == 1 ? "" : "s"} placed on it' : "") + "? This can be undone.")) return;
+		var gone = floor, dir = gone > 0 ? 1 : -1;
+		change(() -> {
+			map.floors = [for (f in map.floors) if (f.level != gone) f];
+			map.props = [for (p in map.props) if (p.floor != gone) p];
+			map.fixtures = [for (f in map.fixtures) if (f.floor != gone) f];
+			map.guests = [for (g in map.guests) if (g.floor != gone) g];
+			map.lights = [for (l in map.lights) if (l.floor != gone) l];
+			map.chandeliers = [for (c in map.chandeliers) if (c.floor != gone) c];
+			if (map.start.floor == gone) setFloorOf(map.start, 0);
+			// Close the gap: floors further out keep their order, one step nearer the ground floor.
+			for (f in map.floors) if (f.level * dir > gone * dir) f.level -= dir;
+			for (o in placed()) {
+				var l:Null<Int> = o.floor;
+				if (l != null && l * dir > gone * dir) setFloorOf(o, l - dir);
+			}
+		});
+		sel = null;
+		setFloor(gone - dir);
+		message('Deleted $name.');
+	}
+
+	/** A "Floor" choice for something placed, to move it to another floor. **/
+	function floorPick(box:Element, o:Dynamic):Void {
+		if (map.floors.length == 0) return;
+		var levels = [for (st in MapData.storeys(map)) Std.string(st.level)];
+		var names = [for (st in MapData.storeys(map)) st.level == 0 ? "Ground floor" : st.name];
+		var current:Null<Int> = o.floor;
+		pick(box, "Floor", levels, Std.string(current == null ? 0 : current), v -> {
+			setFloorOf(o, Std.parseInt(v));
+			sel = null;
+		}, names);
+	}
+
+	static function cap(s:String):String return s.charAt(0).toUpperCase() + s.substr(1);
+
 	// --- Side panel: rooms ---
 
 	function roomColor(key:String):String {
 		if (key == WALL) return "#2a2420";
+		if (key == OPEN) return "#0e1830";
 		for (i in 0...map.sectors.length) if (map.sectors[i].key == key) return ROOM_COLORS[i % ROOM_COLORS.length];
 		return "#ff00ff";
 	}
@@ -971,7 +1196,7 @@ class Haxen {
 	function refreshRooms():Void {
 		var box = doc.getElementById("rooms");
 		box.innerHTML = "";
-		var entries = [{key: WALL, name: "Wall (solid)"}].concat([for (s in map.sectors) {key: s.key, name: s.name}]);
+		var entries = [{key: WALL, name: "Wall (solid)"}, {key: OPEN, name: "Open to the floor below"}].concat([for (s in map.sectors) {key: s.key, name: s.name}]);
 		for (e in entries) {
 			var r = doc.createDivElement();
 			r.className = "room" + (e.key == paintKey ? " on" : "");
@@ -1004,12 +1229,12 @@ class Haxen {
 		pick(box, "Walls", MapData.TEXTURES, room.wallTex, v -> room.wallTex = v);
 		pick(box, "Upper walls", MapData.TEXTURES, room.upperTex, v -> room.upperTex = v);
 		num(box, "Shade (0-31)", room.shade, v -> room.shade = Math.max(0, Math.min(31, v)), 1);
-		hint(box, "Shade darkens the whole room: 0 is brightest. Walls above 3 m use the upper texture.");
+		hint(box, "Shade darkens the whole room: 0 is brightest. Walls above 3 m use the upper texture. Heights are measured from the elevation of the floor the room is painted on, so a room works on any floor.");
 	}
 
 	function renameKey(room:SectorDef, v:String):Void {
-		if (v.length != 1 || v == WALL) {
-			message("A room's key is a single character other than #.", true);
+		if (v.length != 1 || v == WALL || v == OPEN) {
+			message("A room's key is a single character other than # and \".\".", true);
 			return;
 		}
 		for (s in map.sectors) if (s != room && s.key == v) {
@@ -1017,7 +1242,7 @@ class Haxen {
 			return;
 		}
 		var old = room.key;
-		map.rows = [for (r in map.rows) r.split(old).join(v)];
+		eachPlan(rows -> [for (r in rows) r.split(old).join(v)]);
 		room.key = v;
 		paintKey = v;
 		refreshRooms();
@@ -1047,9 +1272,9 @@ class Haxen {
 		for (i in 0...map.sectors.length) if (map.sectors[i].key == paintKey) idx = i;
 		if (idx < 0) return;
 		var s = map.sectors[idx];
-		if (!Browser.window.confirm('Delete the room "${s.name}"? Its cells become wall.')) return;
+		if (!Browser.window.confirm('Delete the room "${s.name}"? Its cells become wall, on every floor.')) return;
 		change(() -> {
-			map.rows = [for (r in map.rows) r.split(s.key).join(WALL)];
+			eachPlan(rows -> [for (r in rows) r.split(s.key).join(WALL)]);
 			map.sectors.splice(idx, 1);
 		});
 		paintKey = WALL;
@@ -1083,8 +1308,8 @@ class Haxen {
 		b.onclick = _ -> resize(Std.parseInt(w.value), Std.parseInt(h.value));
 		size.appendChild(b);
 		box.appendChild(size);
-		hint(box, "The map grows and shrinks at its north and east edges, so nothing already placed moves.");
-		hint(box, '${map.sectors.length} rooms · ${map.props.length} props · ${map.fixtures.length} fixtures · ${map.guests.length} guests · ${map.lights.length} lights');
+		hint(box, "The map grows and shrinks at its north and east edges, on every floor, so nothing already placed moves.");
+		hint(box, '${map.floors.length + 1} floor${map.floors.length == 0 ? "" : "s"} · ${map.sectors.length} rooms · ${map.props.length} props · ${map.fixtures.length} fixtures · ${map.guests.length} guests · ${map.lights.length} lights');
 	}
 
 	function resize(w:Null<Int>, h:Null<Int>):Void {
@@ -1093,23 +1318,23 @@ class Haxen {
 			return;
 		}
 		var lost = false;
-		for (r in 0...height()) for (c in 0...width()) {
-			var cy = height() - 1 - r;
-			if ((c >= w || cy >= h) && map.rows[r].charAt(c) != WALL) lost = true;
+		for (st in MapData.storeys(map)) for (r in 0...st.rows.length) for (c in 0...st.rows[r].length) {
+			var cy = st.rows.length - 1 - r;
+			if ((c >= w || cy >= h) && st.rows[r].charAt(c) != WALL) lost = true;
 		}
-		if (lost && !Browser.window.confirm("Shrinking cuts off painted rooms along the north or east edge. Continue?")) return;
-		change(() -> {
+		if (lost && !Browser.window.confirm("Shrinking cuts off painted cells along the north or east edge. Continue?")) return;
+		change(() -> eachPlan(old -> {
 			var rows = [];
-			var oldH = height();
+			var oldH = old.length;
 			// Rows are listed north first; keep the south rows so y coordinates don't change.
 			for (i in 0...h) {
 				var cy = h - 1 - i;
-				var src = cy < oldH ? map.rows[oldH - 1 - cy] : "";
+				var src = cy < oldH ? old[oldH - 1 - cy] : "";
 				var line = src.length >= w ? src.substr(0, w) : src + StringTools.rpad("", WALL, w - src.length);
 				rows.push(line);
 			}
-			map.rows = rows;
-		});
+			return rows;
+		}));
 		refreshMapPanel();
 	}
 
@@ -1139,10 +1364,11 @@ class Haxen {
 		for (p in problems) {
 			var d = doc.createDivElement();
 			d.className = "problem" + (p.error ? "" : " warn");
-			d.textContent = (p.error ? "" : "Warning: ") + p.message;
+			d.textContent = (p.error ? "" : "Warning: ") + p.message + (p.floor != null && p.floor != floor ? '  (${MapData.floorName(map, p.floor)})' : "");
 			if (p.x != null) {
 				d.title = "Show on the plan";
 				d.onclick = _ -> {
+					setFloor(p.floor == null ? 0 : p.floor);
 					viewX = p.x;
 					viewY = p.y;
 					zoom = Math.max(zoom, 24);
@@ -1177,9 +1403,9 @@ class Haxen {
 	function updateStatus(x:Float, y:Float):Void {
 		var cx = Math.floor(x), cy = Math.floor(y);
 		var key = cellKey(cx, cy);
-		var room = key == WALL ? "wall" : "?";
+		var room = key == WALL ? "wall" : key == OPEN ? "open to the floor below" : "?";
 		for (s in map.sectors) if (s.key == key) room = s.name;
-		doc.getElementById("cursor").textContent = 'x ${Math.round(x * 100) / 100}  y ${Math.round(y * 100) / 100}  ·  cell ${cx}, ${cy}  ·  $room';
+		doc.getElementById("cursor").textContent = '${cap(MapData.floorName(map, floor))}  ·  x ${Math.round(x * 100) / 100}  y ${Math.round(y * 100) / 100}  ·  cell ${cx}, ${cy}  ·  $room';
 		doc.getElementById("zoom").textContent = '${Math.round(zoom)} px/m';
 	}
 
@@ -1211,8 +1437,42 @@ class Haxen {
 		var x0 = Std.int(Math.max(0, Math.floor(worldX(0)))), x1 = Std.int(Math.min(width() - 1, Math.floor(worldX(cw))));
 		var y0 = Std.int(Math.max(0, Math.floor(worldY(ch)))), y1 = Std.int(Math.min(height() - 1, Math.floor(worldY(0))));
 		for (cy in y0...y1 + 1) for (cx in x0...x1 + 1) {
-			ctx.fillStyle = roomColor(cellKey(cx, cy));
-			ctx.fillRect(Math.floor(screenX(cx)), Math.floor(screenY(cy + 1)), Math.ceil(zoom) + 1, Math.ceil(zoom) + 1);
+			var k = cellKey(cx, cy);
+			var sx = Math.floor(screenX(cx)), sy = Math.floor(screenY(cy + 1)), size = Math.ceil(zoom) + 1;
+			ctx.fillStyle = roomColor(k);
+			ctx.fillRect(sx, sy, size, size);
+			if (k == OPEN) {
+				// Open to the floor below: show it through, dimmed and hatched.
+				var under = below(cx, cy);
+				if (under != null && under.key != WALL) {
+					ctx.globalAlpha = .38;
+					ctx.fillStyle = roomColor(under.key);
+					ctx.fillRect(sx, sy, size, size);
+					ctx.globalAlpha = 1;
+				}
+				if (zoom >= 7) {
+					ctx.strokeStyle = "rgba(160,190,255,.22)";
+					ctx.lineWidth = 1;
+					line(sx, sy + size, sx + size, sy);
+				}
+			}
+		}
+		// The floor below, faintly, to line this one up with.
+		var under = null;
+		for (st in MapData.storeys(map)) if (st.level < floor) {
+			under = st.rows;
+			break;
+		}
+		if (under != null && zoom >= 5) {
+			ctx.strokeStyle = "rgba(160,190,255,.28)";
+			ctx.lineWidth = 1;
+			ctx.setLineDash([3, 3]);
+			for (cy in y0...y1 + 1) for (cx in x0...x1 + 1) {
+				var k = keyOn(under, cx, cy);
+				if (k != keyOn(under, cx + 1, cy)) line(screenX(cx + 1), screenY(cy), screenX(cx + 1), screenY(cy + 1));
+				if (k != keyOn(under, cx, cy + 1)) line(screenX(cx), screenY(cy + 1), screenX(cx + 1), screenY(cy + 1));
+			}
+			ctx.setLineDash([]);
 		}
 		// Room edges and the grid.
 		if (zoom >= 7) {
@@ -1239,7 +1499,8 @@ class Haxen {
 			ctx.textAlign = "center";
 			for (s in map.sectors) {
 				var sx = 0.0, sy = 0.0, n = 0;
-				for (r in 0...height()) for (c in 0...width()) if (map.rows[r].charAt(c) == s.key) {
+				var plan = rows();
+				for (r in 0...height()) for (c in 0...width()) if (plan[r].charAt(c) == s.key) {
 					sx += c + .5;
 					sy += height() - r - .5;
 					n++;
@@ -1253,6 +1514,7 @@ class Haxen {
 		// Props.
 		for (i in 0...map.props.length) {
 			var p = map.props[i];
+			if (!shown(p.floor)) continue;
 			var rx = screenX(p.x0), ry = screenY(p.y1), rw = (p.x1 - p.x0) * zoom, rh = (p.y1 - p.y0) * zoom;
 			ctx.fillStyle = texColor(p.topTex, p.hidden == true ? .12 : p.solid == false ? .45 : .8);
 			ctx.fillRect(rx, ry, rw, rh);
@@ -1265,7 +1527,7 @@ class Haxen {
 		// Fixtures.
 		for (f in map.fixtures) {
 			var k = Fixtures.get(f.type);
-			if (k == null) continue;
+			if (k == null || !shown(f.floor)) continue;
 			ctx.strokeStyle = "#f4dba5";
 			ctx.fillStyle = "rgba(200,163,94,.18)";
 			ctx.lineWidth = 1.5;
@@ -1285,6 +1547,7 @@ class Haxen {
 		}
 		// Lights, chandeliers, guests, start.
 		for (l in map.lights) {
+			if (!shown(l.floor)) continue;
 			ctx.strokeStyle = "rgba(255,220,120,.25)";
 			ctx.setLineDash([2, 4]);
 			ctx.beginPath();
@@ -1294,6 +1557,7 @@ class Haxen {
 			dot(l.x, l.y, 5, "#ffe08a");
 		}
 		for (c in map.chandeliers) {
+			if (!shown(c.floor)) continue;
 			ctx.fillStyle = "#e8c070";
 			ctx.save();
 			ctx.translate(screenX(c.x), screenY(c.y));
@@ -1302,6 +1566,7 @@ class Haxen {
 			ctx.restore();
 		}
 		for (g in map.guests) {
+			if (!shown(g.floor)) continue;
 			if (g.walkTo != null) {
 				ctx.strokeStyle = "rgba(168,224,160,.6)";
 				ctx.setLineDash([4, 3]);
@@ -1311,10 +1576,10 @@ class Haxen {
 			arrow(g.x, g.y, g.facing, g.art == "hooded_keeper" ? "#b0a0e0" : "#a8e0a0");
 			if (zoom >= 26) label(g.name, g.x, g.y - .55, "rgba(239,230,210,.8)");
 		}
-		arrow(map.start.x, map.start.y, map.start.facing, "#f4dba5", true);
+		if (shown(map.start.floor)) arrow(map.start.x, map.start.y, map.start.facing, "#f4dba5", true);
 
 		// Problems with a place.
-		for (p in problems) if (p.x != null) {
+		for (p in problems) if (p.x != null && shown(p.floor)) {
 			ctx.strokeStyle = p.error ? "#f09080" : "#e8c070";
 			ctx.lineWidth = 2;
 			var sx = screenX(p.x), sy = screenY(p.y);
@@ -1362,7 +1627,7 @@ class Haxen {
 		ctx.fillStyle = "rgba(239,230,210,.6)";
 		ctx.font = "11px Segoe UI, sans-serif";
 		ctx.textAlign = "left";
-		ctx.fillText("N ↑", 10, 18);
+		ctx.fillText("N ↑   " + cap(MapData.floorName(map, floor)) + (floor == 0 ? "" : '  ·  ${fmtElevation(MapData.elevation(map, floor))}'), 10, 18);
 	}
 
 	function line(ax:Float, ay:Float, bx:Float, by:Float):Void {

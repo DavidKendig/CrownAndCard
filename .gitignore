@@ -12,3 +12,6 @@ web/haxen.js.map
 /CrownAndCardLauncher.exe
 /CrownAndCardLauncher.exe.config
 /cc_vorbis.dll
+/Crown & Card.app/
+launcher/mac/bin/
+launcher/mac/obj/

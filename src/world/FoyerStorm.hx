@@ -84,7 +84,7 @@ class FoyerStorm {
 		function texture(name:String):h3d.mat.Texture
 			return FoyerArt.texture(false,true,"materials/courtyard-"+name+".png",palette,256,256);
 		var ground=new MeshBuilder(), fence=new MeshBuilder();
-		box(ground,center-65,-70,-.3,center+65,map.height+40,-.08,9);
+		groundAround(map,ground,center-65,-70,center+65,map.height+40);
 		finish(ground,texture("gravel"),true);
 		// Wet slate paths and low hedges have real depth and parallax through every pane.
 		var path=new MeshBuilder(), hedge=new MeshBuilder(), puddles=new MeshBuilder();
@@ -249,5 +249,43 @@ class FoyerStorm {
 		if(rainSound!=null) rainSound.stop();
 		if(thunderSound!=null) thunderSound.stop();
 		rainSound=null; thunderSound=null;
+	}
+
+	/**
+		The courtyard gravel: a slab just under ground level, out to the horizon.
+		Under the manor itself it stops wherever any floor has a room below
+		ground (a stairwell, a basement), so looking down the stairs or up in a
+		cellar never meets it. Under the rest of the building only its top is
+		laid, which the floors above hide anyway.
+	**/
+	static function groundAround(map:GridMap,b:MeshBuilder,x0:Float,y0:Float,x1:Float,y1:Float):Void {
+		var z0=-.3, z1=-.08, shade=9.;
+		function slab(ax:Float,ay:Float,bx:Float,by:Float) if(bx>ax && by>ay) MeshBuilder.box(b,b,ax,ay,z0,bx,by,z1,shade);
+		var w=map.width, h=map.height;
+		slab(x0,y0,x1,Math.min(0,y1));
+		slab(x0,Math.max(h,y0),x1,y1);
+		slab(x0,Math.max(0,y0),Math.min(0,x1),Math.min(h,y1));
+		slab(Math.max(w,x0),Math.max(0,y0),x1,Math.min(h,y1));
+		function sunken(cx:Int,cy:Int):Bool {
+			for(l in map.layers) {
+				var s=l.cells[cy*w+cx];
+				if(s!=null && s.floorZ<-.01) return true;
+			}
+			return false;
+		}
+		for(cy in 0...h) {
+			if(cy+1<=y0 || cy>=y1) continue;
+			var run=-1;
+			for(cx in 0...w+1) {
+				var laid=cx<w && !sunken(cx,cy);
+				if(laid && run<0) run=cx;
+				if(!laid && run>=0) {
+					var ax=Math.max(run,x0), bx=Math.min(cx,x1);
+					if(bx>ax) b.quad(new h3d.col.Point(ax,cy,z1),new h3d.col.Point(bx,cy,z1),new h3d.col.Point(bx,cy+1,z1),new h3d.col.Point(ax,cy+1,z1),
+						new h3d.prim.UV(ax,-cy),new h3d.prim.UV(bx,-cy),new h3d.prim.UV(bx,-cy-1),new h3d.prim.UV(ax,-cy-1),new h3d.col.Point(0,0,1),shade);
+					run=-1;
+				}
+			}
+		}
 	}
 }

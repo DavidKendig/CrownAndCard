@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Builds the Windows release on a GitHub-hosted Windows machine and publishes
+# it as GitHub release v<version> (version.json): the installer
+# CrownAndCard-Setup-<version>.exe, which installed launchers offer as an
+# update, and the portable CrownAndCard-<version>-win64.zip (+ .sha256).
+# It runs tools/release.ps1, the same script used on a Windows PC.
+#
+# Start it from the Actions tab (Run workflow) or with:
+#   gh workflow run release-windows.yml -f notes="What changed"
+# The Mac disk image is built on a Mac (launcher/mac/package.sh) and added to
+# the same release with `gh release upload`.
+name: Release (Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: Release notes
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: 4.3.7
+
+      - name: Haxe libraries
+        run: |
+          haxelib newrepo
+          haxelib install heaps 2.1.0 --always --quiet
+          haxelib install hlsdl 1.16.0 --always --quiet
+          haxelib install hlopenal 1.16.0 --always --quiet
+          haxelib install utest 1.13.2 --always --quiet
+
+      - name: Unit tests
+        run: haxe tests.hxml
+
+      - name: Native build (HashLink)
+        run: |
+          haxe build-hl.hxml
+          powershell -NoProfile -ExecutionPolicy Bypass -File tools/fetch_hashlink.ps1
+
+      - name: Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NOTES: ${{ inputs.notes }}
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/release.ps1 -Notes "$env:NOTES"

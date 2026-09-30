@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+#if !MACOS
 using Microsoft.Win32;
+#endif
 
 namespace CrownAndCard.Launcher;
 
@@ -61,6 +63,16 @@ static class GameLocator
 
 	static GamePlan? FindNative(string dir)
 	{
+#if MACOS
+		// The HL/C build for Apple Silicon (tools/build_mac.sh): native/mac/game, with libhl beside it.
+		foreach (var d in new[] { Path.Combine(dir, "native", "mac"), Path.Combine(dir, "mac") })
+		{
+			var game = Path.Combine(d, "game");
+			if (File.Exists(game) && File.Exists(Path.Combine(d, "libhl.dylib")))
+				return new GamePlan { Kind = GameKind.Native, Path = Path.GetFullPath(game) };
+		}
+		return null;
+#else
 		var exe = Path.Combine(dir, "CrownAndCard.exe");
 		if (File.Exists(exe))
 			return new GamePlan { Kind = GameKind.Native, Path = exe };
@@ -76,6 +88,7 @@ static class GameLocator
 				return new GamePlan { Kind = GameKind.Native, Path = Path.GetFullPath(hl), Bytecode = Path.GetFullPath(bytecode) };
 		}
 		return null;
+#endif
 	}
 
 	static GamePlan? FindWeb(string dir)
@@ -122,6 +135,12 @@ static class GameLocator
 			yield return Path.GetFullPath(overridePath);
 			yield break;
 		}
+#if MACOS
+		// A packaged app keeps the game in Contents/Resources/game.
+		var resources = Path.GetFullPath(Path.Combine(Paths.ExeDir, "..", "Resources", "game"));
+		if (Directory.Exists(resources))
+			yield return resources;
+#endif
 		var d = new DirectoryInfo(Paths.ExeDir);
 		for (int i = 0; i < 5 && d != null; i++, d = d.Parent)
 		{
@@ -137,6 +156,24 @@ static class GameLocator
 		the game until the player picks "Use game controls" (§13.12).
 	**/
 	public static string? FindBrowser() => FindChrome() ?? FindEdge();
+
+#if MACOS
+	static string? FindChrome() => FindMacApp("Google Chrome");
+
+	static string? FindEdge() => FindMacApp("Microsoft Edge");
+
+	/** The executable inside /Applications/<name>.app (or ~/Applications). **/
+	static string? FindMacApp(string name)
+	{
+		foreach (var apps in new[] { "/Applications", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Applications") })
+		{
+			var path = Path.Combine(apps, name + ".app", "Contents", "MacOS", name);
+			if (File.Exists(path))
+				return path;
+		}
+		return null;
+	}
+#else
 
 	static string? FindChrome() =>
 		AppPath("chrome.exe") ?? FirstExisting(@"Google\Chrome\Application\chrome.exe",
@@ -167,4 +204,5 @@ static class GameLocator
 		}
 		return null;
 	}
+#endif
 }

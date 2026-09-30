@@ -33,6 +33,16 @@ typedef FixtureKind = {
 class Fixtures {
 	public static final KINDS:Array<FixtureKind> = [
 		{
+			type: "basementStairs", label: "Basement stairs", round: false,
+			description: "A three-metre-wide flight of nineteen stone treads descending 3.6 m to a basement, with aged iron posts and a carved doorway. Anchor: center of the top edge; stairs descend north.",
+			x0: -1.5, y0: 0, x1: 1.5, y1: 6
+		},
+		{
+			type: "fourPosterBed", label: "King four-poster bed", round: false,
+			description: "A king-size 1.93 x 2.03 m mattress in a carved four-poster frame, with pillows, curtains and a canopy. All faces use PNG artwork. Anchor: center; headboard faces north. Overall footprint: 2.44 x 2.56 m.",
+			x0: -1.22, y0: -1.28, x1: 1.22, y1: 1.28
+		},
+		{
 			type: "privateTable", label: "Private party table", round: false,
 			description: "A 6 x 1.4 m table with a draped teal cloth and a spread of tabletop games. Standing 1.7 m south of its center and facing it (put an empty chair there) opens the multiplayer tables: host or join friends. Anchor: its center.",
 			x0: -3, y0: -.7, x1: 3, y1: .7
@@ -80,6 +90,27 @@ class Fixtures {
 			map.props.push({x0: ax + x0, y0: ay + y0, x1: ax + x1, y1: ay + y1, height: top, baseZ: base, topTex: tex, sideTex: tex, solid: solid});
 		}
 		switch type {
+			case "basementStairs":
+				var bottom = -3.6;
+				for (i in 0...19) {
+					var y=i*.3, z=-(i+1)*.18;
+					map.props.push({x0:ax-1.5,y0:ay+y,x1:ax+1.5,y1:ay+y+.3,baseZ:bottom,height:z,
+						topTex:"basementStair",sideTex:"basementStair",walkable:true,kind:"basementStair"});
+					if(i%3==0) for(dx in [-1.4,1.4])
+						map.props.push({x0:ax+dx-.045,y0:ay+y+.08,x1:ax+dx+.045,y1:ay+y+.17,baseZ:z,height:z+.92,
+							topTex:"basementMetal",sideTex:"basementMetal",solid:false,kind:"basementRail"});
+				}
+				// Doorposts and lintel mark the change from the carpeted hall.
+				for(dx in [-1.58,1.50]) map.props.push({x0:ax+dx,y0:ay-.10,x1:ax+dx+.08,y1:ay+.18,baseZ:0.,height:2.75,
+					topTex:"basementMetal",sideTex:"basementMetal",solid:false,kind:"basementDoorFrame"});
+				map.props.push({x0:ax-1.58,y0:ay-.10,x1:ax+1.58,y1:ay+.18,baseZ:2.67,height:2.85,
+					topTex:"basementMetal",sideTex:"basementMetal",solid:false,kind:"basementDoorFrame"});
+			case "fourPosterBed":
+				// A single solid footprint includes the four posts; the detailed, closed
+				// geometry and all six textured faces are built by FourPosterBed.
+				var bed = get(type);
+				map.props.push({x0:ax+bed.x0,y0:ay+bed.y0,x1:ax+bed.x1,y1:ay+bed.y1,
+					height:2.94,topTex:"banisterWood",sideTex:"banisterWood",hidden:true,kind:"fourPosterBed"});
 			case "privateTable":
 				map.props.push({x0:ax-3,y0:ay-.7,x1:ax+3,y1:ay+.7,height:.82,topTex:"tableWood",sideTex:"tableWood",hidden:true});
 				box(-3,-.7,3,.7,.82,"tableWood",.77,false);
