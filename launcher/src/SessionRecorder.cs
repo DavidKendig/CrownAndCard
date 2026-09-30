@@ -100,7 +100,11 @@ sealed class SessionRecorder
 			["is64BitOS"] = Environment.Is64BitOperatingSystem,
 			["processors"] = Environment.ProcessorCount,
 			["clr"] = Environment.Version.ToString(),
+#if MACOS
+			["screen"] = MacPlatform.PrimaryScreen,
+#else
 			["screen"] = $"{System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width}x{System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height}",
+#endif
 		};
 		info["launcherSettings"] = settings.ToReport();
 	}

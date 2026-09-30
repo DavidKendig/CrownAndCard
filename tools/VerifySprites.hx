@@ -7,6 +7,25 @@ class VerifySprites {
 	static function main() {
 		hxd.Res.initEmbed();
 		var palette = new Palette();
+		// Every bed face samples one of sixteen opaque, authored atlas regions.
+		var bedAtlas=art.FoyerArt.surface(world.FourPosterBed.ATLAS,palette,512,512);
+		for (tile in 0...16) {
+			var colors=new Map<Int,Bool>();
+			for (y in 0...128) for (x in 0...128) {
+				var c=bedAtlas.get((tile%4)*128+x,Std.int(tile/4)*128+y);
+				if(c==0) throw 'Transparent bed surface: $tile';
+				colors.set(c,true);
+			}
+			if([for(_ in colors.keys()) 1].length<4) throw 'Missing bed artwork: $tile';
+		}
+		var coverlet=hxd.Res.load(world.FourPosterBed.COVERLET).toImage().getPixels();
+		if(coverlet.width<512 || coverlet.height<512) throw "Missing king-bed coverlet artwork";
+		var bedroomCarpet=hxd.Res.load("materials/bedroom-carpet.png").toImage().getPixels();
+		if(bedroomCarpet.width<512 || bedroomCarpet.height<512) throw "Missing bedroom carpet artwork";
+		for(asset in ["basement-stairs.png","basement-materials.png","basement-boiler.png"]) {
+			var pixels=hxd.Res.load('materials/$asset').toImage().getPixels();
+			if(pixels.width<512 || pixels.height<512) throw 'Missing basement artwork: $asset';
+		}
 		for(name in world.BathroomArt.ASSETS) {
 			var sheet=world.BathroomArt.sheet(name,palette);
 			for(f in 0...5) {
@@ -65,7 +84,7 @@ class VerifySprites {
 		var start=level.data.start;
 		if(map.blocked(start.x,start.y,.25) || !level.atDesk(start.x,start.y,level.startYaw)) throw "Invalid foyer spawn";
 		// Both side aisles must reach the original playable rooms without crossing ropes.
-		for (x in [7.5,18.5]) {
+		for (x in [start.x-5.5,start.x+5.5]) {
 			var p={x:start.x,y:start.y};
 			p=map.slide(p.x,p.y,x-p.x,0,.25);
 			p=map.slide(p.x,p.y,0,24-p.y,.25);

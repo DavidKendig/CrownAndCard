@@ -4,7 +4,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Web.Script.Serialization;
 
 namespace CrownAndCard.Launcher;
 
@@ -18,7 +17,7 @@ sealed class GuestRegisterStore
 	public void Write(string json)
 	{
 		if (json.Length > 65536) throw new ArgumentException("Guest Register is too large");
-		var value = new JavaScriptSerializer().DeserializeObject(json) as Dictionary<string, object>;
+		var value = Json.Parse(json) as Dictionary<string, object>;
 		if (value == null || !value.TryGetValue("version", out var version) || !(version is int v) || v != 1
 			|| !value.TryGetValue("checkIns", out var count) || !(count is int n) || n < 0
 			|| !value.TryGetValue("rooms", out var rooms) || !(rooms is object[] list))

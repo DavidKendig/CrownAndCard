@@ -113,7 +113,11 @@ static class Updater
 		for (var d = new DirectoryInfo(Paths.ExeDir); d != null; d = d.Parent)
 			if (Directory.Exists(Path.Combine(d.FullName, ".git")))
 				return "this is a development copy inside a git checkout (use git pull)";
+#if MACOS
+		return "releases carry a Windows installer only; update the Mac copy by hand";
+#else
 		return null;
+#endif
 	}
 
 	/**

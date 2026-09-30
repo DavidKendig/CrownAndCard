@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 using System;
 using System.IO;
+#if !MACOS
 using System.Windows.Forms;
+#endif
 
 namespace CrownAndCard.Launcher;
 
-/** Where the launcher keeps its files: %LOCALAPPDATA%\CrownAndCard. **/
+/** Where the launcher keeps its files: %LOCALAPPDATA%\CrownAndCard (on a Mac, ~/Library/Application Support/CrownAndCard). **/
 static class Paths
 {
 	public static string DataDir { get; } =
@@ -26,14 +28,20 @@ static class Paths
 	public static string HaxenProfileDir(string browser) => Path.Combine(DataDir, "haxen-window" + ProfileSuffix(browser));
 
 	static string ProfileSuffix(string browser) =>
-		Path.GetFileName(browser).Equals("chrome.exe", StringComparison.OrdinalIgnoreCase) ? "-chrome" : "";
+		Path.GetFileName(browser).Equals("chrome.exe", StringComparison.OrdinalIgnoreCase)
+		|| Path.GetFileName(browser).Equals("Google Chrome", StringComparison.Ordinal) ? "-chrome" : "";
 
 	/** Custom maps made in Haxen (GAME_DESIGN.md §13.6). **/
 	public static string MapsDir => Path.Combine(DataDir, "maps");
 
 	public static string LauncherLog => Path.Combine(DataDir, "launcher.log");
 
+#if MACOS
+	/** The launcher's own folder (Contents/MacOS inside the app bundle). **/
+	public static string ExeDir => AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
+#else
 	public static string ExeDir => Path.GetDirectoryName(Application.ExecutablePath) ?? ".";
+#endif
 
 	public static void Ensure()
 	{

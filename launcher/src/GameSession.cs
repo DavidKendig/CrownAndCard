@@ -60,7 +60,9 @@ sealed class GameSession
 			// (the launcher, just clicked) allows it. Without this the game window
 			// can open behind everything, playing its music unseen. The browser
 			// often relaunches itself, so the permission can't name one process.
+#if !MACOS
 			AllowSetForegroundWindow(AnyProcess);
+#endif
 			started = plan.Kind == GameKind.Web ? StartWeb(plan, settings) : StartNative(plan, settings);
 		}
 		catch
@@ -104,10 +106,12 @@ sealed class GameSession
 	public static GameSession Start(GamePlan plan, LauncherSettings settings, LocalServer server, string? mapOverride = null) =>
 		new(plan, settings, server, mapOverride);
 
+#if !MACOS
 	const int AnyProcess = -1; // ASFW_ANY
 
 	[DllImport("user32.dll")]
 	static extern bool AllowSetForegroundWindow(int processId);
+#endif
 
 	/** The settings' options, with the map swapped for a play test. **/
 	System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> Options(LauncherSettings s)
@@ -168,6 +172,12 @@ sealed class GameSession
 			StandardErrorEncoding = System.Text.Encoding.UTF8,
 			CreateNoWindow = true,
 		};
+#if MACOS
+		// The game keeps its maps, saves, logs and screenshots in %LOCALAPPDATA%\CrownAndCard, the
+		// launcher's folder on Windows. A Mac has no LOCALAPPDATA, so point it at the launcher's:
+		// ~/Library/Application Support/CrownAndCard.
+		psi.Environment["LOCALAPPDATA"] = Path.GetDirectoryName(Paths.DataDir);
+#endif
 		Recorder.SetLaunchCommand($"\"{psi.FileName}\" {psi.Arguments}");
 		var p = Process.Start(psi) ?? throw new InvalidOperationException("The game didn't start");
 		p.OutputDataReceived += (_, e) => Recorder.OnOutput(e.Data);

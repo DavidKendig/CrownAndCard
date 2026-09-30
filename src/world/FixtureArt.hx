@@ -12,6 +12,8 @@ class FixtureArt {
 		shaders = shaders.concat(SalonArt.build(level.map, palette, lut, parent));
 		shaders = shaders.concat(SecurityArt.build(level.map, palette, lut, parent));
 		shaders = shaders.concat(LibraryArt.build(level.map, palette, lut, parent));
+		shaders = shaders.concat(FourPosterBed.build(level, palette, lut, parent));
+		shaders = shaders.concat(BasementArt.build(level.map, palette, lut, parent));
 		var water:Array<BuildShader> = [];
 		var animations:Array<Float->Void>=[];
 		// The kitchen range keeps its box collision; its east face carries the PNG art.
@@ -29,27 +31,39 @@ class FixtureArt {
 			new h3d.scene.Mesh(mesh.toPrimitive(),material,parent);
 			shaders.push(shader);
 		}
-		for (f in level.data.fixtures) switch f.type {
-			case "frontDoors":
-				shaders.push(FoyerArt.panel("foyer/grand-doors.png", 256, 384, f.x - 2.6, f.x + 2.6, f.y + .025, 0, 6.8, true, palette, lut, parent));
-			case "frontDesk":
-				shaders.push(FoyerArt.panel("foyer/welcome-desk.png", 256, 80, f.x - 2.2, f.x + 2.2, f.y - .615, .10, 1.08, false, palette, lut, parent));
-			case "grandStairs":
-				// The upper doorway is a visual destination for the future second floor.
-				shaders.push(FoyerArt.panel("foyer/grand-doors.png", 192, 288, f.x - 1.5, f.x + 1.5, f.y + 6.475, 3.6, 7.8, false, palette, lut, parent));
-			case "fountain":
-				var built = Fountain.build(palette, lut, parent, f.x, f.y);
-				shaders = shaders.concat(built.shaders);
-				water = water.concat(built.water);
-				animations.push(built.animate);
-			case "cardTable":
-				shaders = shaders.concat(BlackjackTable.build(palette, lut, parent, f.x, f.y));
-			case "rouletteTable":
-				shaders = shaders.concat(RouletteTable.build(palette, lut, parent, f.x, f.y));
-			case "privateTable":
-				shaders = shaders.concat(PrivateTable.build(palette, lut, parent, f.x, f.y));
-			default:
+		for (f in level.data.fixtures) {
+			var at = placed(level, f, parent);
+			switch f.type {
+				case "frontDoors":
+					shaders.push(FoyerArt.panel("foyer/grand-doors.png", 256, 384, f.x - 2.6, f.x + 2.6, f.y + .025, 0, 6.8, true, palette, lut, at));
+				case "frontDesk":
+					shaders.push(FoyerArt.panel("foyer/welcome-desk.png", 256, 80, f.x - 2.2, f.x + 2.2, f.y - .615, .10, 1.08, false, palette, lut, at));
+				case "grandStairs":
+					// The upper doorway is a visual destination for the future second floor.
+					shaders.push(FoyerArt.panel("foyer/grand-doors.png", 192, 288, f.x - 1.5, f.x + 1.5, f.y + 6.475, 3.6, 7.8, false, palette, lut, at));
+				case "fountain":
+					var built = Fountain.build(palette, lut, at, f.x, f.y);
+					shaders = shaders.concat(built.shaders);
+					water = water.concat(built.water);
+					animations.push(built.animate);
+				case "cardTable":
+					shaders = shaders.concat(BlackjackTable.build(palette, lut, at, f.x, f.y));
+				case "rouletteTable":
+					shaders = shaders.concat(RouletteTable.build(palette, lut, at, f.x, f.y));
+				case "privateTable":
+					shaders = shaders.concat(PrivateTable.build(palette, lut, at, f.x, f.y));
+				default:
+			}
 		}
 		return {shaders: shaders, water: water, animations:animations};
+	}
+
+	/** Where a fixture's art is built: the scene itself on the ground floor, or a node raised to its floor's elevation. **/
+	public static function placed(level:Level, f:MapData.FixtureDef, parent:h3d.scene.Object):h3d.scene.Object {
+		var up = level.elevation(f.floor);
+		if (up == 0) return parent;
+		var node = new h3d.scene.Object(parent);
+		node.z = up;
+		return node;
 	}
 }

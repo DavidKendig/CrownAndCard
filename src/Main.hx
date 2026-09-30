@@ -159,6 +159,12 @@ class Main extends hxd.App {
 			"clubPurple" => FoyerArt.material(Palette.PURPLE,13).toIndexTexture(false,true),
 			"clubTeal" => FoyerArt.material(Palette.TEAL,13).toIndexTexture(false,true),
 			"partyFloor" => FoyerArt.texture(false,true,"materials/party-floor.png",palette,256,256),
+			"bedroomCarpet" => FoyerArt.texture(false,true,"materials/bedroom-carpet.png",palette,256,256),
+			"basementWall" => FoyerArt.texture(false,true,"materials/basement-materials.png",palette,256,256,0,.25),
+			"basementFloor" => FoyerArt.texture(false,true,"materials/basement-materials.png",palette,256,256,.25,.5),
+			"basementCeiling" => FoyerArt.texture(false,true,"materials/basement-materials.png",palette,256,256,.5,.75),
+			"basementMetal" => FoyerArt.texture(false,true,"materials/basement-materials.png",palette,256,256,.75,1),
+			"basementStair" => FoyerArt.texture(false,true,"materials/basement-stairs.png",palette,256,256),
 			"partyWall" => FoyerArt.texture(false,true,"materials/party-wall.png",palette,128,192),
 			"partyCeiling" => FoyerArt.texture(false,true,"materials/party-ceiling.png",palette,256,256),
 			"marble" => FoyerArt.texture(false,true,"materials/manor-floor.png",palette,128,128),
@@ -218,9 +224,9 @@ class Main extends hxd.App {
 			var s = new BuildSprite(texturesByCharacter.get(g.art), shadeLut, BuildSprite.DRAWN_ANGLES,
 				SpriteArt.frameWidth(g.art) / SpriteArt.density(g.art), SpriteArt.frameHeight(g.art) / SpriteArt.density(g.art),
 				s3d, SpriteArt.animationRows(g.art));
-			s.setPosition(g.x, g.y, 0);
+			s.setPosition(g.x, g.y, level.guestZ(g));
 			s.facing = g.facing * Math.PI / 180;
-			s.shader.shadeOffset = sectorShade(map, g.x, g.y);
+			s.shader.shadeOffset = sectorShade(map, g.x, g.y, g.floor == null || g.floor == 0 ? null : level.guestZ(g));
 			sprites.push(s);
 			if (StringTools.startsWith(g.art, "security_")) securityGuards.push(s);
 			if (g.turns == true && g.walkTo == null)
@@ -228,11 +234,11 @@ class Main extends hxd.App {
 			if (g.spins == true)
 				spinners.push(s);
 			if (g.walkTo != null)
-				walkers.push({sprite: s, path: new world.GuestWalkPath(g.x, g.y, g.walkTo.x, g.walkTo.y)});
+				walkers.push({sprite: s, path: new world.GuestWalkPath(g.x, g.y, g.walkTo.x, g.walkTo.y, g.floor == null || g.floor == 0 ? null : level.guestZ(g))});
 		}
 
 		var chandelierTex = Resolution.texture(96, 72, false, (pw, ph) -> SpriteArt.chandelier(palette, Std.int(pw / 96)).toIndexPixels(true));
-		for (ch in data.chandeliers) {
+		for (ch in level.chandeliers) {
 			var chandelier = new BuildSprite(chandelierTex, shadeLut, 1, ch.width, ch.width * .75, s3d);
 			chandelier.setPosition(ch.x, ch.y, ch.z);
 			chandelier.shader.shadeOffset = -8; // candlelit: nearly full bright
@@ -247,7 +253,7 @@ class Main extends hxd.App {
 		}
 		for (sh in shaders) {
 			sh.visibility = VISIBILITY;
-			sh.setLights(data.lights);
+			sh.setLights(level.lights);
 		}
 
 		var cam = s3d.camera;
@@ -258,6 +264,7 @@ class Main extends hxd.App {
 		cam.zFar = 120;
 
 		player = new PlayerController(map, data.start.x, data.start.y, level.startYaw);
+		player.feetZ = level.startFeetZ();
 		player.bobAmount = settings.headBob / 100;
 		player.mouseScale = settings.mouseSensitivity / 100;
 		player.perspectiveLook = settings.lookStyle == Perspective;
@@ -283,7 +290,7 @@ class Main extends hxd.App {
 			case "partytable": player.x=32; player.y=23; player.yaw=.65; player.pitch=-.25;
 			default:
 		}
-		player.feetZ=map.floorAt(player.x,player.y);
+		if (options.exists("foyerView")) player.feetZ=map.floorAt(player.x,player.y);
 		#end
 
 		windowWatch = new core.WindowWatch();
@@ -351,16 +358,16 @@ class Main extends hxd.App {
 		telemetry.start(settings);
 
 		#if (js && devtools)
-		// Dev-only console hooks: crownDebug.teleport(x, y, yawDegrees, pitchDegrees), crownDebug.state()
+		// Dev-only console hooks: crownDebug.teleport(x, y, yawDegrees, pitchDegrees, feetHeight?), crownDebug.state()
 		js.Syntax.code("window.crownDebug = {0}", {
-			teleport: (x:Float, y:Float, yawDeg:Float, pitchDeg:Float) -> {
+			teleport: (x:Float, y:Float, yawDeg:Float, pitchDeg:Float, ?z:Float) -> {
 				player.x = x;
 				player.y = y;
-				player.feetZ = map.floorAt(x,y);
+				player.feetZ = map.floorAt(x,y,z);
 				player.yaw = yawDeg * Math.PI / 180;
 				player.pitch = pitchDeg * Math.PI / 180;
 			},
-			state: () -> {x: player.x, y: player.y, yawDeg: player.yaw * 180 / Math.PI, pitchDeg: player.pitch * 180 / Math.PI,
+			state: () -> {x: player.x, y: player.y, z: player.feetZ, room: {var r = map.sectorAtWorld(player.x, player.y, player.feetZ); r == null ? null : r.name;}, yawDeg: player.yaw * 180 / Math.PI, pitchDeg: player.pitch * 180 / Math.PI,
 				pad: {connected: player.pad.connected, x: player.pad.xAxis, y: player.pad.yAxis, bridge: bridge.pad.connected}},
 			padPrompts: (on:Bool) -> InputMode.forcePad = on,
 		});
@@ -539,7 +546,7 @@ class Main extends hxd.App {
 	var lookMode:Null<hxd.impl.MouseMode>;
 
 	function checkIn():Void {
-		if(entrance.open || !level.atDesk(player.x,player.y,player.yaw) || register.busy) return;
+		if(entrance.open || !level.atDesk(player.x,player.y,player.yaw,player.feetZ) || register.busy) return;
 		entrance.notify("Signing the Guest Register...");
 		register.checkIn(visited,wallet,error -> entrance.notify(error==null?'Check-in saved with ${wallet.sovereigns} Sovereigns. Fortune favors the bold.':error,6));
 	}
@@ -547,11 +554,11 @@ class Main extends hxd.App {
 	/** E / A (or a click on the prompt): whatever the player is standing at. **/
 	function interact():Void {
 		if (entrance.open || table.open || privateTable.open || pauseMenu.open) return;
-		if (level.atDesk(player.x,player.y,player.yaw)) checkIn();
-		else if (level.atTable(player.x,player.y,player.yaw)) {
+		if (level.atDesk(player.x,player.y,player.yaw,player.feetZ)) checkIn();
+		else if (level.atTable(player.x,player.y,player.yaw,player.feetZ)) {
 			hxd.Window.getInstance().mouseMode=Absolute;
 			table.show();
-		} else if (level.atPrivateTable(player.x,player.y,player.yaw)) {
+		} else if (level.atPrivateTable(player.x,player.y,player.yaw,player.feetZ)) {
 			hxd.Window.getInstance().mouseMode=Absolute;
 			games.PlayLog.sitAt("Private Party Hold'em", []);
 			privateTable.show();
@@ -575,7 +582,7 @@ class Main extends hxd.App {
 	/** What the launcher records with every heartbeat and error report. **/
 	function gameState():Dynamic {
 		if (level == null) return {room: "loading the map"};
-		var sector = map.sectorAtWorld(player.x, player.y);
+		var sector = map.sectorAtWorld(player.x, player.y, player.feetZ);
 		// Heaps reports a huge rate until a few frames have been timed; leave it out until then.
 		var fps = hxd.Timer.fps();
 		return {
@@ -606,8 +613,8 @@ class Main extends hxd.App {
 		return source + stick + (others.length > 0 ? '; also ${others.join(", ")}' : "");
 	}
 
-	static function sectorShade(map:world.GridMap, x:Float, y:Float):Float {
-		var s = map.sectorAtWorld(x, y);
+	static function sectorShade(map:world.GridMap, x:Float, y:Float, ?z:Float):Float {
+		var s = map.sectorAtWorld(x, y, z);
 		return s == null ? 8 : s.shade;
 	}
 
@@ -650,10 +657,10 @@ class Main extends hxd.App {
 		if (!entrance.open && !seated && !paused && !openMenuIfAsked()) {
 			updateMouseLook();
 			player.update(dt);
-			var room=map.sectorAtWorld(player.x,player.y);
+			var room=map.sectorAtWorld(player.x,player.y,player.feetZ);
 			if(room!=null && visited.indexOf(room.name)<0) visited.push(room.name);
-			if (!level.atDoor(player.x,player.y)) {
-				if(level.awayFromDoors(player.x,player.y)) doorArmed=true;
+			if (!level.atDoor(player.x,player.y,player.feetZ)) {
+				if(level.awayFromDoors(player.x,player.y,player.feetZ)) doorArmed=true;
 			} else if(doorArmed) {
 				doorArmed=false; entrance.show(); hxd.Window.getInstance().mouseMode=Absolute;
 			}
@@ -682,10 +689,10 @@ class Main extends hxd.App {
 		}
 		if(!worldPaused) for (walker in walkers) {
 			walker.path.update(dt, map);
-			walker.sprite.setPosition(walker.path.x, walker.path.y, 0);
+			walker.sprite.setPosition(walker.path.x, walker.path.y, walker.path.z == null ? 0 : walker.path.z);
 			walker.sprite.facing = walker.path.facing;
 			walker.sprite.animationFrame = walker.path.phase;
-			walker.sprite.shader.shadeOffset = sectorShade(map, walker.path.x, walker.path.y);
+			walker.sprite.shader.shadeOffset = sectorShade(map, walker.path.x, walker.path.y, walker.path.z);
 		}
 		if(!worldPaused) for (i in 0...securityGuards.length) {
 			// Offset the radio checks so the sentries do not move in unison.
@@ -721,19 +728,19 @@ class Main extends hxd.App {
 		if(!showDebug)
 		#end
 		{
-			var here=map.sectorAtWorld(player.x,player.y);
+			var here=map.sectorAtWorld(player.x,player.y,player.feetZ);
 			info.text=level.data.name.toUpperCase()+"\n"+(here==null?"":here.name);
 		}
 		spritePreview.hideToggle(seated || pauseMenu.open);
 		if(!worldPaused && !seated) spritePreview.update(view.width, dt);
 		crosshair.visible=hands.visible=info.visible=!worldPaused && !seated;
-		var atDesk=level.atDesk(player.x,player.y,player.yaw), atTable=level.atTable(player.x,player.y,player.yaw);
-		var atPrivate=level.atPrivateTable(player.x,player.y,player.yaw);
+		var atDesk=level.atDesk(player.x,player.y,player.yaw,player.feetZ), atTable=level.atTable(player.x,player.y,player.yaw,player.feetZ);
+		var atPrivate=level.atPrivateTable(player.x,player.y,player.yaw,player.feetZ);
 		var prompt=seated || pauseMenu.open ? ""
 			: atDesk ? (register.busy?"Signing the Guest Register...":"Check in with Mr. Quill - save your visit")
 			: atTable ? "Sit down at the card table"
 			: atPrivate ? "Take the empty chair - play with friends"
-			: level.belowStairs(player.x,player.y) ? "The upper floor is closed. Please use the side aisles." : "";
+			: level.belowStairs(player.x,player.y,player.feetZ) ? "The upper floor is closed. Please use the side aisles." : "";
 		entrance.update(view.width,dt,player.pad,prompt,!seated && !pauseMenu.open && ((atDesk && !register.busy) || atTable || atPrivate));
 	}
 

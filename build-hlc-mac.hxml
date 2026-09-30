@@ -1,0 +1,15 @@
+# Native build for Apple Silicon Macs (HL/C). The HashLink VM's JIT is x86-only,
+# so on arm64 the game is compiled to C and built with clang against libhl.
+#   haxe build-hlc-mac.hxml
+# Output: native/mac/game (see tools/build_mac.sh, which runs this and links it).
+-cp src
+-lib heaps
+-lib hlsdl
+-lib hlopenal
+-main Main
+-D analyzer-optimize
+-D windowTitle=Crown & Card
+-D windowSize=1280x720
+# Dev tools (inspection views, F3 debug text). Remove for release builds.
+-D devtools
+-hl native/mac/c/game.c

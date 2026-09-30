@@ -1,0 +1,74 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<!--
+  The launcher for macOS (Apple Silicon): the Windows launcher's own code in
+  ../src (server, sessions, saves, maps, multiplayer, settings, news, updates),
+  built with MACOS defined, plus a Mac UI in Avalonia and Mac versions of the
+  few Windows-only parts (JSON, menu music output, controller).
+  Build the app bundle with launcher/mac/build.sh.
+-->
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifier>osx-arm64</RuntimeIdentifier>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>CrownAndCard.Launcher</RootNamespace>
+    <AssemblyName>CrownAndCardLauncher</AssemblyName>
+    <DefineConstants>$(DefineConstants);MACOS</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <SelfContained>true</SelfContained>
+    <UseAppHost>true</UseAppHost>
+    <BaseIntermediateOutputPath>obj/</BaseIntermediateOutputPath>
+    <!-- Version from version.json, like build.ps1 does for Windows. -->
+    <CcVersion>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../../version.json')), '\d+\.\d+\.\d+').Value)</CcVersion>
+    <Version>$(CcVersion)</Version>
+    <!-- The shared code was written against .NET Framework: fields only its Windows paths set, and older nullability. -->
+    <NoWarn>$(NoWarn);CS0649;CS8619</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The shared launcher code; the WinForms UI and the Windows-only parts are replaced by src/ here. -->
+    <Compile Include="../src/**/*.cs" Exclude="../src/ui/**;../src/Program.cs;../src/Json.cs;../src/MusicPlayer.cs;../src/XInputPad.cs;../src/AssemblyInfo.cs" LinkBase="shared" />
+    <EmbeddedResource Include="../assets/manor-launcher.png" LogicalName="CrownAndCard.Manor.png" />
+    <EmbeddedResource Include="../assets/launcher-icon.png" LogicalName="CrownAndCard.Emblem.png" />
+    <EmbeddedResource Include="../assets/launcher-logo.png" LogicalName="CrownAndCard.Logo.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+  </ItemGroup>
+
+  <!-- The menu music decoder (../native/cc_vorbis.c around stb_vorbis), as libcc_vorbis.dylib beside the launcher. -->
+  <Target Name="VorbisPaths">
+    <PropertyGroup>
+      <VorbisSource>$(MSBuildThisFileDirectory)../native/cc_vorbis.c</VorbisSource>
+      <VorbisDylib>$(MSBuildThisFileDirectory)$(IntermediateOutputPath)libcc_vorbis.dylib</VorbisDylib>
+    </PropertyGroup>
+  </Target>
+  <Target Name="BuildVorbis" DependsOnTargets="VorbisPaths" Inputs="$(MSBuildThisFileDirectory)../native/cc_vorbis.c;$(MSBuildThisFileDirectory)../native/stb_vorbis.c" Outputs="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)libcc_vorbis.dylib">
+    <MakeDir Directories="$(MSBuildThisFileDirectory)$(IntermediateOutputPath)" />
+    <Exec Command="clang -O2 -arch arm64 -shared -fvisibility=hidden -w -DNDEBUG -mmacosx-version-min=12.0 -install_name @rpath/libcc_vorbis.dylib -o &quot;$(VorbisDylib)&quot; &quot;$(VorbisSource)&quot;" />
+  </Target>
+  <Target Name="IncludeVorbis" BeforeTargets="AssignTargetPaths" DependsOnTargets="BuildVorbis">
+    <ItemGroup>
+      <None Include="$(VorbisDylib)" Link="libcc_vorbis.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="GenerateBuildInfo" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <GeneratedBuildInfo>$(IntermediateOutputPath)BuildInfo.cs</GeneratedBuildInfo>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(GeneratedBuildInfo)" Overwrite="true" WriteOnlyWhenDifferent="true" Lines="// Generated from version.json. Don't edit.;[assembly: System.Reflection.AssemblyVersion(&quot;$(CcVersion).0&quot;)];[assembly: System.Reflection.AssemblyInformationalVersion(&quot;$(CcVersion)&quot;)];[assembly: System.Reflection.AssemblyTitle(&quot;Crown &amp; Card Launcher&quot;)];[assembly: System.Reflection.AssemblyProduct(&quot;Crown &amp; Card&quot;)];namespace CrownAndCard.Launcher%3B;static class BuildInfo { public const string Version = &quot;$(CcVersion)&quot;%3B }" />
+    <ItemGroup>
+      <Compile Include="$(GeneratedBuildInfo)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

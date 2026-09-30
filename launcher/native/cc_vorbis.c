@@ -8,7 +8,11 @@
 #define STB_VORBIS_NO_PUSHDATA_API
 #include "stb_vorbis.c"
 
+#ifdef _WIN32
 #define CCV_EXPORT __declspec(dllexport)
+#else
+#define CCV_EXPORT __attribute__((visibility("default")))
+#endif
 
 // Opens Ogg Vorbis data held in memory. The data must stay alive until ccv_close.
 // Returns NULL if the data isn't valid Ogg Vorbis.

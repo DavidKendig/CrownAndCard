@@ -7,6 +7,10 @@ class GuestWalkPath {
 	public var y(default, null):Float;
 	public var facing(default, null):Float;
 	public var phase(default, null):Int = 0;
+
+	/** The height the guest walks at, on a floor above or below the ground floor; null on the ground floor. **/
+	public final z:Null<Float>;
+
 	final startX:Float;
 	final startY:Float;
 	final endX:Float;
@@ -14,7 +18,8 @@ class GuestWalkPath {
 	var returning = false;
 	var distance = 0.0;
 
-	public function new(x:Float, y:Float, endX:Float, endY:Float) {
+	public function new(x:Float, y:Float, endX:Float, endY:Float, ?z:Float) {
+		this.z = z;
 		this.x = startX = x;
 		this.y = startY = y;
 		this.endX = endX;
@@ -32,7 +37,7 @@ class GuestWalkPath {
 		}
 		var step = Math.min(remaining, Math.max(0, Math.min(dt, 0.1)) * 0.7);
 		var nx = x + dx / remaining * step, ny = y + dy / remaining * step;
-		if (map.blocked(nx, ny, 0.25)) return;
+		if (map.blocked(nx, ny, 0.25, z)) return;
 		x = nx;
 		y = ny;
 		facing = Math.atan2(dy, dx);
