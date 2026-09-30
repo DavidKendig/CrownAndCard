@@ -16,12 +16,17 @@
   Commit and push the version bump before publishing, so the tag points at
   the code that built the release.
 
+  -NotesFile takes the notes from a file instead (Markdown, any length). Use
+  it for anything with quotes or line breaks: Windows PowerShell mangles
+  those on a native command line.
+
 .EXAMPLE
   powershell -File tools\release.ps1 -Bump -Notes "Controller support"
 #>
 param(
     [switch]$Bump,
     [string]$Notes = "",
+    [string]$NotesFile = "",
     [switch]$Draft
 )
 $ErrorActionPreference = "Stop"
@@ -43,8 +48,9 @@ try {
     # The launcher's updater looks for the Setup exe; the zip is the portable build.
     $args = @("release", "create", "v$version", $setup, $zip, "$zip.sha256",
         "--repo", "DavidKendig/CrownAndCard",
-        "--title", "Crown & Card $version",
-        "--notes", $(if ($Notes) { $Notes } else { "Crown & Card $version" }))
+        "--title", "Crown & Card $version")
+    if ($NotesFile) { $args += @("--notes-file", $NotesFile) }
+    else { $args += @("--notes", $(if ($Notes) { $Notes } else { "Crown & Card $version" })) }
     if ($Draft) { $args += "--draft" }
     gh @args
     if ($LASTEXITCODE -ne 0) { throw "gh release create failed." }

@@ -81,5 +81,6 @@ cat > "$app/Contents/Info.plist" <<EOF
 </plist>
 EOF
 
+xattr -cr "$app"
 codesign --force --deep --sign - "$app" >/dev/null 2>&1 || echo "warning: ad hoc signing failed; macOS may refuse to open the app" >&2
 echo "Built $app ($version)"

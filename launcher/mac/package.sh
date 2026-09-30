@@ -61,6 +61,8 @@ if otool -L "$dir"/* 2>/dev/null | grep -E '^\s*/(opt/homebrew|usr/local)/'; the
 	echo "Some libraries still load from Homebrew (above)" >&2
 	exit 1
 fi
+# Signing refuses files carrying Finder metadata or quarantine flags.
+xattr -cr "$app"
 for f in "$dir"/*; do codesign --force --sign - "$f" >/dev/null 2>&1; done
 codesign --force --deep --sign - "$app"
 
