@@ -57,4 +57,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           NOTES: ${{ inputs.notes }}
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/release.ps1 -Notes "$env:NOTES"
+        # The notes go through a file: Windows PowerShell mangles quotes and line breaks in native command arguments.
+        run: |
+          $notes = if ($env:NOTES) { $env:NOTES } else { "Crown & Card " + (Get-Content version.json -Raw | ConvertFrom-Json).version }
+          Set-Content -Path "$env:RUNNER_TEMP\release-notes.md" -Value $notes -Encoding utf8
+          powershell -NoProfile -ExecutionPolicy Bypass -File tools/release.ps1 -NotesFile "$env:RUNNER_TEMP\release-notes.md"
